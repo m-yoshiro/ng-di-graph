@@ -1,0 +1,44 @@
+{
+  "name": "ng-di-graph",
+  "version": "0.1.0",
+  "description": "Angular DI dependency graph CLI tool",
+  "main": "dist/index.js",
+  "bin": {
+    "ng-di-graph": "dist/cli/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint src/**/*.ts",
+    "typecheck": "tsc --noEmit",
+    "dev": "ts-node src/cli/index.ts",
+    "clean": "rimraf dist"
+  },
+  "keywords": [
+    "angular",
+    "dependency-injection",
+    "typescript",
+    "cli",
+    "graph"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "eslint": "^8.0.0",
+    "rimraf": "^5.0.0",
+    "ts-node": "^10.9.0",
+    "typescript": "^5.0.0",
+    "vitest": "^1.0.0"
+  },
+  "dependencies": {
+    "commander": "^11.0.0",
+    "ts-morph": "^21.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
