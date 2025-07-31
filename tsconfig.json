@@ -8,6 +8,7 @@
     "rootDir": "./src",
     "strict": true,
     "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
@@ -17,7 +18,10 @@
     "noUnusedLocals": false,
     "noUnusedParameters": false,
     "noImplicitReturns": true,
-    "noFallthroughCasesInSwitch": true
+    "noFallthroughCasesInSwitch": true,
+    "moduleResolution": "node",
+    "allowJs": true,
+    "isolatedModules": true
   },
   "include": [
     "src/**/*"
@@ -25,6 +29,8 @@
   "exclude": [
     "node_modules",
     "dist",
+    "tmp",
+    "coverage",
     "**/*.test.ts",
     "**/*.spec.ts"
   ]
