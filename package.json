@@ -8,12 +8,18 @@
   },
   "scripts": {
     "build": "tsc",
+    "build:bun": "bun build src/cli/index.ts --outdir dist --target node --minify --sourcemap && mkdir -p dist/cli && mv dist/index.js dist/cli/index.js && mv dist/index.js.map dist/cli/index.js.map 2>/dev/null || true",
     "test": "vitest run",
+    "test:bun": "bun test",
     "test:watch": "vitest",
+    "test:watch:bun": "bun test --watch",
     "lint": "eslint src/**/*.ts",
     "typecheck": "tsc --noEmit",
+    "typecheck:bun": "bun x tsc --noEmit",
     "dev": "ts-node src/cli/index.ts",
-    "clean": "rimraf dist"
+    "dev:bun": "bun src/cli/index.ts",
+    "clean": "rimraf dist",
+    "install:bun": "bun install"
   },
   "keywords": [
     "angular",
@@ -28,6 +34,7 @@
     "@types/node": "^20.0.0",
     "@typescript-eslint/eslint-plugin": "^6.0.0",
     "@typescript-eslint/parser": "^6.0.0",
+    "@vitest/coverage-v8": "^1.6.1",
     "eslint": "^8.0.0",
     "rimraf": "^5.0.0",
     "ts-node": "^10.9.0",
