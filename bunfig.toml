@@ -1,0 +1,37 @@
+# Bun configuration for ng-di-graph
+# https://bun.sh/docs/runtime/bunfig
+
+[install]
+# Use exact versions for consistent builds
+exact = true
+# Cache packages globally for faster installs
+cache = true
+# Skip installing devDependencies in production
+production = false
+
+[install.scopes]
+# Configure any scoped packages if needed in the future
+
+[test]
+# Test configuration
+coverage = true
+# Use the default test runner
+runner = "bun"
+
+[build]
+# Build configuration for bundling
+target = "node"
+format = "cjs"
+splitting = false
+# Minify in production builds
+minify = false
+
+# TypeScript configuration
+[typescript]
+# Use project's tsconfig.json
+configFile = "./tsconfig.json"
+
+# Runtime configuration
+[runtime]
+# Disable Bun's Node.js compatibility warnings for cleaner output
+node-modules-bundle = true
