@@ -4,15 +4,12 @@
  * Supports both Node.js (via ts-node) and Bun native execution
  */
 import { Command } from 'commander';
-import { CliOptions } from '../types';
 import { AngularParser } from '../core/parser';
+import type { CliOptions } from '../types';
 
 const program = new Command();
 
-program
-  .name('ng-di-graph')
-  .description('Angular DI dependency graph CLI tool')
-  .version('0.1.0');
+program.name('ng-di-graph').description('Angular DI dependency graph CLI tool').version('0.1.0');
 
 program
   .option('-p, --project <path>', 'tsconfig.json path', './tsconfig.json')
@@ -32,24 +29,26 @@ program.action(async (options) => {
       direction: options.direction as 'upstream' | 'downstream' | 'both',
       includeDecorators: options.includeDecorators,
       out: options.out,
-      verbose: options.verbose
+      verbose: options.verbose,
     };
 
     if (cliOptions.verbose) {
       console.log('🔧 CLI Options:', JSON.stringify(cliOptions, null, 2));
-      console.log(`🚀 Running with ${process.versions.bun ? 'Bun' : 'Node.js'} ${process.versions.bun || process.versions.node}`);
+      console.log(
+        `🚀 Running with ${process.versions.bun ? 'Bun' : 'Node.js'} ${process.versions.bun || process.versions.node}`
+      );
     }
 
     // Initialize parser
     const parser = new AngularParser(cliOptions);
-    
+
     if (cliOptions.verbose) {
       console.log('📂 Loading TypeScript project...');
     }
-    
+
     // Load project
     parser.loadProject();
-    
+
     if (cliOptions.verbose) {
       console.log('✅ Project loaded successfully');
     }
@@ -58,10 +57,9 @@ program.action(async (options) => {
     // Full implementation will come in later tasks
     const project = parser.getProject();
     const sourceFiles = project.getSourceFiles();
-    
+
     console.log(`Found ${sourceFiles.length} source files in the project`);
     console.log('🚧 Full parsing implementation coming soon...');
-
   } catch (error) {
     if (error instanceof Error) {
       console.error('❌ Error:', error.message);

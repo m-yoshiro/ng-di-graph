@@ -1,10 +1,10 @@
+import { existsSync, readFileSync } from 'node:fs';
 /**
  * AngularParser - Core TypeScript AST parsing using ts-morph
  * Implements FR-01: ts-morph project loading with comprehensive error handling
  */
 import { Project } from 'ts-morph';
-import { existsSync, readFileSync } from 'fs';
-import { CliOptions, ParsedClass, ParserError } from '../types';
+import type { CliOptions, ParsedClass, ParserError } from '../types';
 
 export class AngularParser {
   private _project?: Project;
@@ -18,7 +18,9 @@ export class AngularParser {
   loadProject(): void {
     // Validate tsconfig path exists
     if (!existsSync(this._options.project)) {
-      const error = new Error(`tsconfig.json not found at: ${this._options.project}`) as ParserError;
+      const error = new Error(
+        `tsconfig.json not found at: ${this._options.project}`
+      ) as ParserError;
       error.code = 'TSCONFIG_NOT_FOUND';
       error.filePath = this._options.project;
       throw error;
@@ -52,21 +54,20 @@ export class AngularParser {
       // Basic validation - try to get source files to ensure project is valid
       // This will catch TypeScript compilation/configuration errors
       this._project.getSourceFiles();
-      
+
       // Additional validation for compiler options
       const program = this._project.getProgram();
       const diagnostics = program.getConfigFileParsingDiagnostics();
-      
+
       if (diagnostics.length > 0) {
         const firstDiagnostic = diagnostics[0];
         const message = firstDiagnostic.getMessageText();
-        
+
         const parserError = new Error(`TypeScript configuration error: ${message}`) as ParserError;
         parserError.code = 'PROJECT_LOAD_FAILED';
         parserError.filePath = this._options.project;
         throw parserError;
       }
-
     } catch (error) {
       if (error instanceof Error) {
         // Check if it's already a ParserError
@@ -75,7 +76,11 @@ export class AngularParser {
         }
 
         // Handle different types of ts-morph/TypeScript errors
-        if (error.message.includes('JSON') || error.message.includes('Unexpected token') || error.message.includes('expected')) {
+        if (
+          error.message.includes('JSON') ||
+          error.message.includes('Unexpected token') ||
+          error.message.includes('expected')
+        ) {
           const parserError = new Error(`Invalid tsconfig.json: ${error.message}`) as ParserError;
           parserError.code = 'TSCONFIG_INVALID';
           parserError.filePath = this._options.project;
@@ -83,21 +88,27 @@ export class AngularParser {
         }
 
         if (error.message.includes('TypeScript') || error.message.includes('Compiler option')) {
-          const parserError = new Error(`TypeScript compilation failed: ${error.message}`) as ParserError;
+          const parserError = new Error(
+            `TypeScript compilation failed: ${error.message}`
+          ) as ParserError;
           parserError.code = 'PROJECT_LOAD_FAILED';
           parserError.filePath = this._options.project;
           throw parserError;
         }
 
         // Generic project loading failure
-        const parserError = new Error(`Failed to load TypeScript project: ${error.message}`) as ParserError;
+        const parserError = new Error(
+          `Failed to load TypeScript project: ${error.message}`
+        ) as ParserError;
         parserError.code = 'PROJECT_LOAD_FAILED';
         parserError.filePath = this._options.project;
         throw parserError;
       }
 
       // Unknown error type
-      const parserError = new Error('Failed to load TypeScript project due to unknown error') as ParserError;
+      const parserError = new Error(
+        'Failed to load TypeScript project due to unknown error'
+      ) as ParserError;
       parserError.code = 'PROJECT_LOAD_FAILED';
       throw parserError;
     }
@@ -124,7 +135,7 @@ export class AngularParser {
     if (!this._project) {
       this.loadProject();
     }
-    
+
     // Not implemented yet - will be implemented in FR-02
     throw new Error('Not implemented yet');
   }
