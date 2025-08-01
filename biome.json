@@ -1,0 +1,83 @@
+{
+  "$schema": "https://biomejs.dev/schemas/1.8.0/schema.json",
+  "files": {
+    "include": ["src/**/*.ts"],
+    "ignore": [
+      "node_modules/**",
+      "dist/**",
+      "tmp/**",
+      "coverage/**",
+      "**/*.test.ts",
+      "**/*.spec.ts",
+      "**/*.js",
+      "**/*.js.map"
+    ],
+    "maxSize": 10485760
+  },
+  "organizeImports": {
+    "enabled": true
+  },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "recommended": true,
+      "correctness": {
+        "noUnusedVariables": "error",
+        "useExhaustiveDependencies": "warn"
+      },
+      "style": {
+        "noParameterAssign": "warn",
+        "useConst": "error",
+        "useTemplate": "warn"
+      },
+      "suspicious": {
+        "noExplicitAny": "warn",
+        "noEmptyInterface": "warn"
+      },
+      "complexity": {
+        "noBannedTypes": "error",
+        "noUselessConstructor": "error"
+      }
+    },
+    "ignore": [
+      "src/**/*.js",
+      "src/**/*.js.map"
+    ]
+  },
+  "formatter": {
+    "enabled": true,
+    "formatWithErrors": false,
+    "indentStyle": "space",
+    "indentWidth": 2,
+    "lineEnding": "lf",
+    "lineWidth": 100,
+    "attributePosition": "auto",
+    "ignore": [
+      "dist/**",
+      "node_modules/**",
+      "**/*.js.map"
+    ]
+  },
+  "javascript": {
+    "formatter": {
+      "jsxQuoteStyle": "double",
+      "quoteProperties": "asNeeded",
+      "trailingCommas": "es5",
+      "semicolons": "always",
+      "arrowParentheses": "always",
+      "bracketSpacing": true,
+      "bracketSameLine": false,
+      "quoteStyle": "single",
+      "attributePosition": "auto"
+    }
+  },
+  "json": {
+    "formatter": {
+      "enabled": true,
+      "indentStyle": "space",
+      "indentWidth": 2,
+      "lineEnding": "lf",
+      "lineWidth": 100
+    }
+  }
+}
