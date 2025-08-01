@@ -74,7 +74,10 @@ This project supports both Node.js and Bun runtimes. Choose the runtime that bes
 - `npm run test` - Run tests with Vitest
 - `npm run test:watch` - Run tests in watch mode for TDD development
 - `npm run build` - Build with TypeScript compiler
-- `npm run lint` - Code linting with ESLint
+- `npm run lint` - Code linting and formatting with Biome
+- `npm run lint:fix` - Auto-fix linting issues with Biome
+- `npm run format` - Format code with Biome  
+- `npm run check` - Combined lint and typecheck validation
 - `npm run typecheck` - TypeScript type checking
 
 ### Bun Commands (Recommended for Development)
