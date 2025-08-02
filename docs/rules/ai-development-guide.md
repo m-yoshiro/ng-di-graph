@@ -9,11 +9,12 @@
 
 ## 1. AI-Powered Development Overview
 
-This guide outlines how to effectively leverage Claude Code's specialized agents to develop the ng-di-graph CLI tool. The project uses three specialized agents that work together to provide a complete development workflow:
+This guide outlines how to effectively leverage Claude Code's specialized agents to develop the ng-di-graph CLI tool. The project uses four specialized agents that work together to provide a complete development workflow:
 
 - **implementation-planner**: Transforms requirements into structured, executable plans
-- **implementation-executor**: Executes plans with precision and best practices  
-- **debug-specialist**: Performs code analysis, debugging, and quality assurance
+- **implementation-executor**: Executes plans with precision and best practices
+- **code-reviewer**: Performs comprehensive code review and quality assurance for recently written code
+- **debug-specialist**: Performs code analysis, debugging, and error resolution
 
 ### Core Principles
 - **Incremental Development**: Focus on one task at a time for better quality and maintainability
@@ -31,7 +32,8 @@ This guide outlines how to effectively leverage Claude Code's specialized agents
 |-------|----------|---------|
 | **implementation-planner** | Creating detailed implementation plans from PRD requirements | "Break down FR-01 (ts-morph project loading) into executable tasks" |
 | **implementation-executor** | Executing existing implementation plans with code | "Implement the CLI interface plan we created yesterday" |
-| **debug-specialist** | Code quality, debugging, and error resolution | "Check my parser implementation for type errors and linting issues" |
+| **code-reviewer** | Comprehensive code review and quality assurance for recently written code | "Review my Angular parser implementation for quality, standards compliance, and potential improvements" |
+| **debug-specialist** | Code analysis, debugging, and error resolution | "Debug these type errors and fix the failing tests" |
 
 ### 2.2 Typical Workflow Sequence
 
@@ -41,9 +43,13 @@ flowchart LR
     B --> C[Detailed Plan Created]
     C --> D[implementation-executor]
     D --> E[Code Implementation]
-    E --> F[debug-specialist]
-    F --> G[Quality Validation]
-    G --> H[Task Complete]
+    E --> F[code-reviewer]
+    F --> G[Code Review & Quality Assessment]
+    G --> H{Issues Found?}
+    H -->|Yes| I[debug-specialist]
+    I --> J[Debug & Fix Issues]
+    J --> F
+    H -->|No| K[Task Complete]
 ```
 
 ### 2.3 Agent Handoff Best Practices
@@ -52,6 +58,8 @@ flowchart LR
 2. **Clear Context Transfer**: Provide the next agent with complete context and references
 3. **Document Progress**: Update todo lists and progress tracking between agent switches
 4. **Validate Outputs**: Verify each agent's output meets acceptance criteria before proceeding
+5. **Code Review Integration**: Always use code-reviewer after implementation before considering a task complete
+6. **Issue Resolution**: Use debug-specialist to address specific issues identified by code-reviewer
 
 ---
 
@@ -64,8 +72,9 @@ Every feature implementation must follow this enhanced TDD cycle:
 ```
 1. RED (with AI): Use implementation-planner to design failing tests
 2. GREEN (with AI): Use implementation-executor to write minimal passing code  
-3. REFACTOR (with AI): Use debug-specialist to optimize and clean code
-4. REPEAT: Continue cycle until feature complete
+3. REVIEW (with AI): Use code-reviewer to assess code quality and standards compliance
+4. REFACTOR (with AI): Use debug-specialist to optimize and resolve any identified issues
+5. REPEAT: Continue cycle until feature complete
 ```
 
 ### 3.2 Test-First Development Commands
@@ -85,7 +94,8 @@ npm run test
 
 - **Test Design**: Use implementation-planner to create comprehensive test cases before coding
 - **Test Implementation**: Use implementation-executor to write actual test code following TDD principles
-- **Test Validation**: Use debug-specialist to ensure tests are robust and cover edge cases
+- **Code Review**: Use code-reviewer to assess test quality, coverage, and adherence to testing best practices
+- **Test Optimization**: Use debug-specialist to ensure tests are robust and cover edge cases
 
 ---
 
@@ -216,9 +226,9 @@ Provide AI agents with project-specific error handling requirements:
 
 ## 6. Quality Assurance with AI
 
-### 6.1 debug-specialist Integration
+### 6.1 code-reviewer Integration
 
-Use the debug-specialist agent for comprehensive quality assurance:
+Use the code-reviewer agent for comprehensive quality assurance and code review:
 
 #### Code Quality Checks
 ```bash
@@ -229,11 +239,14 @@ npm run test        # Test suite execution
 npm run test:coverage  # Coverage reporting
 ```
 
-#### Common Issues to Check
+#### Code Review Focus Areas
+- **Code Quality**: Structure, readability, maintainability, and adherence to project standards
 - **Type Safety**: Ensure all TypeScript types are properly defined
-- **Error Handling**: Verify graceful error recovery
-- **Performance**: Check for memory leaks or inefficient algorithms
+- **Error Handling**: Verify graceful error recovery and defensive programming practices
+- **Performance**: Check for memory leaks, inefficient algorithms, and optimization opportunities
 - **Security**: Validate input sanitization and safe file operations
+- **Testing**: Ensure code is testable and follows TDD principles
+- **Documentation**: Verify code is properly documented with clear comments
 
 ### 6.2 Automated Quality Gates
 
@@ -241,16 +254,18 @@ Integrate quality checks into the development workflow:
 
 1. **Pre-Implementation**: Validate plan completeness and feasibility
 2. **During Implementation**: Continuous type checking and testing
-3. **Post-Implementation**: Comprehensive linting and coverage analysis
-4. **Before Commit**: Full quality validation suite
+3. **Post-Implementation**: Comprehensive code review with code-reviewer agent
+4. **Issue Resolution**: Use debug-specialist to address specific issues found in review
+5. **Before Commit**: Full quality validation suite
 
-### 6.3 Performance Validation
+### 6.3 debug-specialist for Issue Resolution
 
-Use debug-specialist to validate performance requirements:
+Use debug-specialist for targeted problem-solving:
+- Debug specific issues identified by code-reviewer
 - Profile parsing time on sample Angular projects
 - Monitor memory usage during graph construction
 - Validate output generation speed
-- Check CLI startup time
+- Fix type errors and compilation issues
 
 ---
 
@@ -262,8 +277,10 @@ Use debug-specialist to validate performance requirements:
 ```
 Session 1: Plan the feature with implementation-planner
 Session 2: Implement core logic with implementation-executor  
-Session 3: Add error handling and edge cases
-Session 4: Optimize and validate with debug-specialist
+Session 3: Review implementation with code-reviewer
+Session 4: Address issues with debug-specialist (if needed)
+Session 5: Add error handling and edge cases
+Session 6: Final review and optimization
 ```
 
 #### ✅ Test-First Validation Pattern
@@ -271,8 +288,9 @@ Session 4: Optimize and validate with debug-specialist
 1. Design comprehensive test cases
 2. Implement failing tests
 3. Write minimal code to pass tests
-4. Refactor and optimize
-5. Validate with debug tools
+4. Review code quality with code-reviewer
+5. Refactor and optimize based on review feedback
+6. Debug and fix any issues with debug-specialist
 ```
 
 #### ✅ Context Preservation Pattern
@@ -308,19 +326,19 @@ Don't expand task scope mid-implementation:
 ### 8.1 AI-Assisted Optimization Strategies
 
 #### Memory Efficiency
-Use debug-specialist to identify and resolve:
+Use code-reviewer to identify potential issues and debug-specialist to resolve:
 - Memory leaks in AST processing
 - Inefficient data structures for large graphs
 - Unnecessary object retention during parsing
 
 #### Processing Speed
-Optimize with AI assistance:
+Optimize with AI assistance (review with code-reviewer, implement with debug-specialist):
 - Parallel file processing where possible
 - Efficient graph traversal algorithms
 - Optimized type resolution caching
 
 #### Output Generation
-Enhance performance through:
+Enhance performance through systematic review and optimization:
 - Streaming output for large graphs
 - Efficient string building for Mermaid format
 - Minimal JSON serialization overhead
@@ -357,9 +375,13 @@ describe('Performance Tests', () => {
 **Symptom**: Implementation deviates from plan
 **Solution**: Reference the specific plan file and highlight the deviation
 
+#### code-reviewer Issues
+**Symptom**: Code review feedback is too generic or misses project-specific requirements
+**Solution**: Provide context about ng-di-graph requirements, Angular DI patterns, and project standards from CLAUDE.md
+
 #### debug-specialist Issues
-**Symptom**: Quality checks miss domain-specific issues
-**Solution**: Provide context about Angular DI patterns and expected behaviors
+**Symptom**: Unable to resolve specific issues identified by code-reviewer
+**Solution**: Provide clear context about the issue, expected behavior, and any error messages or symptoms
 
 ### 9.2 Context Management Issues
 
@@ -384,13 +406,15 @@ describe('Performance Tests', () => {
 **Solution**:
 - Request specific edge case testing
 - Provide examples of failure scenarios
-- Use debug-specialist for coverage analysis
+- Use code-reviewer to assess test quality and coverage
+- Use debug-specialist for coverage analysis and gap resolution
 
 #### Performance Regressions
 **Problem**: New implementations are slower than expected
 **Solution**:
+- Use code-reviewer to identify potential performance issues in implementation
 - Profile before and after changes
-- Use debug-specialist for performance analysis
+- Use debug-specialist for detailed performance analysis and optimization
 - Implement performance tests as part of TDD
 
 ---
@@ -402,9 +426,10 @@ describe('Performance Tests', () => {
 2. **Follow TDD Religiously**: Tests first, always
 3. **Use Agents Strategically**: Right agent for the right task
 4. **Maintain Context**: Reference previous work and documentation
-5. **Validate Continuously**: Check quality at every step
-6. **Track Progress**: Use TodoWrite for task management
-7. **Document Decisions**: Keep implementation plans updated
+5. **Review Code Systematically**: Use code-reviewer after every implementation
+6. **Validate Continuously**: Check quality at every step
+7. **Track Progress**: Use TodoWrite for task management
+8. **Document Decisions**: Keep implementation plans updated
 
 ### For ng-di-graph Specifically:
 1. **Understand Angular DI**: Focus on constructor injection patterns
@@ -416,4 +441,4 @@ describe('Performance Tests', () => {
 
 ---
 
-**Remember**: The goal is not to complete everything at once, but to build high-quality, well-tested features incrementally. Each focused session should leave the codebase in a better, more complete state than before.
+**Remember**: The goal is not to complete everything at once, but to build high-quality, well-tested features incrementally. Each focused session should leave the codebase in a better, more complete state than before. Always use code-reviewer to validate your work before considering any implementation complete.
