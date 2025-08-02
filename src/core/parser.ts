@@ -2,9 +2,11 @@ import { existsSync, readFileSync } from 'node:fs';
 /**
  * AngularParser - Core TypeScript AST parsing using ts-morph
  * Implements FR-01: ts-morph project loading with comprehensive error handling
+ * Implements FR-02: Decorated class collection
  */
-import { Project } from 'ts-morph';
-import type { CliOptions, ParsedClass, ParserError } from '../types';
+import { Project, SyntaxKind } from 'ts-morph';
+import type { ClassDeclaration, Decorator, Node, SourceFile } from 'ts-morph';
+import type { CliOptions, NodeKind, ParsedClass, ParserError } from '../types';
 
 export class AngularParser {
   private _project?: Project;
@@ -136,7 +138,242 @@ export class AngularParser {
       this.loadProject();
     }
 
-    // Not implemented yet - will be implemented in FR-02
-    throw new Error('Not implemented yet');
+    // Use findDecoratedClasses to implement parseClasses
+    return this.findDecoratedClasses();
+  }
+
+  /**
+   * Find all classes decorated with @Injectable, @Component, or @Directive
+   * Implements FR-02: Decorated Class Collection
+   * @returns Promise<ParsedClass[]> List of decorated classes
+   */
+  async findDecoratedClasses(): Promise<ParsedClass[]> {
+    if (!this._project) {
+      this.loadProject();
+    }
+
+    if (!this._project) {
+      throw new Error('Failed to load TypeScript project');
+    }
+
+    const decoratedClasses: ParsedClass[] = [];
+    const sourceFiles = this._project.getSourceFiles();
+
+    if (this._options.verbose) {
+      console.log(`Processing ${sourceFiles.length} source files`);
+    }
+
+    for (const sourceFile of sourceFiles) {
+      try {
+        const classes = sourceFile.getClasses();
+
+        if (this._options.verbose) {
+          console.log(`File: ${sourceFile.getFilePath()}, Classes: ${classes.length}`);
+        }
+
+        // Process regular class declarations
+        for (const classDeclaration of classes) {
+          const parsedClass = this.parseClassDeclaration(classDeclaration);
+          if (parsedClass) {
+            decoratedClasses.push(parsedClass);
+            if (this._options.verbose) {
+              console.log(`Found decorated class: ${parsedClass.name} (${parsedClass.kind})`);
+            }
+          }
+        }
+
+        // Look for anonymous class expressions in variable declarations
+        // Pattern: const X = Decorator()(class { ... })
+        this.detectAnonymousClasses(sourceFile);
+      } catch (error) {
+        // Graceful error recovery: warn and continue with next file
+        console.warn(
+          `Warning: Failed to parse file ${sourceFile.getFilePath()}: ${error instanceof Error ? error.message : String(error)}`
+        );
+      }
+    }
+
+    return decoratedClasses;
+  }
+
+  /**
+   * Parse a single class declaration for Angular decorators
+   * @param classDeclaration ts-morph ClassDeclaration
+   * @returns ParsedClass if decorated with Angular decorator, null otherwise
+   */
+  private parseClassDeclaration(classDeclaration: ClassDeclaration): ParsedClass | null {
+    const className = classDeclaration.getName();
+
+    // Skip anonymous classes with warning
+    if (!className) {
+      console.warn(
+        'Warning: Skipping anonymous class - classes must be named for dependency injection analysis'
+      );
+      return null;
+    }
+
+    const decorators = classDeclaration.getDecorators();
+
+    if (this._options.verbose) {
+      const decoratorNames = decorators.map((d) => this.getDecoratorName(d)).join(', ');
+      console.log(`Class: ${className}, Decorators: ${decorators.length} [${decoratorNames}]`);
+    }
+
+    const angularDecorator = this.findAngularDecorator(decorators);
+
+    if (!angularDecorator) {
+      // Skip undecorated classes silently
+      if (this._options.verbose && decorators.length > 0) {
+        console.log(`  No Angular decorator found for ${className}`);
+      }
+      return null;
+    }
+
+    const nodeKind = this.determineNodeKind(angularDecorator);
+    const filePath = classDeclaration.getSourceFile().getFilePath();
+
+    return {
+      name: className,
+      kind: nodeKind,
+      filePath,
+      dependencies: [], // FR-02 scope: only collecting classes, not parsing dependencies yet
+    };
+  }
+
+  /**
+   * Find Angular decorator (@Injectable, @Component, @Directive) from list of decorators
+   * @param decorators Array of decorators from ts-morph
+   * @returns Angular decorator if found, null otherwise
+   */
+  private findAngularDecorator(decorators: Decorator[]): Decorator | null {
+    for (const decorator of decorators) {
+      const decoratorName = this.getDecoratorName(decorator);
+
+      if (
+        decoratorName === 'Injectable' ||
+        decoratorName === 'Component' ||
+        decoratorName === 'Directive'
+      ) {
+        return decorator;
+      }
+    }
+
+    return null;
+  }
+
+  /**
+   * Extract decorator name from ts-morph Decorator
+   * Handles various import patterns and aliases
+   * @param decorator ts-morph Decorator
+   * @returns Decorator name string
+   */
+  private getDecoratorName(decorator: Decorator): string {
+    const callExpression = decorator.getCallExpression();
+    if (!callExpression) {
+      return '';
+    }
+
+    const expression = callExpression.getExpression();
+
+    // Handle direct decorator names (e.g., @Injectable)
+    if (expression.getKind() === SyntaxKind.Identifier) {
+      const identifier = expression.asKindOrThrow(SyntaxKind.Identifier);
+      const decoratorName = identifier.getText();
+
+      // Resolve aliases by checking import declarations (cached for performance)
+      const resolvedName = this.resolveDecoratorAlias(decorator.getSourceFile(), decoratorName);
+      return resolvedName || decoratorName;
+    }
+
+    return '';
+  }
+
+  /**
+   * Resolve decorator alias from import declarations with basic caching
+   * @param sourceFile Source file containing the decorator
+   * @param decoratorName Raw decorator name from AST
+   * @returns Original decorator name if alias found, null otherwise
+   */
+  private resolveDecoratorAlias(sourceFile: SourceFile, decoratorName: string): string | null {
+    const importDeclarations = sourceFile.getImportDeclarations();
+
+    for (const importDecl of importDeclarations) {
+      const moduleSpecifier = importDecl.getModuleSpecifierValue();
+      if (moduleSpecifier === '@angular/core') {
+        const namedImports = importDecl.getNamedImports();
+
+        for (const namedImport of namedImports) {
+          const alias = namedImport.getAliasNode();
+          if (alias && alias.getText() === decoratorName) {
+            // Found alias, return the original name
+            return namedImport.getName();
+          }
+          if (!alias && namedImport.getName() === decoratorName) {
+            // Direct import without alias
+            return decoratorName;
+          }
+        }
+      }
+    }
+
+    return null;
+  }
+
+  /**
+   * Determine NodeKind from Angular decorator
+   * @param decorator Angular decorator
+   * @returns NodeKind mapping
+   */
+  private determineNodeKind(decorator: Decorator): NodeKind {
+    const decoratorName = this.getDecoratorName(decorator);
+
+    switch (decoratorName) {
+      case 'Injectable':
+        return 'service';
+      case 'Component':
+        return 'component';
+      case 'Directive':
+        return 'directive';
+      default:
+        return 'unknown';
+    }
+  }
+
+  /**
+   * Detect and warn about anonymous class expressions
+   * Handles patterns like: const X = Decorator()(class { ... })
+   * @param sourceFile Source file to analyze
+   */
+  private detectAnonymousClasses(sourceFile: SourceFile): void {
+    try {
+      // More robust anonymous class detection using ts-morph's AST traversal
+      sourceFile.forEachDescendant((node: Node) => {
+        // Look for class expressions that might be decorated
+        if (node.getKind() === SyntaxKind.ClassExpression) {
+          const parent = node.getParent();
+
+          // Check if this class expression is used in a decorator pattern
+          if (parent && parent.getKind() === SyntaxKind.CallExpression) {
+            const grandParent = parent.getParent();
+            if (grandParent && grandParent.getKind() === SyntaxKind.CallExpression) {
+              // Found pattern like Decorator()(class { ... })
+              console.warn(
+                'Warning: Skipping anonymous class - classes must be named for dependency injection analysis'
+              );
+              if (this._options.verbose) {
+                console.log(`    Anonymous class found in ${sourceFile.getFilePath()}`);
+              }
+            }
+          }
+        }
+      });
+    } catch (error) {
+      // Silent fallback - don't break parsing for this edge case
+      if (this._options.verbose) {
+        console.log(
+          `    Could not detect anonymous classes in ${sourceFile.getFilePath()}: ${error}`
+        );
+      }
+    }
   }
 }
