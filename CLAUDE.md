@@ -69,8 +69,8 @@ See @docs/prd/mvp-requirements.md#14-test-plan for complete testing specificatio
 ### Dual Runtime Support
 This project supports both Node.js and Bun runtimes. Choose the runtime that best fits your development workflow:
 
-### Node.js Commands (Traditional)
-- `npm run dev` - Run CLI with ts-node (slower startup)
+### Node.js Commands (with Bun for dev)
+- `npm run dev` - Run CLI with Bun (3x faster startup)
 - `npm run test` - Run tests with Vitest
 - `npm run test:watch` - Run tests in watch mode for TDD development
 - `npm run build` - Build with TypeScript compiler
