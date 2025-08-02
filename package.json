@@ -19,8 +19,7 @@
     "check": "biome check src && npm run typecheck",
     "typecheck": "tsc --noEmit",
     "typecheck:bun": "bun x tsc --noEmit",
-    "dev": "ts-node src/cli/index.ts",
-    "dev:bun": "bun src/cli/index.ts",
+    "dev": "bun src/cli/index.ts",
     "clean": "rimraf dist",
     "install:bun": "bun install"
   },
@@ -38,7 +37,6 @@
     "@types/node": "^20.0.0",
     "@vitest/coverage-v8": "^1.6.1",
     "rimraf": "^5.0.0",
-    "ts-node": "^10.9.0",
     "typescript": "^5.0.0",
     "vitest": "^1.0.0"
   },
