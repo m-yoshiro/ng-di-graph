@@ -35,7 +35,7 @@ See @docs/prd/mvp-requirements.md#10-data-model-typescript for complete TypeScri
 ### TDD Workflow (MANDATORY)
 - **All features must follow Test-Driven Development**
 - TDD Cycle: Red (failing test) → Green (minimal code) → Refactor → Repeat
-- Write tests first using `npm run test:watch` (Vitest) or `bun run test:watch:bun` (Bun)
+- Write tests first using `npm run test:watch` (Bun test runner)
 - Test component behavior, inputs, outputs before implementation
 - Test service methods, signal updates, side effects before coding
 
@@ -67,31 +67,28 @@ See @docs/prd/mvp-requirements.md#14-test-plan for complete testing specificatio
 ## Development Commands
 
 ### Dual Runtime Support
-This project supports both Node.js and Bun runtimes. Choose the runtime that best fits your development workflow:
+This project supports both Node.js and Bun runtimes, with Bun as the primary development environment for optimal performance:
 
-### Node.js Commands (with Bun for dev)
+### Development Commands
 - `npm run dev` - Run CLI with Bun (3x faster startup)
-- `npm run test` - Run tests with Vitest
-- `npm run test:watch` - Run tests in watch mode for TDD development
+- `npm run test` - Run tests with Bun test runner (8-13x faster than traditional runners)
+- `npm run test:watch` - Run tests in watch mode with Bun for TDD development
+- `npm run test:coverage` - Run tests with built-in coverage reporting
 - `npm run build` - Build with TypeScript compiler
+- `npm run build:bun` - Build with Bun bundler (2.4x faster, smaller output)
 - `npm run lint` - Code linting and formatting with Biome
 - `npm run lint:fix` - Auto-fix linting issues with Biome
 - `npm run format` - Format code with Biome  
 - `npm run check` - Combined lint and typecheck validation
 - `npm run typecheck` - TypeScript type checking
-
-### Bun Commands (Recommended for Development)
-- `bun run dev:bun` - Run CLI with native TypeScript execution (3x faster startup)
-- `bun run test:bun` - Run tests with Bun test runner (includes coverage)
-- `bun run test:watch:bun` - Run tests in watch mode with Bun
-- `bun run build:bun` - Build with Bun bundler (2.4x faster, smaller output)
-- `bun run typecheck:bun` - TypeScript type checking via Bun
+- `npm run typecheck:bun` - TypeScript type checking via Bun
 
 ### Performance Comparison
 - **CLI Startup**: Bun is 3x faster than Node.js with ts-node (0.25s vs 0.73s)
+- **Test Execution**: Bun is 8-13x faster than traditional Node.js test runners (~0.25s vs 2+ seconds for test suite)
 - **Build Speed**: Bun is 2.4x faster than TypeScript compiler (0.28s vs 0.66s)  
 - **Memory Usage**: Bun uses 22% less memory during development
-- **Test Coverage**: Bun provides automatic coverage reporting
+- **Test Coverage**: Bun provides built-in coverage reporting with no performance penalty
 
 ### Installation
 - **Node.js**: `npm install`
