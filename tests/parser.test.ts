@@ -275,7 +275,7 @@ describe('AngularParser - Decorated Class Collection (FR-02)', () => {
       
       // Should find all @Injectable services from all fixture files
       const services = classes.filter(c => c.kind === 'service');
-      expect(services).toHaveLength(8); // 4 from services.ts + 4 from edge-cases.ts
+      expect(services).toHaveLength(15); // 11 from services.ts + 4 from edge-cases.ts
       
       const serviceNames = services.map(s => s.name);
       // From services.ts
@@ -295,7 +295,7 @@ describe('AngularParser - Decorated Class Collection (FR-02)', () => {
       
       // Should find all @Component classes from all fixture files
       const components = classes.filter(c => c.kind === 'component');
-      expect(components).toHaveLength(6); // 4 from components.ts + 2 from edge-cases.ts
+      expect(components).toHaveLength(10); // 8 from components.ts + 2 from edge-cases.ts
       
       const componentNames = components.map(c => c.name);
       // From components.ts
@@ -349,13 +349,21 @@ describe('AngularParser - Decorated Class Collection (FR-02)', () => {
       expect(basicDirective?.filePath).toContain('directives.ts');
     });
 
-    it('should return empty dependencies array for all classes (FR-02 scope)', async () => {
+    it('should extract constructor dependencies (FR-03 implemented)', async () => {
       const classes = await parser.findDecoratedClasses();
       
-      // In FR-02, we're only collecting classes, not parsing dependencies
-      classes.forEach(cls => {
-        expect(cls.dependencies).toEqual([]);
+      // With FR-03 implemented, classes with constructor dependencies should have them extracted
+      const testComponent = classes.find(c => c.name === 'TestComponent');
+      expect(testComponent?.dependencies).toHaveLength(1);
+      expect(testComponent?.dependencies[0]).toEqual({
+        token: 'TestService',
+        flags: {},
+        parameterName: 'testService'
       });
+
+      // Classes without constructors should have empty dependencies
+      const basicService = classes.find(c => c.name === 'BasicService');
+      expect(basicService?.dependencies).toEqual([]);
     });
 
     it('should skip undecorated classes silently', async () => {
@@ -474,6 +482,230 @@ describe('AngularParser - Decorated Class Collection (FR-02)', () => {
       
       // Should not throw even if some files have issues
       expect(async () => await parser.findDecoratedClasses()).not.toThrow();
+    });
+  });
+});
+
+describe('AngularParser - Constructor Token Resolution (FR-03)', () => {
+  const testTsConfig = './tests/fixtures/tsconfig.json';
+  let parser: AngularParser;
+
+  beforeEach(() => {
+    const options: CliOptions = {
+      project: testTsConfig,
+      format: 'json',
+      direction: 'downstream',
+      includeDecorators: false,
+      verbose: false
+    };
+    parser = new AngularParser(options);
+    parser.loadProject();
+  });
+
+  describe('Type annotation token resolution', () => {
+    it('should resolve type annotation tokens correctly', async () => {
+      const classes = await parser.findDecoratedClasses();
+      const testComponent = classes.find(c => c.name === 'TestComponent');
+      
+      expect(testComponent?.dependencies).toContainEqual({
+        token: 'TestService',
+        flags: {},
+        parameterName: 'testService'
+      });
+    });
+
+    it('should resolve service with type annotation dependency', async () => {
+      const classes = await parser.findDecoratedClasses();
+      const testService = classes.find(c => c.name === 'TestService');
+      
+      expect(testService?.dependencies).toContainEqual({
+        token: 'BasicService',
+        flags: {},
+        parameterName: 'basicService'
+      });
+    });
+
+    it('should extract parameter names correctly', async () => {
+      const classes = await parser.findDecoratedClasses();
+      const testComponent = classes.find(c => c.name === 'TestComponent');
+      
+      const serviceDep = testComponent?.dependencies.find(d => d.token === 'TestService');
+      expect(serviceDep?.parameterName).toBe('testService');
+    });
+  });
+
+  describe('@Inject token resolution', () => {
+    it('should resolve @Inject tokens correctly', async () => {
+      const classes = await parser.findDecoratedClasses();
+      const injectComponent = classes.find(c => c.name === 'InjectComponent');
+      
+      expect(injectComponent?.dependencies).toContainEqual({
+        token: 'API_CONFIG',
+        flags: {},
+        parameterName: 'config'
+      });
+    });
+
+    it('should resolve @Inject tokens in services', async () => {
+      const classes = await parser.findDecoratedClasses();
+      const injectService = classes.find(c => c.name === 'InjectService');
+      
+      expect(injectService?.dependencies).toContainEqual({
+        token: 'API_CONFIG',
+        flags: {},
+        parameterName: 'config'
+      });
+    });
+
+    it('should prioritize @Inject over type annotation', async () => {
+      // When both @Inject and type annotation exist, @Inject should take priority
+      const classes = await parser.findDecoratedClasses();
+      const multiDepComponent = classes.find(c => c.name === 'MultiDependencyComponent');
+      
+      // The third parameter has @Inject(API_TOKEN) with type string
+      // Should use API_TOKEN from @Inject, not 'string' from type
+      const injectDep = multiDepComponent?.dependencies.find(d => d.parameterName === 'apiToken');
+      expect(injectDep?.token).toBe('API_TOKEN');
+      expect(injectDep?.token).not.toBe('string');
+    });
+  });
+
+  describe('Multiple constructor parameters', () => {
+    it('should handle multiple constructor parameters correctly', async () => {
+      const classes = await parser.findDecoratedClasses();
+      const multiDepComponent = classes.find(c => c.name === 'MultiDependencyComponent');
+      
+      expect(multiDepComponent?.dependencies).toHaveLength(3);
+      
+      const tokens = multiDepComponent?.dependencies.map(d => d.token).sort();
+      expect(tokens).toEqual(['API_TOKEN', 'ServiceA', 'ServiceB']);
+    });
+
+    it('should handle multiple dependencies in services', async () => {
+      const classes = await parser.findDecoratedClasses();
+      const multiDepService = classes.find(c => c.name === 'MultiDependencyService');
+      
+      expect(multiDepService?.dependencies).toHaveLength(3);
+      
+      const expectedDeps = [
+        { token: 'BasicService', parameterName: 'basicService' },
+        { token: 'TestService', parameterName: 'testService' },
+        { token: 'API_TOKEN', parameterName: 'apiToken' }
+      ];
+      
+      expectedDeps.forEach(expected => {
+        expect(multiDepService?.dependencies).toContainEqual(
+          expect.objectContaining(expected)
+        );
+      });
+    });
+
+    it('should preserve parameter order in dependencies', async () => {
+      const classes = await parser.findDecoratedClasses();
+      const multiDepComponent = classes.find(c => c.name === 'MultiDependencyComponent');
+      
+      const paramNames = multiDepComponent?.dependencies.map(d => d.parameterName);
+      expect(paramNames).toEqual(['serviceA', 'serviceB', 'apiToken']);
+    });
+  });
+
+  describe('Type validation and warnings', () => {
+    it('should skip any/unknown types with warning', async () => {
+      // Reset warning state to ensure warnings are captured
+      AngularParser.resetWarningState();
+      
+      const originalWarn = console.warn;
+      const warnings: string[] = [];
+      console.warn = (message: string) => warnings.push(message);
+      
+      try {
+        const classes = await parser.findDecoratedClasses();
+        const componentWithAny = classes.find(c => c.name === 'ComponentWithAny');
+        
+        // Should not include any/unknown dependencies
+        expect(componentWithAny?.dependencies).not.toContainEqual(
+          expect.objectContaining({ token: 'any' })
+        );
+        expect(componentWithAny?.dependencies).not.toContainEqual(
+          expect.objectContaining({ token: 'unknown' })
+        );
+        
+        // Should have warned about skipping these types
+        expect(warnings.some(w => w.includes('Skipping parameter') && w.includes('any/unknown type'))).toBe(true);
+      } finally {
+        console.warn = originalWarn;
+      }
+    });
+
+    it('should skip primitive types with warning', async () => {
+      // Reset warning state to ensure warnings are captured
+      AngularParser.resetWarningState();
+      
+      const originalWarn = console.warn;
+      const warnings: string[] = [];
+      console.warn = (message: string) => warnings.push(message);
+      
+      try {
+        const classes = await parser.findDecoratedClasses();
+        const serviceWithPrimitives = classes.find(c => c.name === 'ServiceWithPrimitives');
+        
+        // Should not include primitive type dependencies
+        expect(serviceWithPrimitives?.dependencies).not.toContainEqual(
+          expect.objectContaining({ token: 'string' })
+        );
+        expect(serviceWithPrimitives?.dependencies).not.toContainEqual(
+          expect.objectContaining({ token: 'number' })
+        );
+        
+        // Should have warned about skipping primitive types
+        expect(warnings.some(w => w.includes('Skipping primitive type parameter'))).toBe(true);
+      } finally {
+        console.warn = originalWarn;
+      }
+    });
+  });
+
+  describe('Edge cases', () => {
+    it('should handle classes with no constructor', async () => {
+      const classes = await parser.findDecoratedClasses();
+      const basicService = classes.find(c => c.name === 'BasicService');
+      
+      // Classes without constructors should have empty dependencies
+      expect(basicService?.dependencies).toEqual([]);
+    });
+
+    it('should handle empty constructors', async () => {
+      const classes = await parser.findDecoratedClasses();
+      const basicComponent = classes.find(c => c.name === 'BasicComponent');
+      
+      // Classes with empty constructors should have empty dependencies
+      expect(basicComponent?.dependencies).toEqual([]);
+    });
+
+    it('should handle malformed @Inject decorators gracefully', async () => {
+      // This will be implemented when we add more sophisticated error handling
+      // For now, ensure the parser doesn't crash on edge cases
+      const classes = await parser.findDecoratedClasses();
+      expect(classes).toBeDefined();
+      expect(Array.isArray(classes)).toBe(true);
+    });
+  });
+
+  describe('Performance requirements', () => {
+    it('should process constructor parameters efficiently', async () => {
+      const startTime = Date.now();
+      
+      const classes = await parser.findDecoratedClasses();
+      
+      const endTime = Date.now();
+      const duration = endTime - startTime;
+      
+      // Should complete token resolution for all test fixtures in reasonable time
+      expect(duration).toBeLessThan(500); // 500ms threshold for test fixtures
+      
+      // Verify we actually processed some dependencies
+      const totalDependencies = classes.reduce((sum, cls) => sum + cls.dependencies.length, 0);
+      expect(totalDependencies).toBeGreaterThan(0);
     });
   });
 });
