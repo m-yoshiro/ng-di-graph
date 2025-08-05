@@ -34,6 +34,7 @@ This guide outlines how to effectively leverage Claude Code's specialized agents
 | **implementation-executor** | Executing existing implementation plans with code | "Implement the CLI interface plan we created yesterday" |
 | **code-reviewer** | Comprehensive code review and quality assurance for recently written code | "Review my Angular parser implementation for quality, standards compliance, and potential improvements" |
 | **debug-specialist** | Code analysis, debugging, and error resolution | "Debug these type errors and fix the failing tests" |
+| **task-tracker** | Updating task progress in documentation files | "Mark the Angular parser implementation task as complete in our planning documents" |
 
 ### 2.2 Typical Workflow Sequence
 
@@ -41,25 +42,29 @@ This guide outlines how to effectively leverage Claude Code's specialized agents
 flowchart LR
     A[Requirements/Issue] --> B[implementation-planner]
     B --> C[Detailed Plan Created]
-    C --> D[implementation-executor]
-    D --> E[Code Implementation]
+    C --> T1[task-tracker: Mark Tasks as Pending]
+    T1 --> D[implementation-executor]
+    D --> T2[task-tracker: Mark Tasks as In-Progress]
+    T2 --> E[Code Implementation]
     E --> F[code-reviewer]
     F --> G[Code Review & Quality Assessment]
     G --> H{Issues Found?}
     H -->|Yes| I[debug-specialist]
     I --> J[Debug & Fix Issues]
     J --> F
-    H -->|No| K[Task Complete]
+    H -->|No| T3[task-tracker: Mark Tasks as Complete]
+    T3 --> K[Task Complete]
 ```
 
 ### 2.3 Agent Handoff Best Practices
 
 1. **Complete Previous Stage**: Ensure current agent has fully completed their task before switching
 2. **Clear Context Transfer**: Provide the next agent with complete context and references
-3. **Document Progress**: Update todo lists and progress tracking between agent switches
+3. **Document Progress**: Use task-tracker to update task status and progress tracking between agent switches
 4. **Validate Outputs**: Verify each agent's output meets acceptance criteria before proceeding
 5. **Code Review Integration**: Always use code-reviewer after implementation before considering a task complete
 6. **Issue Resolution**: Use debug-specialist to address specific issues identified by code-reviewer
+7. **Task Status Management**: Use task-tracker proactively to maintain visibility into development progress across all planning documents
 
 ---
 
