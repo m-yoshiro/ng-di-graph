@@ -50,6 +50,7 @@ export interface ParsedClass {
 export interface ParsedDependency {
   token: string;
   flags?: EdgeFlags;
+  parameterName: string;
 }
 
 export interface ParserError extends Error {
