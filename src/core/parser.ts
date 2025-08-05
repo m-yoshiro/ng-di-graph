@@ -3,15 +3,32 @@ import { existsSync, readFileSync } from 'node:fs';
  * AngularParser - Core TypeScript AST parsing using ts-morph
  * Implements FR-01: ts-morph project loading with comprehensive error handling
  * Implements FR-02: Decorated class collection
+ * Implements FR-03: Constructor token resolution
  */
 import { Project, SyntaxKind } from 'ts-morph';
-import type { ClassDeclaration, Decorator, Node, SourceFile } from 'ts-morph';
-import type { CliOptions, NodeKind, ParsedClass, ParserError } from '../types';
+import type {
+  ClassDeclaration,
+  ConstructorDeclaration,
+  Decorator,
+  Node,
+  ParameterDeclaration,
+  SourceFile,
+  TypeNode,
+} from 'ts-morph';
+import type { CliOptions, NodeKind, ParsedClass, ParsedDependency, ParserError } from '../types';
 
 export class AngularParser {
   private _project?: Project;
+  private static _globalWarnedTypes = new Set<string>(); // Global tracking across all parser instances
 
   constructor(private _options: CliOptions) {}
+
+  /**
+   * Reset global warning deduplication state (useful for testing)
+   */
+  static resetWarningState(): void {
+    AngularParser._globalWarnedTypes.clear();
+  }
 
   /**
    * Load TypeScript project using ts-morph
@@ -232,11 +249,14 @@ export class AngularParser {
     const nodeKind = this.determineNodeKind(angularDecorator);
     const filePath = classDeclaration.getSourceFile().getFilePath();
 
+    // FR-03: Extract constructor dependencies
+    const dependencies = this.extractConstructorDependencies(classDeclaration);
+
     return {
       name: className,
       kind: nodeKind,
       filePath,
-      dependencies: [], // FR-02 scope: only collecting classes, not parsing dependencies yet
+      dependencies,
     };
   }
 
@@ -375,5 +395,154 @@ export class AngularParser {
         );
       }
     }
+  }
+
+  /**
+   * Extract constructor dependencies from a class declaration
+   * Implements FR-03: Constructor parameter analysis
+   * @param classDeclaration ts-morph ClassDeclaration
+   * @returns Array of parsed dependencies
+   */
+  private extractConstructorDependencies(classDeclaration: ClassDeclaration): ParsedDependency[] {
+    const constructors = classDeclaration.getConstructors();
+    if (constructors.length === 0) {
+      return [];
+    }
+
+    // Take first constructor (Angular classes should have only one)
+    const constructorDecl = constructors[0];
+    const parameters = constructorDecl.getParameters();
+    const dependencies: ParsedDependency[] = [];
+
+    for (const param of parameters) {
+      const dependency = this.parseConstructorParameter(param);
+      if (dependency) {
+        dependencies.push(dependency);
+      }
+    }
+
+    return dependencies;
+  }
+
+  /**
+   * Parse a single constructor parameter to extract dependency token
+   * Implements FR-03 token resolution priority: @Inject > type annotation > inferred type
+   * @param param ts-morph ParameterDeclaration
+   * @returns ParsedDependency if valid dependency, null if should be skipped
+   */
+  private parseConstructorParameter(param: ParameterDeclaration): ParsedDependency | null {
+    const parameterName = param.getName();
+
+    // Check for @Inject decorator first (highest priority)
+    const injectDecorator = param.getDecorator('Inject');
+    if (injectDecorator) {
+      const token = this.extractInjectToken(injectDecorator);
+      if (token) {
+        return {
+          token,
+          flags: {}, // Will be populated in future tasks
+          parameterName,
+        };
+      }
+    }
+
+    // Fall back to type annotation (medium priority)
+    const typeNode = param.getTypeNode();
+    if (typeNode) {
+      const token = this.extractTypeToken(typeNode);
+      if (token) {
+        return {
+          token,
+          flags: {},
+          parameterName,
+        };
+      }
+    }
+
+    // Handle inferred types (lowest priority)
+    const type = param.getType();
+    const typeText = type.getText(param);
+
+    if (this.shouldSkipType(typeText)) {
+      const filePath = param.getSourceFile().getFilePath();
+      const warnKey = `any_unknown_${filePath}_${parameterName}_${typeText}`;
+      if (!AngularParser._globalWarnedTypes.has(warnKey)) {
+        console.warn(`Skipping parameter '${parameterName}' with any/unknown type in ${filePath}`);
+        AngularParser._globalWarnedTypes.add(warnKey);
+      }
+      return null;
+    }
+
+    if (this.isPrimitiveType(typeText)) {
+      const filePath = param.getSourceFile().getFilePath();
+      const warnKey = `primitive_${filePath}_${parameterName}_${typeText}`;
+      if (!AngularParser._globalWarnedTypes.has(warnKey)) {
+        console.warn(`Skipping primitive type parameter '${parameterName}': ${typeText}`);
+        AngularParser._globalWarnedTypes.add(warnKey);
+      }
+      return null;
+    }
+
+    return {
+      token: typeText,
+      flags: {},
+      parameterName,
+    };
+  }
+
+  /**
+   * Extract token from @Inject decorator
+   * @param decorator @Inject decorator
+   * @returns Token string or null
+   */
+  private extractInjectToken(decorator: Decorator): string | null {
+    const callExpr = decorator.getCallExpression();
+    if (!callExpr) return null;
+
+    const args = callExpr.getArguments();
+    if (args.length === 0) return null;
+
+    const firstArg = args[0];
+    return firstArg.getText().replace(/['"]/g, ''); // Remove quotes if string literal
+  }
+
+  /**
+   * Extract token from type annotation
+   * @param typeNode TypeScript type node
+   * @returns Token string or null if should be skipped
+   */
+  private extractTypeToken(typeNode: TypeNode): string | null {
+    const typeText = typeNode.getText();
+
+    if (this.shouldSkipType(typeText)) {
+      return null;
+    }
+
+    if (this.isPrimitiveType(typeText)) {
+      return null;
+    }
+
+    return typeText;
+  }
+
+  /**
+   * Check if type should be skipped (any/unknown types)
+   * Implements FR-09: Skip dependencies whose type resolves to any/unknown
+   * @param typeText Type text to check
+   * @returns True if should be skipped
+   */
+  private shouldSkipType(typeText: string): boolean {
+    const skipTypes = ['any', 'unknown', 'object', 'Object'];
+    return skipTypes.includes(typeText);
+  }
+
+  /**
+   * Check if type is primitive and should be skipped
+   * @param typeText Type text to check
+   * @returns True if primitive type
+   */
+  private isPrimitiveType(typeText: string): boolean {
+    const primitives = ['string', 'number', 'boolean', 'symbol', 'bigint', 'undefined', 'null'];
+    return primitives.includes(typeText);
   }
 }
