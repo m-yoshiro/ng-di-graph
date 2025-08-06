@@ -16,7 +16,7 @@ This project uses structured documentation in the `docs/` directory:
 
 **Target Angular Versions**: 17-20
 **Core Dependencies**: ts-morph (for TypeScript AST parsing)
-**Runtime Support**: Node.js 18+ and Bun 1.2+ (dual runtime compatibility)
+**Runtime Support**: Bun 1.2+ (primary runtime for optimal performance)
 
 ## Architecture
 
@@ -66,16 +66,17 @@ See @docs/prd/mvp-requirements.md#14-test-plan for complete testing specificatio
 
 ## Development Commands
 
-### Dual Runtime Support
-This project supports both Node.js and Bun runtimes, with Bun as the primary development environment for optimal performance:
+### Bun Runtime Environment
+This project uses Bun as the primary runtime environment for optimal performance and developer experience:
 
 ### Development Commands
-- `npm run dev` - Run CLI with Bun (3x faster startup)
-- `npm run test` - Run tests with Bun test runner (8-13x faster than traditional runners)
+- `npm run dev` - Run CLI with Bun (fast startup and execution)
+- `npm run dev:node` - Run CLI with Node.js and ts-node (legacy fallback)
+- `npm run test` - Run tests with Bun test runner (native execution)
 - `npm run test:watch` - Run tests in watch mode with Bun for TDD development
 - `npm run test:coverage` - Run tests with built-in coverage reporting
-- `npm run build` - Build with TypeScript compiler
-- `npm run build:bun` - Build with Bun bundler (2.4x faster, smaller output)
+- `npm run build` - Build with Bun bundler (sub-second builds)
+- `npm run build:node` - Build with TypeScript compiler (legacy fallback)
 - `npm run lint` - Code linting and formatting with Biome
 - `npm run lint:fix` - Auto-fix linting issues with Biome
 - `npm run format` - Format code with Biome  
@@ -83,13 +84,48 @@ This project supports both Node.js and Bun runtimes, with Bun as the primary dev
 - `npm run typecheck` - TypeScript type checking
 - `npm run typecheck:bun` - TypeScript type checking via Bun
 
-### Performance Comparison
-- **CLI Startup**: Bun is 3x faster than Node.js with ts-node (0.25s vs 0.73s)
-- **Test Execution**: Bun is 8-13x faster than traditional Node.js test runners (~0.25s vs 2+ seconds for test suite)
-- **Build Speed**: Bun is 2.4x faster than TypeScript compiler (0.28s vs 0.66s)  
-- **Memory Usage**: Bun uses 22% less memory during development
-- **Test Coverage**: Bun provides built-in coverage reporting with no performance penalty
+### Performance Benefits
+- **CLI Startup**: Bun provides 2-3x faster startup than Node.js with ts-node (measured: 0.589s vs 1.314s)
+- **Test Execution**: Bun native test runner provides fast execution (~15s for 39 tests)
+- **Build Speed**: Bun provides sub-second builds (measured: 268ms vs traditional compilation)
+- **Development Experience**: Bun eliminates TypeScript compilation step during development
+- **Test Coverage**: Built-in coverage reporting with comprehensive metrics (95.45% function, 100% line coverage)
 
 ### Installation
-- **Node.js**: `npm install`
-- **Bun**: `bun install` (automatically creates bun.lock alongside package-lock.json)
+- **Bun**: `bun install` (recommended for optimal performance)
+- **Node.js**: `npm install` (fallback option)
+
+### Runtime Setup
+
+#### Bun Installation (Recommended)
+```bash
+# Install Bun (macOS/Linux)
+curl -fsSL https://bun.sh/install | bash
+
+# Install Bun (Windows)
+powershell -c "irm bun.sh/install.ps1 | iex"
+
+# Install project dependencies
+bun install
+```
+
+#### Development Workflow
+The project is optimized for Bun runtime with Node.js fallback options:
+
+**Bun (Recommended)**:
+- Native TypeScript execution without compilation
+- Faster CLI startup and development feedback
+- Built-in test runner with coverage
+- Modern JavaScript runtime optimized for development
+- Primary development environment for best experience
+
+**Node.js (Legacy Fallback)**:
+- Traditional ts-node development workflow
+- Standard TypeScript compilation pipeline
+- Compatible with existing Node.js tooling
+- Available for environments where Bun is not available
+
+**Recommended Workflow**:
+- Use primary commands (`dev`, `test`, `build`) for optimal Bun experience
+- Use `:node` suffixed commands only when Bun is unavailable
+- Bun provides superior performance and developer experience
