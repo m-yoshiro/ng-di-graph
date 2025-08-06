@@ -2,7 +2,7 @@
  * Test suite for AngularParser - Project Loading (FR-01)
  * Following TDD methodology - RED phase (failing tests first)
  */
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
 import { existsSync, writeFileSync, unlinkSync, mkdirSync, rmSync } from 'fs';
 import { join } from 'path';
 import { AngularParser } from '../src/core/parser';
