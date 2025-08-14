@@ -4,7 +4,11 @@
  * Supports both Node.js (via ts-node) and Bun native execution
  */
 import { Command } from 'commander';
+import { buildGraph } from '../core/graph-builder';
+import { OutputHandler } from '../core/output-handler';
 import { AngularParser } from '../core/parser';
+import { JsonFormatter } from '../formatters/json-formatter';
+import { MermaidFormatter } from '../formatters/mermaid-formatter';
 import type { CliOptions } from '../types';
 
 const program = new Command();
@@ -53,13 +57,48 @@ program.action(async (options) => {
       console.log('✅ Project loaded successfully');
     }
 
-    // For now, just show that we can load the project
-    // Full implementation will come in later tasks
-    const project = parser.getProject();
-    const sourceFiles = project.getSourceFiles();
+    // Parse Angular classes
+    if (cliOptions.verbose) {
+      console.log('🔍 Parsing Angular classes...');
+    }
 
-    console.log(`Found ${sourceFiles.length} source files in the project`);
-    console.log('🚧 Full parsing implementation coming soon...');
+    const parsedClasses = await parser.parseClasses();
+
+    if (cliOptions.verbose) {
+      console.log(`✅ Found ${parsedClasses.length} decorated classes`);
+    }
+
+    // Build dependency graph
+    if (cliOptions.verbose) {
+      console.log('🔗 Building dependency graph...');
+    }
+
+    const graph = buildGraph(parsedClasses);
+
+    if (cliOptions.verbose) {
+      console.log(`✅ Graph built: ${graph.nodes.length} nodes, ${graph.edges.length} edges`);
+      if (graph.circularDependencies.length > 0) {
+        console.log(`⚠️  Detected ${graph.circularDependencies.length} circular dependencies`);
+      }
+    }
+
+    // Format output
+    let formatter: JsonFormatter | MermaidFormatter;
+    if (cliOptions.format === 'mermaid') {
+      formatter = new MermaidFormatter();
+    } else {
+      formatter = new JsonFormatter();
+    }
+
+    const formattedOutput = formatter.format(graph);
+
+    // Write output
+    const outputHandler = new OutputHandler();
+    await outputHandler.writeOutput(formattedOutput, cliOptions.out);
+
+    if (cliOptions.verbose && cliOptions.out) {
+      console.log(`✅ Output written to: ${cliOptions.out}`);
+    }
   } catch (error) {
     if (error instanceof Error) {
       console.error('❌ Error:', error.message);
