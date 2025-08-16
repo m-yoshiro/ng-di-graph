@@ -24,7 +24,7 @@ Graph building and output formatting.
 |------|----------------------|----------|--------|
 | [Task 2.1](./task-2.1-graph-building.md) | FR-05: Graph Building Infrastructure | High | ✅ Complete |
 | [Task 2.2](./task-2.2-output-formatting.md) | FR-06 & FR-08: Output Formatting | Medium | ⏳ Ready |
-| Task 2.3 | FR-04: Parameter Decorator Handling | Medium | 📝 Planned |
+| [Task 2.3](./task-2.3-parameter-decorators.md) | FR-04: Parameter Decorator Handling | Medium | ⏳ Ready |
 
 **Dependencies**: Milestone 1 complete  
 **Duration**: 2-3 days  
@@ -36,8 +36,8 @@ Entry filtering and graph operations.
 | Task | Functional Requirement | Priority | Status |
 |------|----------------------|----------|--------|
 | [Task 3.1](./task-3.1-entry-filtering.md) | FR-07: Entry Point Filtering | Medium | ✅ Complete |
-| Task 3.2 | FR-13: Bidirectional Filtering | Medium | ⏳ Ready |
-| Task 3.3 | FR-09: Type Validation and Warnings | Medium | 📝 Planned |
+| [Task 3.2](./task-3.2-bidirectional-filtering.md) | FR-13: Bidirectional Filtering | Medium | ⏳ Ready |
+| [Task 3.3](./task-3.3-type-validation.md) | FR-09: Type Validation and Warnings | Medium | ⏳ Ready |
 
 **Dependencies**: Milestone 2 complete  
 **Duration**: 2 days  
@@ -48,8 +48,8 @@ Comprehensive error handling and circular dependency detection.
 
 | Task | Functional Requirement | Priority | Status |
 |------|----------------------|----------|--------|
-| Task 4.1 | FR-10: Comprehensive Error Handling | Medium | 📝 Planned |
-| Task 4.2 | FR-14: Graceful Error Recovery | Medium | 📝 Planned |
+| [Task 4.1](./task-4.1-error-handling.md) | FR-10: Comprehensive Error Handling | Medium | ⏳ Ready |
+| [Task 4.2](./task-4.2-error-recovery.md) | FR-14: Graceful Error Recovery | Medium | ⏳ Ready |
 | [Task 4.3](./task-4.3-circular-detection.md) | FR-11: Circular Dependency Detection | Medium | 🔒 Blocked |
 
 **Dependencies**: Milestone 3 complete  
@@ -61,7 +61,7 @@ Verbose mode and final polish.
 
 | Task | Functional Requirement | Priority | Status |
 |------|----------------------|----------|--------|
-| Task 5.1 | FR-12: Verbose Mode Implementation | Low | 📝 Planned |
+| [Task 5.1](./task-5.1-verbose-mode.md) | FR-12: Verbose Mode Implementation | Low | ⏳ Ready |
 
 **Dependencies**: Milestone 4 complete  
 **Duration**: 1 day  
