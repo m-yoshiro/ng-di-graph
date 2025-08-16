@@ -35,8 +35,8 @@ Entry filtering and graph operations.
 
 | Task | Functional Requirement | Priority | Status |
 |------|----------------------|----------|--------|
-| [Task 3.1](./task-3.1-entry-filtering.md) | FR-07: Entry Point Filtering | Medium | 🔒 Blocked |
-| Task 3.2 | FR-13: Bidirectional Filtering | Medium | 📝 Planned |
+| [Task 3.1](./task-3.1-entry-filtering.md) | FR-07: Entry Point Filtering | Medium | ✅ Complete |
+| Task 3.2 | FR-13: Bidirectional Filtering | Medium | ⏳ Ready |
 | Task 3.3 | FR-09: Type Validation and Warnings | Medium | 📝 Planned |
 
 **Dependencies**: Milestone 2 complete  
