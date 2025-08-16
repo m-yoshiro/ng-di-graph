@@ -5,6 +5,7 @@
  */
 import { Command } from 'commander';
 import { buildGraph } from '../core/graph-builder';
+import { filterGraph } from '../core/graph-filter';
 import { OutputHandler } from '../core/output-handler';
 import { AngularParser } from '../core/parser';
 import { JsonFormatter } from '../formatters/json-formatter';
@@ -73,12 +74,25 @@ program.action(async (options) => {
       console.log('🔗 Building dependency graph...');
     }
 
-    const graph = buildGraph(parsedClasses);
+    let graph = buildGraph(parsedClasses);
 
     if (cliOptions.verbose) {
       console.log(`✅ Graph built: ${graph.nodes.length} nodes, ${graph.edges.length} edges`);
       if (graph.circularDependencies.length > 0) {
         console.log(`⚠️  Detected ${graph.circularDependencies.length} circular dependencies`);
+      }
+    }
+
+    // Apply entry point filtering if specified
+    if (cliOptions.entry && cliOptions.entry.length > 0) {
+      if (cliOptions.verbose) {
+        console.log(`🔍 Filtering graph by entry points: ${cliOptions.entry.join(', ')}`);
+      }
+
+      graph = filterGraph(graph, cliOptions);
+
+      if (cliOptions.verbose) {
+        console.log(`✅ Filtered graph: ${graph.nodes.length} nodes, ${graph.edges.length} edges`);
       }
     }
 
