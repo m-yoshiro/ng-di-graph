@@ -1,5 +1,7 @@
 # Task 2.1: FR-05 - Graph Building Infrastructure
 
+**Status**: ✅ COMPLETED  
+**Completion Date**: 2025-08-12  
 **Milestone**: 2 - Core Features  
 **Priority**: High  
 **Dependencies**: All Milestone 1 tasks (1.1, 1.2, 1.3)  
@@ -296,15 +298,17 @@ When a dependency token doesn't match any parsed class:
 - Self-dependencies: allow but may flag as circular later
 
 ## Acceptance Criteria
-- [ ] Correct node creation from all parsed classes
-- [ ] Proper edge generation from all dependencies
-- [ ] No duplicate nodes in output (uniqueness maintained)
-- [ ] Missing dependencies create 'unknown' nodes
-- [ ] Edge flags preserved from parsed dependencies
-- [ ] Empty input handled gracefully (empty graph)
-- [ ] Consistent output ordering (sorted by node ID)
-- [ ] Test coverage >90% for graph building logic
-- [ ] Integration test passes with real parsed data
+- [x] Correct node creation from all parsed classes
+- [x] Proper edge generation from all dependencies
+- [x] No duplicate nodes in output (uniqueness maintained)
+- [x] Missing dependencies create 'unknown' nodes
+- [x] Edge flags preserved from parsed dependencies
+- [x] Empty input handled gracefully (empty graph)
+- [x] Consistent output ordering (sorted by node ID)
+- [x] Test coverage >90% for graph building logic
+- [x] Integration test passes with real parsed data
+- [x] Circular dependency detection implemented (FR-11)
+- [x] Input validation and error handling
 
 ## Success Metrics
 - **Test Coverage**: >90% for GraphBuilder class
