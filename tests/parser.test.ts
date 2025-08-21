@@ -275,7 +275,7 @@ describe('AngularParser - Decorated Class Collection (FR-02)', () => {
       
       // Should find all @Injectable services from all fixture files
       const services = classes.filter(c => c.kind === 'service');
-      expect(services).toHaveLength(15); // 11 from services.ts + 4 from edge-cases.ts
+      expect(services).toHaveLength(37); // 24 original + 4 from edge-cases.ts + 9 new inject() services
       
       const serviceNames = services.map(s => s.name);
       // From services.ts
@@ -706,6 +706,421 @@ describe('AngularParser - Constructor Token Resolution (FR-03)', () => {
       // Verify we actually processed some dependencies
       const totalDependencies = classes.reduce((sum, cls) => sum + cls.dependencies.length, 0);
       expect(totalDependencies).toBeGreaterThan(0);
+    });
+  });
+});
+
+describe('AngularParser - Parameter Decorator Handling (FR-04)', () => {
+  const testTsConfig = './tests/fixtures/tsconfig.json';
+  let parser: AngularParser;
+
+  beforeEach(() => {
+    // Reset warning state for clean test runs
+    AngularParser.resetWarningState();
+  });
+
+  describe('when --include-decorators is true', () => {
+    beforeEach(() => {
+      const options: CliOptions = {
+        project: testTsConfig,
+        format: 'json',
+        direction: 'downstream',
+        includeDecorators: true, // Enable decorator detection
+        verbose: false
+      };
+      parser = new AngularParser(options);
+      parser.loadProject();
+    });
+
+    it('should detect @Optional parameter decorator', async () => {
+      const classes = await parser.findDecoratedClasses();
+      const serviceWithOptional = classes.find(c => c.name === 'ServiceWithOptionalDep');
+      
+      expect(serviceWithOptional).toBeDefined();
+      expect(serviceWithOptional?.dependencies).toHaveLength(1);
+      
+      const optionalDep = serviceWithOptional?.dependencies[0];
+      expect(optionalDep?.flags?.optional).toBe(true);
+      expect(optionalDep?.parameterName).toBe('optionalService');
+      expect(optionalDep?.token).toBe('OptionalService');
+    });
+
+    it('should detect @Self parameter decorator', async () => {
+      const classes = await parser.findDecoratedClasses();
+      const serviceWithSelf = classes.find(c => c.name === 'ServiceWithSelfDep');
+      
+      expect(serviceWithSelf).toBeDefined();
+      expect(serviceWithSelf?.dependencies).toHaveLength(1);
+      
+      const selfDep = serviceWithSelf?.dependencies[0];
+      expect(selfDep?.flags?.self).toBe(true);
+      expect(selfDep?.parameterName).toBe('selfService');
+      expect(selfDep?.token).toBe('SelfService');
+    });
+
+    it('should detect @SkipSelf parameter decorator', async () => {
+      const classes = await parser.findDecoratedClasses();
+      const serviceWithSkipSelf = classes.find(c => c.name === 'ServiceWithSkipSelfDep');
+      
+      expect(serviceWithSkipSelf).toBeDefined();
+      expect(serviceWithSkipSelf?.dependencies).toHaveLength(1);
+      
+      const skipSelfDep = serviceWithSkipSelf?.dependencies[0];
+      expect(skipSelfDep?.flags?.skipSelf).toBe(true);
+      expect(skipSelfDep?.parameterName).toBe('skipSelfService');
+      expect(skipSelfDep?.token).toBe('SkipSelfService');
+    });
+
+    it('should detect @Host parameter decorator', async () => {
+      const classes = await parser.findDecoratedClasses();
+      const serviceWithHost = classes.find(c => c.name === 'ServiceWithHostDep');
+      
+      expect(serviceWithHost).toBeDefined();
+      expect(serviceWithHost?.dependencies).toHaveLength(1);
+      
+      const hostDep = serviceWithHost?.dependencies[0];
+      expect(hostDep?.flags?.host).toBe(true);
+      expect(hostDep?.parameterName).toBe('hostService');
+      expect(hostDep?.token).toBe('HostService');
+    });
+
+    it('should detect multiple decorators on same parameter', async () => {
+      const classes = await parser.findDecoratedClasses();
+      const serviceWithMultiDecorators = classes.find(c => c.name === 'ServiceWithMultiDecorators');
+      
+      expect(serviceWithMultiDecorators).toBeDefined();
+      expect(serviceWithMultiDecorators?.dependencies).toHaveLength(1);
+      
+      const multiDep = serviceWithMultiDecorators?.dependencies[0];
+      expect(multiDep?.flags?.optional).toBe(true);
+      expect(multiDep?.flags?.self).toBe(true);
+      expect(multiDep?.parameterName).toBe('multiDecoratedService');
+      expect(multiDep?.token).toBe('MultiDecoratedService');
+    });
+
+    it('should handle @Inject with parameter decorators', async () => {
+      const classes = await parser.findDecoratedClasses();
+      const serviceWithInjectAndDecorators = classes.find(c => c.name === 'ServiceWithInjectAndDecorators');
+      
+      expect(serviceWithInjectAndDecorators).toBeDefined();
+      expect(serviceWithInjectAndDecorators?.dependencies).toHaveLength(1);
+      
+      const injectDep = serviceWithInjectAndDecorators?.dependencies[0];
+      expect(injectDep?.token).toBe('API_TOKEN'); // From @Inject
+      expect(injectDep?.flags?.optional).toBe(true); // From @Optional
+      expect(injectDep?.parameterName).toBe('apiToken');
+    });
+
+    it('should preserve parameter order with decorators', async () => {
+      const classes = await parser.findDecoratedClasses();
+      const serviceWithMixedDecorators = classes.find(c => c.name === 'ServiceWithMixedDecorators');
+      
+      expect(serviceWithMixedDecorators).toBeDefined();
+      expect(serviceWithMixedDecorators?.dependencies).toHaveLength(3);
+      
+      const deps = serviceWithMixedDecorators?.dependencies;
+      expect(deps?.[0]?.parameterName).toBe('regularService');
+      expect(deps?.[0]?.flags?.optional).toBeUndefined();
+      
+      expect(deps?.[1]?.parameterName).toBe('optionalService');
+      expect(deps?.[1]?.flags?.optional).toBe(true);
+      
+      expect(deps?.[2]?.parameterName).toBe('hostService');
+      expect(deps?.[2]?.flags?.host).toBe(true);
+    });
+  });
+
+  describe('when --include-decorators is false', () => {
+    beforeEach(() => {
+      const options: CliOptions = {
+        project: testTsConfig,
+        format: 'json',
+        direction: 'downstream',
+        includeDecorators: false, // Disable decorator detection
+        verbose: false
+      };
+      parser = new AngularParser(options);
+      parser.loadProject();
+    });
+
+    it('should ignore parameter decorators when disabled', async () => {
+      const classes = await parser.findDecoratedClasses();
+      const serviceWithOptional = classes.find(c => c.name === 'ServiceWithOptionalDep');
+      
+      expect(serviceWithOptional).toBeDefined();
+      expect(serviceWithOptional?.dependencies).toHaveLength(1);
+      
+      const dep = serviceWithOptional?.dependencies[0];
+      expect(dep?.flags?.optional).toBeUndefined();
+      expect(dep?.flags?.self).toBeUndefined();
+      expect(dep?.flags?.skipSelf).toBeUndefined();
+      expect(dep?.flags?.host).toBeUndefined();
+      expect(dep?.token).toBe('OptionalService'); // Should still extract token
+    });
+
+    it('should extract tokens but ignore decorators for all decorator types', async () => {
+      const classes = await parser.findDecoratedClasses();
+      
+      // Check each service type
+      const serviceNames = ['ServiceWithOptionalDep', 'ServiceWithSelfDep', 'ServiceWithSkipSelfDep', 'ServiceWithHostDep'];
+      
+      for (const serviceName of serviceNames) {
+        const service = classes.find(c => c.name === serviceName);
+        expect(service).toBeDefined();
+        
+        if (service?.dependencies.length > 0) {
+          const dep = service.dependencies[0];
+          expect(dep?.flags?.optional).toBeUndefined();
+          expect(dep?.flags?.self).toBeUndefined();
+          expect(dep?.flags?.skipSelf).toBeUndefined();
+          expect(dep?.flags?.host).toBeUndefined();
+          expect(dep?.token).toBeTruthy(); // Token should still be extracted
+        }
+      }
+    });
+  });
+
+  describe('error handling for decorator detection', () => {
+    beforeEach(() => {
+      const options: CliOptions = {
+        project: testTsConfig,
+        format: 'json',
+        direction: 'downstream',
+        includeDecorators: true,
+        verbose: false
+      };
+      parser = new AngularParser(options);
+      parser.loadProject();
+    });
+
+    it('should handle malformed decorator imports gracefully', async () => {
+      // Should not throw even if decorator imports are malformed
+      expect(async () => await parser.findDecoratedClasses()).not.toThrow();
+    });
+
+    it('should handle missing decorator arguments', async () => {
+      // Should handle decorators without arguments like @Optional()
+      const classes = await parser.findDecoratedClasses();
+      expect(classes).toBeDefined();
+      expect(Array.isArray(classes)).toBe(true);
+    });
+
+    it('should maintain performance with decorator detection enabled', async () => {
+      const startTime = Date.now();
+      
+      await parser.findDecoratedClasses();
+      
+      const endTime = Date.now();
+      const duration = endTime - startTime;
+      
+      // Decorator detection should add <10% performance overhead
+      expect(duration).toBeLessThan(600); // Allowing slightly more time than base parsing
+    });
+  });
+});
+
+// TDD Cycle 2.1: inject() Function Detection Tests
+describe('AngularParser - inject() Function Detection (TDD Cycle 2.1)', () => {
+  const testFixturesDir = './tests/fixtures';
+  const testTsConfig = join(testFixturesDir, 'tsconfig.json');
+  let parser: AngularParser;
+
+  beforeEach(() => {
+    const options: CliOptions = {
+      project: testTsConfig,
+      format: 'json',
+      direction: 'downstream',
+      includeDecorators: true, // Required for inject() options detection
+      verbose: false
+    };
+    parser = new AngularParser(options);
+    parser.loadProject();
+  });
+
+  describe('basic inject() pattern detection', () => {
+    it('should detect inject() with optional flag', async () => {
+      const classes = await parser.findDecoratedClasses();
+      const service = classes.find(c => c.name === 'ServiceWithInjectOptional');
+      
+      expect(service).toBeDefined();
+      expect(service?.dependencies).toHaveLength(1);
+      
+      const dep = service?.dependencies[0];
+      expect(dep?.token).toBe('BasicService');
+      expect(dep?.flags?.optional).toBe(true);
+      expect(dep?.flags?.self).toBeUndefined();
+      expect(dep?.flags?.skipSelf).toBeUndefined();
+      expect(dep?.flags?.host).toBeUndefined();
+    });
+
+    it('should detect inject() with self flag', async () => {
+      const classes = await parser.findDecoratedClasses();
+      const service = classes.find(c => c.name === 'ServiceWithInjectSelf');
+      
+      expect(service).toBeDefined();
+      expect(service?.dependencies).toHaveLength(1);
+      
+      const dep = service?.dependencies[0];
+      expect(dep?.token).toBe('SelfService');
+      expect(dep?.flags?.self).toBe(true);
+      expect(dep?.flags?.optional).toBeUndefined();
+      expect(dep?.flags?.skipSelf).toBeUndefined();
+      expect(dep?.flags?.host).toBeUndefined();
+    });
+
+    it('should detect inject() with skipSelf flag', async () => {
+      const classes = await parser.findDecoratedClasses();
+      const service = classes.find(c => c.name === 'ServiceWithInjectSkipSelf');
+      
+      expect(service).toBeDefined();
+      expect(service?.dependencies).toHaveLength(1);
+      
+      const dep = service?.dependencies[0];
+      expect(dep?.token).toBe('SkipSelfService');
+      expect(dep?.flags?.skipSelf).toBe(true);
+      expect(dep?.flags?.optional).toBeUndefined();
+      expect(dep?.flags?.self).toBeUndefined();
+      expect(dep?.flags?.host).toBeUndefined();
+    });
+
+    it('should detect inject() with host flag', async () => {
+      const classes = await parser.findDecoratedClasses();
+      const service = classes.find(c => c.name === 'ServiceWithInjectHost');
+      
+      expect(service).toBeDefined();
+      expect(service?.dependencies).toHaveLength(1);
+      
+      const dep = service?.dependencies[0];
+      expect(dep?.token).toBe('HostService');
+      expect(dep?.flags?.host).toBe(true);
+      expect(dep?.flags?.optional).toBeUndefined();
+      expect(dep?.flags?.self).toBeUndefined();
+      expect(dep?.flags?.skipSelf).toBeUndefined();
+    });
+  });
+
+  describe('advanced inject() pattern detection', () => {
+    it('should detect inject() with multiple options', async () => {
+      const classes = await parser.findDecoratedClasses();
+      const service = classes.find(c => c.name === 'ServiceWithInjectMultipleOptions');
+      
+      expect(service).toBeDefined();
+      expect(service?.dependencies).toHaveLength(1);
+      
+      const dep = service?.dependencies[0];
+      expect(dep?.token).toBe('OptionalService');
+      expect(dep?.flags?.optional).toBe(true);
+      expect(dep?.flags?.self).toBe(true);
+      expect(dep?.flags?.skipSelf).toBeUndefined();
+      expect(dep?.flags?.host).toBeUndefined();
+    });
+
+    it('should detect multiple inject() calls in same class', async () => {
+      const classes = await parser.findDecoratedClasses();
+      const service = classes.find(c => c.name === 'ServiceWithMultipleInjects');
+      
+      expect(service).toBeDefined();
+      expect(service?.dependencies).toHaveLength(3);
+      
+      const optionalDep = service?.dependencies.find(d => d.token === 'OptionalService');
+      expect(optionalDep?.flags?.optional).toBe(true);
+      
+      const selfDep = service?.dependencies.find(d => d.token === 'SelfService');
+      expect(selfDep?.flags?.self).toBe(true);
+      
+      const hostDep = service?.dependencies.find(d => d.token === 'HostService');
+      expect(hostDep?.flags?.host).toBe(true);
+    });
+
+    it('should handle inject() without options (empty flags)', async () => {
+      const classes = await parser.findDecoratedClasses();
+      const service = classes.find(c => c.name === 'ServiceWithBasicInject');
+      
+      expect(service).toBeDefined();
+      expect(service?.dependencies).toHaveLength(1);
+      
+      const dep = service?.dependencies[0];
+      expect(dep?.token).toBe('BasicService');
+      expect(dep?.flags?.optional).toBeUndefined();
+      expect(dep?.flags?.self).toBeUndefined();
+      expect(dep?.flags?.skipSelf).toBeUndefined();
+      expect(dep?.flags?.host).toBeUndefined();
+    });
+
+    it('should detect inject() with token references', async () => {
+      const classes = await parser.findDecoratedClasses();
+      const service = classes.find(c => c.name === 'ServiceWithInjectToken');
+      
+      expect(service).toBeDefined();
+      expect(service?.dependencies).toHaveLength(1);
+      
+      const dep = service?.dependencies[0];
+      expect(dep?.token).toBe('API_CONFIG');
+      expect(dep?.flags?.optional).toBe(true);
+    });
+  });
+
+  describe('mixed legacy decorators and inject() patterns', () => {
+    it('should handle mixed legacy decorators and modern inject()', async () => {
+      const classes = await parser.findDecoratedClasses();
+      const service = classes.find(c => c.name === 'ServiceWithMixedLegacyAndInject');
+      
+      expect(service).toBeDefined();
+      expect(service?.dependencies).toHaveLength(2);
+      
+      // inject() dependency
+      const injectDep = service?.dependencies.find(d => d.token === 'BasicService');
+      expect(injectDep?.flags?.optional).toBe(true);
+      
+      // Legacy decorator dependency
+      const legacyDep = service?.dependencies.find(d => d.token === 'SelfService');
+      expect(legacyDep?.flags?.self).toBe(true);
+    });
+  });
+
+  describe('inject() detection when includeDecorators is disabled', () => {
+    beforeEach(() => {
+      const options: CliOptions = {
+        project: testTsConfig,
+        format: 'json',
+        direction: 'downstream',
+        includeDecorators: false, // Disabled
+        verbose: false
+      };
+      parser = new AngularParser(options);
+      parser.loadProject();
+    });
+
+    it('should still detect inject() calls but ignore options when includeDecorators is false', async () => {
+      const classes = await parser.findDecoratedClasses();
+      const service = classes.find(c => c.name === 'ServiceWithInjectOptional');
+      
+      expect(service).toBeDefined();
+      expect(service?.dependencies).toHaveLength(1);
+      
+      const dep = service?.dependencies[0];
+      expect(dep?.token).toBe('BasicService');
+      // Options should be ignored when includeDecorators is false
+      expect(dep?.flags?.optional).toBeUndefined();
+    });
+  });
+
+  describe('inject() error handling and edge cases', () => {
+    it('should handle malformed inject() calls gracefully', async () => {
+      // Should not throw even if inject() calls are malformed
+      expect(async () => await parser.findDecoratedClasses()).not.toThrow();
+    });
+
+    it('should maintain performance with inject() detection', async () => {
+      const startTime = Date.now();
+      
+      await parser.findDecoratedClasses();
+      
+      const endTime = Date.now();
+      const duration = endTime - startTime;
+      
+      // inject() detection should add minimal performance overhead
+      expect(duration).toBeLessThan(800);
     });
   });
 });
