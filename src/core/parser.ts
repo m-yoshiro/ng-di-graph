@@ -7,15 +7,26 @@ import { existsSync, readFileSync } from 'node:fs';
  */
 import { Project, SyntaxKind } from 'ts-morph';
 import type {
+  CallExpression,
   ClassDeclaration,
   ConstructorDeclaration,
   Decorator,
   Node,
+  ObjectLiteralExpression,
   ParameterDeclaration,
+  PropertyAssignment,
+  PropertyDeclaration,
   SourceFile,
   TypeNode,
 } from 'ts-morph';
-import type { CliOptions, NodeKind, ParsedClass, ParsedDependency, ParserError } from '../types';
+import type {
+  CliOptions,
+  EdgeFlags,
+  NodeKind,
+  ParsedClass,
+  ParsedDependency,
+  ParserError,
+} from '../types';
 
 export class AngularParser {
   private _project?: Project;
@@ -400,26 +411,31 @@ export class AngularParser {
   /**
    * Extract constructor dependencies from a class declaration
    * Implements FR-03: Constructor parameter analysis
+   * Implements TDD Cycle 2.1: inject() function detection
    * @param classDeclaration ts-morph ClassDeclaration
    * @returns Array of parsed dependencies
    */
   private extractConstructorDependencies(classDeclaration: ClassDeclaration): ParsedDependency[] {
-    const constructors = classDeclaration.getConstructors();
-    if (constructors.length === 0) {
-      return [];
-    }
-
-    // Take first constructor (Angular classes should have only one)
-    const constructorDecl = constructors[0];
-    const parameters = constructorDecl.getParameters();
     const dependencies: ParsedDependency[] = [];
 
-    for (const param of parameters) {
-      const dependency = this.parseConstructorParameter(param);
-      if (dependency) {
-        dependencies.push(dependency);
+    // Extract constructor parameter dependencies (legacy approach)
+    const constructors = classDeclaration.getConstructors();
+    if (constructors.length > 0) {
+      // Take first constructor (Angular classes should have only one)
+      const constructorDecl = constructors[0];
+      const parameters = constructorDecl.getParameters();
+
+      for (const param of parameters) {
+        const dependency = this.parseConstructorParameter(param);
+        if (dependency) {
+          dependencies.push(dependency);
+        }
       }
     }
+
+    // Extract inject() function dependencies (modern approach)
+    const injectDependencies = this.extractInjectFunctionDependencies(classDeclaration);
+    dependencies.push(...injectDependencies);
 
     return dependencies;
   }
@@ -427,11 +443,15 @@ export class AngularParser {
   /**
    * Parse a single constructor parameter to extract dependency token
    * Implements FR-03 token resolution priority: @Inject > type annotation > inferred type
+   * Implements FR-04 parameter decorator handling
    * @param param ts-morph ParameterDeclaration
    * @returns ParsedDependency if valid dependency, null if should be skipped
    */
   private parseConstructorParameter(param: ParameterDeclaration): ParsedDependency | null {
     const parameterName = param.getName();
+
+    // Extract parameter decorators (FR-04)
+    const flags = this.extractParameterDecorators(param);
 
     // Check for @Inject decorator first (highest priority)
     const injectDecorator = param.getDecorator('Inject');
@@ -440,7 +460,7 @@ export class AngularParser {
       if (token) {
         return {
           token,
-          flags: {}, // Will be populated in future tasks
+          flags,
           parameterName,
         };
       }
@@ -453,7 +473,7 @@ export class AngularParser {
       if (token) {
         return {
           token,
-          flags: {},
+          flags,
           parameterName,
         };
       }
@@ -485,7 +505,7 @@ export class AngularParser {
 
     return {
       token: typeText,
-      flags: {},
+      flags,
       parameterName,
     };
   }
@@ -544,5 +564,301 @@ export class AngularParser {
   private isPrimitiveType(typeText: string): boolean {
     const primitives = ['string', 'number', 'boolean', 'symbol', 'bigint', 'undefined', 'null'];
     return primitives.includes(typeText);
+  }
+
+  /**
+   * Extract parameter decorators from constructor parameter
+   * Implements FR-04: Parameter decorator handling (@Optional, @Self, @SkipSelf, @Host)
+   * Optimized for performance with early returns and minimal object allocation
+   * @param param ts-morph ParameterDeclaration
+   * @returns EdgeFlags object with detected decorators
+   */
+  private extractParameterDecorators(param: ParameterDeclaration): EdgeFlags {
+    // Early return for disabled decorator detection
+    if (!this._options.includeDecorators) {
+      return {};
+    }
+
+    const decorators = param.getDecorators();
+
+    // Early return if no decorators present
+    if (decorators.length === 0) {
+      return {};
+    }
+
+    const flags: EdgeFlags = {};
+
+    try {
+      // Cache for performance - avoid repeated name resolution
+      const supportedDecorators = new Set(['Optional', 'Self', 'SkipSelf', 'Host']);
+
+      for (const decorator of decorators) {
+        const decoratorName = this.getDecoratorName(decorator);
+
+        // Skip @Inject as it's handled separately for token extraction
+        if (decoratorName === 'Inject') {
+          continue;
+        }
+
+        // Only process known Angular DI decorators
+        if (supportedDecorators.has(decoratorName)) {
+          switch (decoratorName) {
+            case 'Optional':
+              flags.optional = true;
+              break;
+            case 'Self':
+              flags.self = true;
+              break;
+            case 'SkipSelf':
+              flags.skipSelf = true;
+              break;
+            case 'Host':
+              flags.host = true;
+              break;
+          }
+        } else if (this._options.verbose && decoratorName) {
+          // Only warn about non-empty decorator names to avoid noise
+          console.log(`Unknown parameter decorator: ${decoratorName}`);
+        }
+      }
+    } catch (error) {
+      // Graceful error handling - don't break parsing for decorator issues
+      if (this._options.verbose) {
+        const paramName = param.getName();
+        const filePath = param.getSourceFile().getFilePath();
+        console.warn(
+          `Warning: Failed to extract decorators for parameter '${paramName}' in ${filePath}: ${
+            error instanceof Error ? error.message : String(error)
+          }`
+        );
+      }
+      // Return empty flags object on error
+      return {};
+    }
+
+    return flags;
+  }
+
+  /**
+   * Extract dependencies from inject() function calls in class properties
+   * Implements TDD Cycle 2.1: Modern Angular inject() pattern detection
+   * @param classDeclaration ts-morph ClassDeclaration
+   * @returns Array of parsed dependencies from inject() calls
+   */
+  private extractInjectFunctionDependencies(
+    classDeclaration: ClassDeclaration
+  ): ParsedDependency[] {
+    const dependencies: ParsedDependency[] = [];
+
+    try {
+      // Get all property declarations in the class
+      const properties = classDeclaration.getProperties();
+
+      for (const property of properties) {
+        const dependency = this.parseInjectProperty(property);
+        if (dependency) {
+          dependencies.push(dependency);
+        }
+      }
+    } catch (error) {
+      // Graceful error handling - don't break parsing for inject() issues
+      if (this._options.verbose) {
+        const className = classDeclaration.getName() || 'unknown';
+        const filePath = classDeclaration.getSourceFile().getFilePath();
+        console.warn(
+          `Warning: Failed to extract inject() dependencies for class '${className}' in ${filePath}: ${
+            error instanceof Error ? error.message : String(error)
+          }`
+        );
+      }
+    }
+
+    return dependencies;
+  }
+
+  /**
+   * Parse a property declaration for inject() function calls
+   * @param property ts-morph PropertyDeclaration
+   * @returns ParsedDependency if inject() call found, null otherwise
+   */
+  private parseInjectProperty(property: PropertyDeclaration): ParsedDependency | null {
+    try {
+      const initializer = property.getInitializer();
+      if (!initializer) {
+        return null;
+      }
+
+      // Check if initializer is a call expression
+      if (initializer.getKind() !== SyntaxKind.CallExpression) {
+        return null;
+      }
+
+      const callExpression = initializer as CallExpression;
+      const expression = callExpression.getExpression();
+
+      // Check if the call is to the inject() function
+      if (expression.getKind() !== SyntaxKind.Identifier) {
+        return null;
+      }
+
+      const identifier = expression.getText();
+      if (identifier !== 'inject') {
+        return null;
+      }
+
+      // Additional validation: ensure inject is imported from @angular/core
+      // This helps avoid false positives from other inject() functions
+      if (!this.isAngularInjectImported(property.getSourceFile())) {
+        return null;
+      }
+
+      // Extract token and options from inject() call
+      const args = callExpression.getArguments();
+      if (args.length === 0) {
+        return null;
+      }
+
+      // First argument is the token
+      const tokenArg = args[0];
+      const token = tokenArg.getText().replace(/['"]/g, ''); // Remove quotes if string literal
+
+      // Skip if token should be filtered out
+      if (this.shouldSkipType(token) || this.isPrimitiveType(token)) {
+        return null;
+      }
+
+      // Second argument is options object (optional)
+      let flags: EdgeFlags = {};
+      if (args.length > 1 && this._options.includeDecorators) {
+        flags = this.parseInjectOptions(args[1]);
+      }
+
+      const propertyName = property.getName() || 'unknown';
+
+      return {
+        token,
+        flags,
+        parameterName: propertyName,
+      };
+    } catch (error) {
+      // Graceful error handling
+      if (this._options.verbose) {
+        const propertyName = property.getName() || 'unknown';
+        const filePath = property.getSourceFile().getFilePath();
+        console.warn(
+          `Warning: Failed to parse inject() property '${propertyName}' in ${filePath}: ${
+            error instanceof Error ? error.message : String(error)
+          }`
+        );
+      }
+      return null;
+    }
+  }
+
+  /**
+   * Parse options object from inject() function call
+   * @param optionsArg Options argument from inject() call
+   * @returns EdgeFlags object with parsed options
+   */
+  private parseInjectOptions(optionsArg: Node): EdgeFlags {
+    const flags: EdgeFlags = {};
+
+    try {
+      if (optionsArg.getKind() !== SyntaxKind.ObjectLiteralExpression) {
+        return flags;
+      }
+
+      const objectLiteral = optionsArg as ObjectLiteralExpression;
+      const properties = objectLiteral.getProperties();
+
+      // Cache for performance - avoid repeated string comparisons
+      const supportedOptions = new Set(['optional', 'self', 'skipSelf', 'host']);
+
+      for (const prop of properties) {
+        if (prop.getKind() !== SyntaxKind.PropertyAssignment) {
+          continue;
+        }
+
+        const propertyAssignment = prop as PropertyAssignment;
+        const name = propertyAssignment.getName();
+
+        // Only process known inject() options for performance
+        if (!supportedOptions.has(name)) {
+          continue;
+        }
+
+        // Check if the property value is true (literal boolean)
+        const initializer = propertyAssignment.getInitializer();
+        if (initializer && initializer.getText() === 'true') {
+          // Set flags based on known property names
+          switch (name) {
+            case 'optional':
+              flags.optional = true;
+              break;
+            case 'self':
+              flags.self = true;
+              break;
+            case 'skipSelf':
+              flags.skipSelf = true;
+              break;
+            case 'host':
+              flags.host = true;
+              break;
+          }
+        }
+      }
+    } catch (error) {
+      // Graceful error handling - return empty flags on error
+      if (this._options.verbose) {
+        console.warn(
+          `Warning: Failed to parse inject() options: ${
+            error instanceof Error ? error.message : String(error)
+          }`
+        );
+      }
+    }
+
+    return flags;
+  }
+
+  /**
+   * Check if inject() function is imported from @angular/core
+   * Prevents false positives from custom inject() functions
+   * @param sourceFile Source file to check imports
+   * @returns True if Angular inject is imported
+   */
+  private isAngularInjectImported(sourceFile: SourceFile): boolean {
+    try {
+      const importDeclarations = sourceFile.getImportDeclarations();
+
+      for (const importDecl of importDeclarations) {
+        const moduleSpecifier = importDecl.getModuleSpecifierValue();
+        if (moduleSpecifier === '@angular/core') {
+          const namedImports = importDecl.getNamedImports();
+
+          for (const namedImport of namedImports) {
+            const importName = namedImport.getName();
+            const alias = namedImport.getAliasNode();
+
+            // Check for direct import or aliased import
+            if (importName === 'inject' || (alias && alias.getText() === 'inject')) {
+              return true;
+            }
+          }
+        }
+      }
+
+      return false;
+    } catch (error) {
+      // Conservative approach: assume it's valid if we can't determine
+      if (this._options.verbose) {
+        console.warn(
+          `Warning: Could not verify inject() import in ${sourceFile.getFilePath()}: ${
+            error instanceof Error ? error.message : String(error)
+          }`
+        );
+      }
+      return true; // Assume valid to avoid false negatives
+    }
   }
 }
