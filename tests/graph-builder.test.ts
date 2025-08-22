@@ -660,4 +660,282 @@ describe('GraphBuilder', () => {
       });
     });
   });
+
+  describe('EdgeFlags Enhancement (TDD Cycle 1.2)', () => {
+    it('should handle multiple decorators on same parameter', () => {
+      // Arrange
+      const parsedClasses: ParsedClass[] = [
+        {
+          name: 'ComplexComponent',
+          kind: 'component' as NodeKind,
+          filePath: '/src/complex.component.ts',
+          dependencies: [
+            {
+              token: 'MultiDecoratorService',
+              parameterName: 'service',
+              flags: {
+                optional: true,
+                self: true,
+                skipSelf: false,
+                host: true
+              }
+            }
+          ]
+        }
+      ];
+
+      // Act
+      const result: Graph = buildGraph(parsedClasses);
+
+      // Assert
+      expect(result.edges).toHaveLength(1);
+      expect(result.edges[0].flags).toEqual({
+        optional: true,
+        self: true,
+        skipSelf: false,
+        host: true
+      });
+    });
+
+    it('should handle undefined flags gracefully', () => {
+      // Arrange
+      const parsedClasses: ParsedClass[] = [
+        {
+          name: 'SimpleComponent',
+          kind: 'component' as NodeKind,
+          filePath: '/src/simple.component.ts',
+          dependencies: [
+            {
+              token: 'PlainService',
+              parameterName: 'service'
+              // Note: no flags property
+            }
+          ]
+        }
+      ];
+
+      // Act
+      const result: Graph = buildGraph(parsedClasses);
+
+      // Assert
+      expect(result.edges).toHaveLength(1);
+      expect(result.edges[0].flags).toBeUndefined();
+    });
+
+    it('should handle empty flags object', () => {
+      // Arrange
+      const parsedClasses: ParsedClass[] = [
+        {
+          name: 'EmptyFlagsComponent',
+          kind: 'component' as NodeKind,
+          filePath: '/src/empty.component.ts',
+          dependencies: [
+            {
+              token: 'EmptyFlagsService',
+              parameterName: 'service',
+              flags: {}
+            }
+          ]
+        }
+      ];
+
+      // Act
+      const result: Graph = buildGraph(parsedClasses);
+
+      // Assert
+      expect(result.edges).toHaveLength(1);
+      expect(result.edges[0].flags).toEqual({});
+    });
+
+    it('should preserve all EdgeFlags types correctly', () => {
+      // Arrange - Test each flag type individually
+      const parsedClasses: ParsedClass[] = [
+        {
+          name: 'FlagTestComponent',
+          kind: 'component' as NodeKind,
+          filePath: '/src/flag-test.component.ts',
+          dependencies: [
+            {
+              token: 'OptionalService',
+              parameterName: 'optionalService',
+              flags: { optional: true }
+            },
+            {
+              token: 'SelfService',
+              parameterName: 'selfService',
+              flags: { self: true }
+            },
+            {
+              token: 'SkipSelfService',
+              parameterName: 'skipSelfService',
+              flags: { skipSelf: true }
+            },
+            {
+              token: 'HostService',
+              parameterName: 'hostService',
+              flags: { host: true }
+            }
+          ]
+        }
+      ];
+
+      // Act
+      const result: Graph = buildGraph(parsedClasses);
+
+      // Assert
+      expect(result.edges).toHaveLength(4);
+      
+      const optionalEdge = result.edges.find(e => e.to === 'OptionalService');
+      expect(optionalEdge?.flags).toEqual({ optional: true });
+      
+      const selfEdge = result.edges.find(e => e.to === 'SelfService');
+      expect(selfEdge?.flags).toEqual({ self: true });
+      
+      const skipSelfEdge = result.edges.find(e => e.to === 'SkipSelfService');
+      expect(skipSelfEdge?.flags).toEqual({ skipSelf: true });
+      
+      const hostEdge = result.edges.find(e => e.to === 'HostService');
+      expect(hostEdge?.flags).toEqual({ host: true });
+    });
+
+    it('should handle false flag values correctly', () => {
+      // Arrange
+      const parsedClasses: ParsedClass[] = [
+        {
+          name: 'FalseValueComponent',
+          kind: 'component' as NodeKind,
+          filePath: '/src/false-value.component.ts',
+          dependencies: [
+            {
+              token: 'FalseValueService',
+              parameterName: 'service',
+              flags: {
+                optional: false,
+                self: false,
+                skipSelf: false,
+                host: false
+              }
+            }
+          ]
+        }
+      ];
+
+      // Act
+      const result: Graph = buildGraph(parsedClasses);
+
+      // Assert
+      expect(result.edges).toHaveLength(1);
+      expect(result.edges[0].flags).toEqual({
+        optional: false,
+        self: false,
+        skipSelf: false,
+        host: false
+      });
+    });
+
+    it('should preserve flags during circular dependency detection', () => {
+      // Arrange
+      const parsedClasses: ParsedClass[] = [
+        {
+          name: 'CircularServiceA',
+          kind: 'service' as NodeKind,
+          filePath: '/src/circular-a.service.ts',
+          dependencies: [
+            {
+              token: 'CircularServiceB',
+              parameterName: 'serviceB',
+              flags: { optional: true }
+            }
+          ]
+        },
+        {
+          name: 'CircularServiceB',
+          kind: 'service' as NodeKind,
+          filePath: '/src/circular-b.service.ts',
+          dependencies: [
+            {
+              token: 'CircularServiceA',
+              parameterName: 'serviceA',
+              flags: { self: true }
+            }
+          ]
+        }
+      ];
+
+      // Act
+      const result: Graph = buildGraph(parsedClasses);
+
+      // Assert
+      expect(result.circularDependencies).toHaveLength(1);
+      expect(result.edges).toHaveLength(2);
+      
+      const edgeAtoB = result.edges.find(e => e.from === 'CircularServiceA');
+      expect(edgeAtoB?.flags).toEqual({ optional: true });
+      expect(edgeAtoB?.isCircular).toBe(true);
+      
+      const edgeBtoA = result.edges.find(e => e.from === 'CircularServiceB');
+      expect(edgeBtoA?.flags).toEqual({ self: true });
+      expect(edgeBtoA?.isCircular).toBe(true);
+    });
+
+    it('should validate EdgeFlags type safety', () => {
+      // Arrange - Test that all EdgeFlags properties are properly typed and optional
+      const parsedClasses: ParsedClass[] = [
+        {
+          name: 'TypeSafetyComponent',
+          kind: 'component' as NodeKind,
+          filePath: '/src/type-safety.component.ts',
+          dependencies: [
+            {
+              token: 'Service1',
+              parameterName: 'service1',
+              flags: { optional: true } // Only optional set
+            },
+            {
+              token: 'Service2',
+              parameterName: 'service2',
+              flags: { self: true } // Only self set
+            },
+            {
+              token: 'Service3',
+              parameterName: 'service3',
+              flags: { skipSelf: true } // Only skipSelf set
+            },
+            {
+              token: 'Service4',
+              parameterName: 'service4',
+              flags: { host: true } // Only host set
+            },
+            {
+              token: 'Service5',
+              parameterName: 'service5'
+              // No flags - should work fine
+            }
+          ]
+        }
+      ];
+
+      // Act
+      const result: Graph = buildGraph(parsedClasses);
+
+      // Assert
+      expect(result.edges).toHaveLength(5);
+      
+      // Test individual flag isolation
+      const service1Edge = result.edges.find(e => e.to === 'Service1');
+      expect(service1Edge?.flags).toEqual({ optional: true });
+      expect(service1Edge?.flags?.self).toBeUndefined();
+      expect(service1Edge?.flags?.skipSelf).toBeUndefined();
+      expect(service1Edge?.flags?.host).toBeUndefined();
+      
+      const service2Edge = result.edges.find(e => e.to === 'Service2');
+      expect(service2Edge?.flags).toEqual({ self: true });
+      expect(service2Edge?.flags?.optional).toBeUndefined();
+      expect(service2Edge?.flags?.skipSelf).toBeUndefined();
+      expect(service2Edge?.flags?.host).toBeUndefined();
+      
+      const service5Edge = result.edges.find(e => e.to === 'Service5');
+      expect(service5Edge?.flags).toBeUndefined();
+    });
+  });
 });

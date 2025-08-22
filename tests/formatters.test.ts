@@ -180,6 +180,139 @@ describe('Output Formatting', () => {
       expect(result).not.toContain('#');
       expect(result).not.toContain('$');
     });
+
+    describe('EdgeFlags JSON Serialization (TDD Cycle 1.2)', () => {
+      let formatter: JsonFormatter;
+      
+      beforeEach(() => {
+        formatter = new JsonFormatter();
+      });
+
+      it('should serialize all EdgeFlags types to JSON correctly', () => {
+        // Arrange
+        const graphWithAllFlags: Graph = {
+          nodes: [
+            { id: 'ComponentWithAllFlags', kind: 'component' },
+            { id: 'ServiceWithAllFlags', kind: 'service' }
+          ],
+          edges: [
+            {
+              from: 'ComponentWithAllFlags',
+              to: 'ServiceWithAllFlags',
+              flags: {
+                optional: true,
+                self: false,
+                skipSelf: true,
+                host: false
+              }
+            }
+          ],
+          circularDependencies: []
+        };
+
+        // Act
+        const result = formatter.format(graphWithAllFlags);
+
+        // Assert
+        const parsed = JSON.parse(result);
+        expect(parsed.edges[0].flags).toEqual({
+          optional: true,
+          self: false,
+          skipSelf: true,
+          host: false
+        });
+      });
+
+      it('should handle undefined flags in JSON serialization', () => {
+        // Arrange
+        const graphWithUndefinedFlags: Graph = {
+          nodes: [
+            { id: 'ComponentNoFlags', kind: 'component' },
+            { id: 'ServiceNoFlags', kind: 'service' }
+          ],
+          edges: [
+            {
+              from: 'ComponentNoFlags',
+              to: 'ServiceNoFlags'
+              // Note: no flags property
+            }
+          ],
+          circularDependencies: []
+        };
+
+        // Act
+        const result = formatter.format(graphWithUndefinedFlags);
+
+        // Assert
+        const parsed = JSON.parse(result);
+        expect(parsed.edges[0].flags).toBeUndefined();
+      });
+
+      it('should serialize empty flags object to JSON', () => {
+        // Arrange
+        const graphWithEmptyFlags: Graph = {
+          nodes: [
+            { id: 'ComponentEmptyFlags', kind: 'component' },
+            { id: 'ServiceEmptyFlags', kind: 'service' }
+          ],
+          edges: [
+            {
+              from: 'ComponentEmptyFlags',
+              to: 'ServiceEmptyFlags',
+              flags: {}
+            }
+          ],
+          circularDependencies: []
+        };
+
+        // Act
+        const result = formatter.format(graphWithEmptyFlags);
+
+        // Assert
+        const parsed = JSON.parse(result);
+        expect(parsed.edges[0].flags).toEqual({});
+      });
+
+      it('should serialize complex multi-edge flags correctly', () => {
+        // Arrange
+        const complexFlagsGraph: Graph = {
+          nodes: [
+            { id: 'MultiEdgeComponent', kind: 'component' },
+            { id: 'ServiceA', kind: 'service' },
+            { id: 'ServiceB', kind: 'service' },
+            { id: 'ServiceC', kind: 'service' }
+          ],
+          edges: [
+            {
+              from: 'MultiEdgeComponent',
+              to: 'ServiceA',
+              flags: { optional: true }
+            },
+            {
+              from: 'MultiEdgeComponent',
+              to: 'ServiceB',
+              flags: { self: true, skipSelf: false }
+            },
+            {
+              from: 'MultiEdgeComponent',
+              to: 'ServiceC'
+              // No flags
+            }
+          ],
+          circularDependencies: []
+        };
+
+        // Act
+        const result = formatter.format(complexFlagsGraph);
+
+        // Assert
+        const parsed = JSON.parse(result);
+        expect(parsed.edges).toHaveLength(3);
+        expect(parsed.edges[0].flags).toEqual({ optional: true });
+        expect(parsed.edges[1].flags).toEqual({ self: true, skipSelf: false });
+        expect(parsed.edges[2].flags).toBeUndefined();
+      });
+    });
   });
 });
 
