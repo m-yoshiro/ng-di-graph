@@ -24,7 +24,7 @@ Graph building and output formatting.
 |------|----------------------|----------|--------|
 | [Task 2.1](./task-2.1-graph-building.md) | FR-05: Graph Building Infrastructure | High | ✅ Complete |
 | [Task 2.2](./task-2.2-output-formatting.md) | FR-06 & FR-08: Output Formatting | Medium | ⏳ Ready |
-| [Task 2.3](./task-2.3-parameter-decorators.md) | FR-04: Parameter Decorator Handling | Medium | ⏳ Ready |
+| [Task 2.3](./task-2.3-parameter-decorators.md) | FR-04: Parameter Decorator Handling | Medium | ✅ Complete |
 
 **Dependencies**: Milestone 1 complete  
 **Duration**: 2-3 days  
