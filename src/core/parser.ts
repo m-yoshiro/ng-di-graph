@@ -23,9 +23,11 @@ import type {
   CliOptions,
   EdgeFlags,
   NodeKind,
+  ParameterAnalysisResult,
   ParsedClass,
   ParsedDependency,
   ParserError,
+  VerboseStats,
 } from '../types';
 
 export class AngularParser {
@@ -417,6 +419,28 @@ export class AngularParser {
    */
   private extractConstructorDependencies(classDeclaration: ClassDeclaration): ParsedDependency[] {
     const dependencies: ParsedDependency[] = [];
+    const verboseStats = {
+      decoratorCounts: { optional: 0, self: 0, skipSelf: 0, host: 0 },
+      skippedDecorators: [] as Array<{ name: string; reason: string }>,
+      parametersWithDecorators: 0,
+      parametersWithoutDecorators: 0,
+      legacyDecoratorsUsed: 0,
+      injectPatternsUsed: 0,
+      totalProcessingTime: 0,
+      totalParameters: 0,
+    };
+
+    const startTime = performance.now();
+
+    if (this._options.verbose && this._options.includeDecorators) {
+      console.log('=== Decorator Analysis ===');
+      const className = classDeclaration.getName() || 'unknown';
+      console.log(`Analyzing decorators for class: ${className}`);
+    }
+
+    if (this._options.verbose && !this._options.includeDecorators) {
+      console.log('Decorator analysis disabled - --include-decorators flag not set');
+    }
 
     // Extract constructor parameter dependencies (legacy approach)
     const constructors = classDeclaration.getConstructors();
@@ -424,18 +448,37 @@ export class AngularParser {
       // Take first constructor (Angular classes should have only one)
       const constructorDecl = constructors[0];
       const parameters = constructorDecl.getParameters();
+      verboseStats.totalParameters = parameters.length;
 
       for (const param of parameters) {
+        const paramStartTime = performance.now();
         const dependency = this.parseConstructorParameter(param);
+        const paramEndTime = performance.now();
+
         if (dependency) {
           dependencies.push(dependency);
+
+          // Collect verbose statistics
+          if (this._options.verbose && this._options.includeDecorators) {
+            this.collectVerboseStats(param, dependency, verboseStats);
+          }
         }
+
+        verboseStats.totalProcessingTime += paramEndTime - paramStartTime;
       }
     }
 
     // Extract inject() function dependencies (modern approach)
     const injectDependencies = this.extractInjectFunctionDependencies(classDeclaration);
     dependencies.push(...injectDependencies);
+
+    const endTime = performance.now();
+    verboseStats.totalProcessingTime = endTime - startTime;
+
+    // Output verbose analysis if enabled
+    if (this._options.verbose) {
+      this.outputVerboseAnalysis(dependencies, verboseStats, classDeclaration);
+    }
 
     return dependencies;
   }
@@ -461,6 +504,22 @@ export class AngularParser {
         return {
           token,
           flags,
+          parameterName,
+        };
+      }
+    }
+
+    // Check for inject() function pattern (second priority)
+    const initializer = param.getInitializer();
+    if (initializer) {
+      const injectResult = this.analyzeInjectCall(initializer);
+      if (injectResult) {
+        // If legacy decorators are present, they completely override inject() options
+        // Otherwise, use inject() options
+        const finalFlags = Object.keys(flags).length > 0 ? flags : injectResult.flags;
+        return {
+          token: injectResult.token,
+          flags: finalFlags,
           parameterName,
         };
       }
@@ -574,69 +633,8 @@ export class AngularParser {
    * @returns EdgeFlags object with detected decorators
    */
   private extractParameterDecorators(param: ParameterDeclaration): EdgeFlags {
-    // Early return for disabled decorator detection
-    if (!this._options.includeDecorators) {
-      return {};
-    }
-
-    const decorators = param.getDecorators();
-
-    // Early return if no decorators present
-    if (decorators.length === 0) {
-      return {};
-    }
-
-    const flags: EdgeFlags = {};
-
-    try {
-      // Cache for performance - avoid repeated name resolution
-      const supportedDecorators = new Set(['Optional', 'Self', 'SkipSelf', 'Host']);
-
-      for (const decorator of decorators) {
-        const decoratorName = this.getDecoratorName(decorator);
-
-        // Skip @Inject as it's handled separately for token extraction
-        if (decoratorName === 'Inject') {
-          continue;
-        }
-
-        // Only process known Angular DI decorators
-        if (supportedDecorators.has(decoratorName)) {
-          switch (decoratorName) {
-            case 'Optional':
-              flags.optional = true;
-              break;
-            case 'Self':
-              flags.self = true;
-              break;
-            case 'SkipSelf':
-              flags.skipSelf = true;
-              break;
-            case 'Host':
-              flags.host = true;
-              break;
-          }
-        } else if (this._options.verbose && decoratorName) {
-          // Only warn about non-empty decorator names to avoid noise
-          console.log(`Unknown parameter decorator: ${decoratorName}`);
-        }
-      }
-    } catch (error) {
-      // Graceful error handling - don't break parsing for decorator issues
-      if (this._options.verbose) {
-        const paramName = param.getName();
-        const filePath = param.getSourceFile().getFilePath();
-        console.warn(
-          `Warning: Failed to extract decorators for parameter '${paramName}' in ${filePath}: ${
-            error instanceof Error ? error.message : String(error)
-          }`
-        );
-      }
-      // Return empty flags object on error
-      return {};
-    }
-
-    return flags;
+    // Delegate to the new analyzeParameterDecorators method for consistency
+    return this.analyzeParameterDecorators(param, this._options.includeDecorators);
   }
 
   /**
@@ -784,6 +782,10 @@ export class AngularParser {
 
         // Only process known inject() options for performance
         if (!supportedOptions.has(name)) {
+          // Warn about unknown options but continue processing
+          if (this._options.verbose) {
+            console.warn(`Unknown inject() option: '${name}' - ignoring`);
+          }
           continue;
         }
 
@@ -816,6 +818,93 @@ export class AngularParser {
           }`
         );
       }
+    }
+
+    return flags;
+  }
+
+  /**
+   * Analyze parameter decorators for TDD Cycle 1.1
+   * Legacy parameter decorator detection method for @Optional, @Self, @SkipSelf, @Host
+   * @param parameter ParameterDeclaration to analyze
+   * @param includeDecorators Whether to include decorators in analysis
+   * @returns EdgeFlags object with detected decorators
+   */
+  private analyzeParameterDecorators(
+    parameter: ParameterDeclaration,
+    includeDecorators: boolean,
+    verboseStats?: VerboseStats
+  ): EdgeFlags {
+    // Early return for disabled decorator detection
+    if (!includeDecorators) {
+      return {};
+    }
+
+    const decorators = parameter.getDecorators();
+
+    // Early return if no decorators present
+    if (decorators.length === 0) {
+      return {};
+    }
+
+    const flags: EdgeFlags = {};
+
+    try {
+      // Cache for performance - avoid repeated name resolution
+      const supportedDecorators = new Set(['Optional', 'Self', 'SkipSelf', 'Host']);
+
+      for (const decorator of decorators) {
+        const decoratorName = this.getDecoratorName(decorator);
+
+        // Skip @Inject as it's handled separately for token extraction
+        if (decoratorName === 'Inject') {
+          continue;
+        }
+
+        // Only process known Angular DI decorators
+        if (supportedDecorators.has(decoratorName)) {
+          switch (decoratorName) {
+            case 'Optional':
+              flags.optional = true;
+              break;
+            case 'Self':
+              flags.self = true;
+              break;
+            case 'SkipSelf':
+              flags.skipSelf = true;
+              break;
+            case 'Host':
+              flags.host = true;
+              break;
+          }
+        } else if (decoratorName) {
+          // Track unknown decorators for verbose stats
+          if (verboseStats) {
+            verboseStats.skippedDecorators.push({
+              name: decoratorName,
+              reason: 'Unknown or unsupported decorator',
+            });
+          }
+
+          // Warn about unknown decorators to help with debugging
+          console.warn(
+            `Unknown or unsupported decorator: @${decoratorName}() - This decorator is not recognized as an Angular DI decorator and will be ignored.`
+          );
+        }
+      }
+    } catch (error) {
+      // Graceful error handling - don't break parsing for decorator issues
+      if (this._options.verbose) {
+        const paramName = parameter.getName();
+        const filePath = parameter.getSourceFile().getFilePath();
+        console.warn(
+          `Warning: Failed to extract decorators for parameter '${paramName}' in ${filePath}: ${
+            error instanceof Error ? error.message : String(error)
+          }`
+        );
+      }
+      // Return empty flags object on error
+      return {};
     }
 
     return flags;
@@ -859,6 +948,345 @@ export class AngularParser {
         );
       }
       return true; // Assume valid to avoid false negatives
+    }
+  }
+
+  /**
+   * Analyze inject() function call expression to extract token and options
+   * Implements TDD Cycle 2.1 - Modern Angular inject() pattern support
+   * @param expression Expression to analyze (should be a CallExpression)
+   * @returns ParameterAnalysisResult or null if not a valid inject() call
+   */
+  private analyzeInjectCall(expression: Node | undefined): ParameterAnalysisResult | null {
+    // Early return for missing expression
+    if (!expression) {
+      return null;
+    }
+
+    // Must be a CallExpression
+    if (expression.getKind() !== SyntaxKind.CallExpression) {
+      return null;
+    }
+
+    const callExpression = expression as CallExpression;
+
+    try {
+      // Verify it's actually an inject() call
+      const callIdentifier = callExpression.getExpression();
+      if (callIdentifier.getKind() !== SyntaxKind.Identifier) {
+        return null;
+      }
+
+      const functionName = callIdentifier.getText();
+      if (functionName !== 'inject') {
+        return null;
+      }
+
+      // Verify inject is imported from @angular/core
+      const sourceFile = expression.getSourceFile();
+      if (!this.isAngularInjectImported(sourceFile)) {
+        return null;
+      }
+
+      const args = callExpression.getArguments();
+      if (args.length === 0) {
+        // inject() called without arguments
+        if (this._options.verbose) {
+          console.warn('inject() called without token parameter - skipping');
+        }
+        return null;
+      }
+
+      // Extract token from first argument
+      const tokenArg = args[0];
+      let token: string;
+
+      // Handle various token argument types with validation
+      if (tokenArg.getKind() === SyntaxKind.StringLiteral) {
+        // String token: inject('MY_TOKEN', ...)
+        token = tokenArg.getText().slice(1, -1); // Remove quotes
+        if (!token) {
+          // Empty string token
+          if (this._options.verbose) {
+            console.warn('inject() called with empty string token - skipping');
+          }
+          return null;
+        }
+      } else if (tokenArg.getKind() === SyntaxKind.Identifier) {
+        // Class token: inject(MyService, ...)
+        token = tokenArg.getText();
+        if (token === 'undefined' || token === 'null') {
+          // Explicit undefined or null token
+          if (this._options.verbose) {
+            console.warn(`inject() called with ${token} token - skipping`);
+          }
+          return null;
+        }
+      } else if (tokenArg.getKind() === SyntaxKind.NullKeyword) {
+        // Direct null literal
+        if (this._options.verbose) {
+          console.warn('inject() called with null token - skipping');
+        }
+        return null;
+      } else {
+        // Complex expression - use text representation
+        token = tokenArg.getText();
+        if (!token) {
+          if (this._options.verbose) {
+            console.warn('inject() called with invalid token expression - skipping');
+          }
+          return null;
+        }
+      }
+
+      // Parse options from second argument if present
+      let flags: EdgeFlags = {};
+      if (args.length > 1 && this._options.includeDecorators) {
+        const optionsArg = args[1];
+        if (optionsArg.getKind() === SyntaxKind.ObjectLiteralExpression) {
+          flags = this.parseInjectOptions(optionsArg);
+        } else if (
+          optionsArg.getKind() !== SyntaxKind.NullKeyword &&
+          optionsArg.getKind() !== SyntaxKind.UndefinedKeyword
+        ) {
+          // Warn about invalid options (not null/undefined)
+          if (this._options.verbose) {
+            console.warn(
+              `inject() called with invalid options type: ${optionsArg.getKindName()} - expected object literal`
+            );
+          }
+        }
+      }
+
+      return {
+        token,
+        flags,
+        source: 'inject',
+      };
+    } catch (error) {
+      // Graceful error handling
+      if (this._options.verbose) {
+        const filePath = expression.getSourceFile().getFilePath();
+        console.warn(
+          `Warning: Failed to analyze inject() call in ${filePath}: ${
+            error instanceof Error ? error.message : String(error)
+          }`
+        );
+      }
+      return null;
+    }
+  }
+
+  /**
+   * Collect verbose statistics for decorator analysis
+   * @param param Parameter declaration being analyzed
+   * @param dependency Parsed dependency result
+   * @param verboseStats Statistics object to update
+   */
+  private collectVerboseStats(
+    param: ParameterDeclaration,
+    dependency: ParsedDependency,
+    verboseStats: VerboseStats
+  ): void {
+    const paramName = param.getName();
+
+    // Log individual parameter analysis
+    console.log(`Parameter: ${paramName}`);
+    console.log(`  Token: ${dependency.token}`);
+
+    // Check if has flags
+    const flagKeys = Object.keys(dependency.flags || {});
+    if (flagKeys.length > 0) {
+      verboseStats.parametersWithDecorators++;
+
+      // Count individual decorator flags
+      if (dependency.flags?.optional) verboseStats.decoratorCounts.optional++;
+      if (dependency.flags?.self) verboseStats.decoratorCounts.self++;
+      if (dependency.flags?.skipSelf) verboseStats.decoratorCounts.skipSelf++;
+      if (dependency.flags?.host) verboseStats.decoratorCounts.host++;
+
+      // Check for legacy decorators vs inject() patterns
+      const decorators = param.getDecorators();
+      let hasLegacyDecorators = false;
+      let hasInjectPattern = false;
+
+      // Re-analyze decorators to capture unknown ones for verbose stats
+      this.analyzeParameterDecorators(param, true, verboseStats);
+
+      for (const decorator of decorators) {
+        const decoratorName = this.getDecoratorName(decorator);
+        if (['Optional', 'Self', 'SkipSelf', 'Host'].includes(decoratorName)) {
+          hasLegacyDecorators = true;
+          console.log(`  Legacy decorator: @${decoratorName}`);
+        }
+      }
+
+      // Check for inject() pattern
+      const initializer = param.getInitializer();
+      if (initializer && initializer.getKind() === SyntaxKind.CallExpression) {
+        const callExpr = initializer as CallExpression;
+        const expression = callExpr.getExpression();
+        if (expression.getKind() === SyntaxKind.Identifier) {
+          const funcName = expression.getText();
+          if (funcName === 'inject') {
+            hasInjectPattern = true;
+            verboseStats.injectPatternsUsed++;
+            const flagsStr = JSON.stringify(dependency.flags);
+            console.log(`  inject() options: ${flagsStr}`);
+          }
+        }
+      }
+
+      if (hasLegacyDecorators) {
+        verboseStats.legacyDecoratorsUsed++;
+
+        // Check for precedence scenarios
+        if (hasInjectPattern) {
+          console.log('  Decorator Precedence Analysis');
+          console.log('  Legacy decorators take precedence over inject() options');
+          const appliedFlags = Object.keys(dependency.flags || {})
+            .filter((key) => dependency.flags?.[key as keyof EdgeFlags] === true)
+            .map((key) => `@${key.charAt(0).toUpperCase() + key.slice(1)}`)
+            .join(', ');
+          console.log(`  Applied: ${appliedFlags}`);
+
+          // Try to detect what inject() options were overridden
+          const injectResult = this.analyzeInjectCall(initializer);
+          if (injectResult && Object.keys(injectResult.flags).length > 0) {
+            const overriddenFlags = JSON.stringify(injectResult.flags);
+            console.log(`  Overridden inject() options: ${overriddenFlags}`);
+          }
+
+          const finalFlags = JSON.stringify(dependency.flags);
+          console.log(`  Final flags: ${finalFlags}`);
+        }
+      }
+    } else {
+      verboseStats.parametersWithoutDecorators++;
+      console.log('  No decorators detected');
+    }
+  }
+
+  /**
+   * Output comprehensive verbose analysis summary
+   * @param dependencies All parsed dependencies
+   * @param verboseStats Collected statistics
+   * @param classDeclaration Class being analyzed
+   */
+  private outputVerboseAnalysis(
+    dependencies: ParsedDependency[],
+    verboseStats: VerboseStats,
+    classDeclaration: ClassDeclaration
+  ): void {
+    if (!this._options.verbose) return;
+
+    if (this._options.includeDecorators) {
+      // Decorator Statistics
+      console.log('=== Decorator Statistics ===');
+      console.log(
+        `Total decorators detected: ${verboseStats.decoratorCounts.optional + verboseStats.decoratorCounts.self + verboseStats.decoratorCounts.skipSelf + verboseStats.decoratorCounts.host}`
+      );
+
+      if (verboseStats.decoratorCounts.optional > 0) {
+        console.log(`@Optional: ${verboseStats.decoratorCounts.optional}`);
+      }
+      if (verboseStats.decoratorCounts.self > 0) {
+        console.log(`@Self: ${verboseStats.decoratorCounts.self}`);
+      }
+      if (verboseStats.decoratorCounts.skipSelf > 0) {
+        console.log(`@SkipSelf: ${verboseStats.decoratorCounts.skipSelf}`);
+      }
+      if (verboseStats.decoratorCounts.host > 0) {
+        console.log(`@Host: ${verboseStats.decoratorCounts.host}`);
+      }
+
+      console.log(`Parameters with decorators: ${verboseStats.parametersWithDecorators}`);
+      console.log(`Parameters without decorators: ${verboseStats.parametersWithoutDecorators}`);
+
+      // inject() Pattern Analysis
+      if (verboseStats.injectPatternsUsed > 0) {
+        console.log('inject() Pattern Analysis');
+
+        // Analyze inject() patterns in dependencies
+        for (const dep of dependencies) {
+          if (dep.parameterName) {
+            const constructors = classDeclaration.getConstructors();
+            if (constructors.length > 0) {
+              const param = constructors[0]
+                .getParameters()
+                .find((p) => p.getName() === dep.parameterName);
+              if (param) {
+                const initializer = param.getInitializer();
+                if (initializer) {
+                  const injectResult = this.analyzeInjectCall(initializer);
+                  if (injectResult) {
+                    if (injectResult.token.startsWith('"') && injectResult.token.endsWith('"')) {
+                      console.log(`String token: ${injectResult.token}`);
+                    } else {
+                      console.log(`Service token: ${injectResult.token}`);
+                    }
+
+                    if (Object.keys(injectResult.flags).length > 0) {
+                      const flagsStr = JSON.stringify(injectResult.flags);
+                      console.log(`inject() options detected: ${flagsStr}`);
+                    } else {
+                      console.log('inject() with no options');
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+
+      // Skipped Decorators (if any were captured)
+      if (verboseStats.skippedDecorators.length > 0) {
+        console.log('Skipped Decorators');
+        for (const skipped of verboseStats.skippedDecorators) {
+          console.log(`${skipped.name}`);
+          console.log(`Reason: ${skipped.reason}`);
+        }
+        console.log(`Total skipped: ${verboseStats.skippedDecorators.length}`);
+      }
+
+      // Performance Metrics
+      console.log('Performance Metrics');
+      console.log(`Decorator processing time: ${verboseStats.totalProcessingTime.toFixed(2)}ms`);
+      console.log(`Total parameters analyzed: ${verboseStats.totalParameters}`);
+      if (verboseStats.totalParameters > 0) {
+        const avgTime = verboseStats.totalProcessingTime / verboseStats.totalParameters;
+        console.log(`Average time per parameter: ${avgTime.toFixed(3)}ms`);
+      }
+
+      // Analysis Summary
+      console.log('=== Analysis Summary ===');
+      console.log(`Total dependencies: ${dependencies.length}`);
+      console.log(`With decorator flags: ${verboseStats.parametersWithDecorators}`);
+      console.log(`Without decorator flags: ${verboseStats.parametersWithoutDecorators}`);
+      console.log(`Legacy decorators used: ${verboseStats.legacyDecoratorsUsed}`);
+      console.log(`inject() patterns used: ${verboseStats.injectPatternsUsed}`);
+
+      if (verboseStats.skippedDecorators.length > 0) {
+        console.log(`Unknown decorators skipped: ${verboseStats.skippedDecorators.length}`);
+      }
+
+      // Flags distribution
+      if (verboseStats.parametersWithDecorators > 0) {
+        console.log('Flags distribution:');
+        if (verboseStats.decoratorCounts.optional > 0) {
+          console.log(`optional: ${verboseStats.decoratorCounts.optional}`);
+        }
+        if (verboseStats.decoratorCounts.self > 0) {
+          console.log(`self: ${verboseStats.decoratorCounts.self}`);
+        }
+        if (verboseStats.decoratorCounts.skipSelf > 0) {
+          console.log(`skipSelf: ${verboseStats.decoratorCounts.skipSelf}`);
+        }
+        if (verboseStats.decoratorCounts.host > 0) {
+          console.log(`host: ${verboseStats.decoratorCounts.host}`);
+        }
+      }
     }
   }
 }
