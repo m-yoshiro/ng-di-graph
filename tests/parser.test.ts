@@ -35,7 +35,7 @@ describe('AngularParser - Project Loading (FR-01)', () => {
     };
     writeFileSync(testValidTsConfig, JSON.stringify(validTsConfigContent, null, 2));
 
-    // Create malformed tsconfig fixture  
+    // Create malformed tsconfig fixture
     writeFileSync(testMalformedTsConfig, '{ invalid json content');
 
     // Create invalid tsconfig fixture (valid JSON but invalid TypeScript config)
@@ -64,7 +64,7 @@ describe('AngularParser - Project Loading (FR-01)', () => {
         includeDecorators: false,
         verbose: false
       };
-      
+
       const parser = new AngularParser(options);
       expect(() => parser.loadProject()).not.toThrow();
     });
@@ -72,15 +72,15 @@ describe('AngularParser - Project Loading (FR-01)', () => {
     it('should throw ParserError for non-existent tsconfig path', () => {
       const options: CliOptions = {
         project: testMissingTsConfig,
-        format: 'json', 
+        format: 'json',
         direction: 'downstream',
         includeDecorators: false,
         verbose: false
       };
-      
+
       const parser = new AngularParser(options);
       expect(() => parser.loadProject()).toThrow();
-      
+
       try {
         parser.loadProject();
       } catch (error) {
@@ -95,14 +95,14 @@ describe('AngularParser - Project Loading (FR-01)', () => {
       const options: CliOptions = {
         project: testMalformedTsConfig,
         format: 'json',
-        direction: 'downstream', 
+        direction: 'downstream',
         includeDecorators: false,
         verbose: false
       };
-      
+
       const parser = new AngularParser(options);
       expect(() => parser.loadProject()).toThrow();
-      
+
       try {
         parser.loadProject();
       } catch (error) {
@@ -120,10 +120,10 @@ describe('AngularParser - Project Loading (FR-01)', () => {
         includeDecorators: false,
         verbose: false
       };
-      
+
       const parser = new AngularParser(options);
       expect(() => parser.loadProject()).toThrow();
-      
+
       try {
         parser.loadProject();
       } catch (error) {
@@ -140,7 +140,7 @@ describe('AngularParser - Project Loading (FR-01)', () => {
         includeDecorators: false,
         verbose: false
       };
-      
+
       const parser = new AngularParser(options);
       expect(() => parser.getProject()).toThrow('Project not loaded');
     });
@@ -149,14 +149,14 @@ describe('AngularParser - Project Loading (FR-01)', () => {
       const options: CliOptions = {
         project: validTsConfig,
         format: 'json',
-        direction: 'downstream', 
+        direction: 'downstream',
         includeDecorators: false,
         verbose: false
       };
-      
+
       const parser = new AngularParser(options);
       parser.loadProject();
-      
+
       const project = parser.getProject();
       expect(project).toBeDefined();
       expect(typeof project.getSourceFiles).toBe('function');
@@ -170,9 +170,9 @@ describe('AngularParser - Project Loading (FR-01)', () => {
         includeDecorators: false,
         verbose: false
       };
-      
+
       const parser = new AngularParser(options);
-      
+
       // parseClasses() should auto-load project if not already loaded
       // This will throw "Not implemented yet" but shouldn't throw project loading errors
       try {
@@ -182,7 +182,7 @@ describe('AngularParser - Project Loading (FR-01)', () => {
         // Should not be a project loading error
         expect((error as ParserError).code).toBeUndefined();
       }
-      
+
       // Project should now be loaded
       expect(() => parser.getProject()).not.toThrow();
     });
@@ -197,9 +197,9 @@ describe('AngularParser - Project Loading (FR-01)', () => {
         includeDecorators: false,
         verbose: false
       };
-      
+
       const parser = new AngularParser(options);
-      
+
       try {
         parser.loadProject();
       } catch (error) {
@@ -215,9 +215,9 @@ describe('AngularParser - Project Loading (FR-01)', () => {
         includeDecorators: false,
         verbose: false
       };
-      
+
       const parser = new AngularParser(options);
-      
+
       try {
         parser.loadProject();
       } catch (error) {
@@ -237,15 +237,15 @@ describe('AngularParser - Project Loading (FR-01)', () => {
         includeDecorators: false,
         verbose: false
       };
-      
+
       const parser = new AngularParser(options);
       const startTime = Date.now();
-      
+
       parser.loadProject();
-      
+
       const endTime = Date.now();
       const duration = endTime - startTime;
-      
+
       expect(duration).toBeLessThan(2000);
     });
   });
@@ -272,11 +272,11 @@ describe('AngularParser - Decorated Class Collection (FR-02)', () => {
 
     it('should detect @Injectable decorated services', async () => {
       const classes = await parser.findDecoratedClasses();
-      
+
       // Should find all @Injectable services from all fixture files
       const services = classes.filter(c => c.kind === 'service');
       expect(services).toHaveLength(37); // 24 original + 4 from edge-cases.ts + 9 new inject() services
-      
+
       const serviceNames = services.map(s => s.name);
       // From services.ts
       expect(serviceNames).toContain('BasicService');
@@ -292,11 +292,11 @@ describe('AngularParser - Decorated Class Collection (FR-02)', () => {
 
     it('should detect @Component decorated classes', async () => {
       const classes = await parser.findDecoratedClasses();
-      
+
       // Should find all @Component classes from all fixture files
       const components = classes.filter(c => c.kind === 'component');
       expect(components).toHaveLength(10); // 8 from components.ts + 2 from edge-cases.ts
-      
+
       const componentNames = components.map(c => c.name);
       // From components.ts
       expect(componentNames).toContain('BasicComponent');
@@ -310,11 +310,11 @@ describe('AngularParser - Decorated Class Collection (FR-02)', () => {
 
     it('should detect @Directive decorated classes', async () => {
       const classes = await parser.findDecoratedClasses();
-      
+
       // Should find all @Directive classes from directives.ts
       const directives = classes.filter(c => c.kind === 'directive');
       expect(directives).toHaveLength(4); // All from directives.ts
-      
+
       const directiveNames = directives.map(d => d.name);
       expect(directiveNames).toContain('BasicDirective');
       expect(directiveNames).toContain('AdvancedDirective');
@@ -324,34 +324,34 @@ describe('AngularParser - Decorated Class Collection (FR-02)', () => {
 
     it('should correctly map decorator types to NodeKind', async () => {
       const classes = await parser.findDecoratedClasses();
-      
+
       // Check specific mappings
       const basicService = classes.find(c => c.name === 'BasicService');
       expect(basicService?.kind).toBe('service');
-      
+
       const basicComponent = classes.find(c => c.name === 'BasicComponent');
       expect(basicComponent?.kind).toBe('component');
-      
+
       const basicDirective = classes.find(c => c.name === 'BasicDirective');
       expect(basicDirective?.kind).toBe('directive');
     });
 
     it('should include correct file paths for each class', async () => {
       const classes = await parser.findDecoratedClasses();
-      
+
       const basicService = classes.find(c => c.name === 'BasicService');
       expect(basicService?.filePath).toContain('services.ts');
-      
+
       const basicComponent = classes.find(c => c.name === 'BasicComponent');
       expect(basicComponent?.filePath).toContain('components.ts');
-      
+
       const basicDirective = classes.find(c => c.name === 'BasicDirective');
       expect(basicDirective?.filePath).toContain('directives.ts');
     });
 
     it('should extract constructor dependencies (FR-03 implemented)', async () => {
       const classes = await parser.findDecoratedClasses();
-      
+
       // With FR-03 implemented, classes with constructor dependencies should have them extracted
       const testComponent = classes.find(c => c.name === 'TestComponent');
       expect(testComponent?.dependencies).toHaveLength(1);
@@ -368,7 +368,7 @@ describe('AngularParser - Decorated Class Collection (FR-02)', () => {
 
     it('should skip undecorated classes silently', async () => {
       const classes = await parser.findDecoratedClasses();
-      
+
       // Should not include UndecoratedService, UndecoratedComponent, CustomDecoratedClass
       const classNames = classes.map(c => c.name);
       expect(classNames).not.toContain('UndecoratedService');
@@ -378,45 +378,45 @@ describe('AngularParser - Decorated Class Collection (FR-02)', () => {
 
     it('should handle edge cases with multiple decorators', async () => {
       const classes = await parser.findDecoratedClasses();
-      
+
       // Should detect Angular decorators even when mixed with custom decorators
       const mixedDecoratorsService = classes.find(c => c.name === 'MixedDecoratorsService');
       expect(mixedDecoratorsService?.kind).toBe('service');
-      
+
       const multipleDecoratorsService = classes.find(c => c.name === 'MultipleDecoratorsService');
       expect(multipleDecoratorsService?.kind).toBe('service');
     });
 
     it('should handle different import alias patterns', async () => {
       const classes = await parser.findDecoratedClasses();
-      
+
       // Should detect classes with aliased imports
       const importAliasService = classes.find(c => c.name === 'ImportAliasService');
       expect(importAliasService?.kind).toBe('service');
-      
+
       const importAliasComponent = classes.find(c => c.name === 'ImportAliasComponent');
       expect(importAliasComponent?.kind).toBe('component');
     });
 
     it('should handle spacing variations in decorators', async () => {
       const classes = await parser.findDecoratedClasses();
-      
+
       // Should detect decorators with different spacing
       const spacedService = classes.find(c => c.name === 'SpacedDecoratorService');
       expect(spacedService?.kind).toBe('service');
-      
+
       const spacedComponent = classes.find(c => c.name === 'SpacedDecoratorComponent');
       expect(spacedComponent?.kind).toBe('component');
     });
 
     it('should complete parsing in under 1 second for test fixtures', async () => {
       const startTime = Date.now();
-      
+
       await parser.findDecoratedClasses();
-      
+
       const endTime = Date.now();
       const duration = endTime - startTime;
-      
+
       expect(duration).toBeLessThan(1000);
     });
 
@@ -435,30 +435,30 @@ describe('AngularParser - Decorated Class Collection (FR-02)', () => {
         includeDecorators: false,
         verbose: false
       };
-      
+
       const parser = new AngularParser(options);
       parser.loadProject();
-      
+
       // Mock console.warn to capture warnings
       const originalWarn = console.warn;
       const warnings: string[] = [];
       console.warn = (message: string) => warnings.push(message);
-      
+
       try {
         const classes = await parser.findDecoratedClasses();
-        
+
         // Should not include anonymous classes - only properly named classes
         const classNames = classes.map(c => c.name);
         expect(classNames).not.toContain('');
         expect(classNames).not.toContain(undefined);
-        
+
         // All found classes should have valid names
         classNames.forEach(name => {
           expect(name).toBeTruthy();
           expect(typeof name).toBe('string');
           expect(name.length).toBeGreaterThan(0);
         });
-        
+
         // Anonymous class detection is a complex edge case that can be enhanced in future versions
         // For now, we ensure that only properly named classes are returned
         // The warning functionality exists but requires more sophisticated AST pattern matching
@@ -476,10 +476,10 @@ describe('AngularParser - Decorated Class Collection (FR-02)', () => {
         includeDecorators: false,
         verbose: false
       };
-      
+
       const parser = new AngularParser(options);
       parser.loadProject();
-      
+
       // Should not throw even if some files have issues
       expect(async () => await parser.findDecoratedClasses()).not.toThrow();
     });
@@ -506,7 +506,7 @@ describe('AngularParser - Constructor Token Resolution (FR-03)', () => {
     it('should resolve type annotation tokens correctly', async () => {
       const classes = await parser.findDecoratedClasses();
       const testComponent = classes.find(c => c.name === 'TestComponent');
-      
+
       expect(testComponent?.dependencies).toContainEqual({
         token: 'TestService',
         flags: {},
@@ -517,7 +517,7 @@ describe('AngularParser - Constructor Token Resolution (FR-03)', () => {
     it('should resolve service with type annotation dependency', async () => {
       const classes = await parser.findDecoratedClasses();
       const testService = classes.find(c => c.name === 'TestService');
-      
+
       expect(testService?.dependencies).toContainEqual({
         token: 'BasicService',
         flags: {},
@@ -528,7 +528,7 @@ describe('AngularParser - Constructor Token Resolution (FR-03)', () => {
     it('should extract parameter names correctly', async () => {
       const classes = await parser.findDecoratedClasses();
       const testComponent = classes.find(c => c.name === 'TestComponent');
-      
+
       const serviceDep = testComponent?.dependencies.find(d => d.token === 'TestService');
       expect(serviceDep?.parameterName).toBe('testService');
     });
@@ -538,7 +538,7 @@ describe('AngularParser - Constructor Token Resolution (FR-03)', () => {
     it('should resolve @Inject tokens correctly', async () => {
       const classes = await parser.findDecoratedClasses();
       const injectComponent = classes.find(c => c.name === 'InjectComponent');
-      
+
       expect(injectComponent?.dependencies).toContainEqual({
         token: 'API_CONFIG',
         flags: {},
@@ -549,7 +549,7 @@ describe('AngularParser - Constructor Token Resolution (FR-03)', () => {
     it('should resolve @Inject tokens in services', async () => {
       const classes = await parser.findDecoratedClasses();
       const injectService = classes.find(c => c.name === 'InjectService');
-      
+
       expect(injectService?.dependencies).toContainEqual({
         token: 'API_CONFIG',
         flags: {},
@@ -561,7 +561,7 @@ describe('AngularParser - Constructor Token Resolution (FR-03)', () => {
       // When both @Inject and type annotation exist, @Inject should take priority
       const classes = await parser.findDecoratedClasses();
       const multiDepComponent = classes.find(c => c.name === 'MultiDependencyComponent');
-      
+
       // The third parameter has @Inject(API_TOKEN) with type string
       // Should use API_TOKEN from @Inject, not 'string' from type
       const injectDep = multiDepComponent?.dependencies.find(d => d.parameterName === 'apiToken');
@@ -574,9 +574,9 @@ describe('AngularParser - Constructor Token Resolution (FR-03)', () => {
     it('should handle multiple constructor parameters correctly', async () => {
       const classes = await parser.findDecoratedClasses();
       const multiDepComponent = classes.find(c => c.name === 'MultiDependencyComponent');
-      
+
       expect(multiDepComponent?.dependencies).toHaveLength(3);
-      
+
       const tokens = multiDepComponent?.dependencies.map(d => d.token).sort();
       expect(tokens).toEqual(['API_TOKEN', 'ServiceA', 'ServiceB']);
     });
@@ -584,15 +584,15 @@ describe('AngularParser - Constructor Token Resolution (FR-03)', () => {
     it('should handle multiple dependencies in services', async () => {
       const classes = await parser.findDecoratedClasses();
       const multiDepService = classes.find(c => c.name === 'MultiDependencyService');
-      
+
       expect(multiDepService?.dependencies).toHaveLength(3);
-      
+
       const expectedDeps = [
         { token: 'BasicService', parameterName: 'basicService' },
         { token: 'TestService', parameterName: 'testService' },
         { token: 'API_TOKEN', parameterName: 'apiToken' }
       ];
-      
+
       expectedDeps.forEach(expected => {
         expect(multiDepService?.dependencies).toContainEqual(
           expect.objectContaining(expected)
@@ -603,7 +603,7 @@ describe('AngularParser - Constructor Token Resolution (FR-03)', () => {
     it('should preserve parameter order in dependencies', async () => {
       const classes = await parser.findDecoratedClasses();
       const multiDepComponent = classes.find(c => c.name === 'MultiDependencyComponent');
-      
+
       const paramNames = multiDepComponent?.dependencies.map(d => d.parameterName);
       expect(paramNames).toEqual(['serviceA', 'serviceB', 'apiToken']);
     });
@@ -613,15 +613,15 @@ describe('AngularParser - Constructor Token Resolution (FR-03)', () => {
     it('should skip any/unknown types with warning', async () => {
       // Reset warning state to ensure warnings are captured
       AngularParser.resetWarningState();
-      
+
       const originalWarn = console.warn;
       const warnings: string[] = [];
       console.warn = (message: string) => warnings.push(message);
-      
+
       try {
         const classes = await parser.findDecoratedClasses();
         const componentWithAny = classes.find(c => c.name === 'ComponentWithAny');
-        
+
         // Should not include any/unknown dependencies
         expect(componentWithAny?.dependencies).not.toContainEqual(
           expect.objectContaining({ token: 'any' })
@@ -629,7 +629,7 @@ describe('AngularParser - Constructor Token Resolution (FR-03)', () => {
         expect(componentWithAny?.dependencies).not.toContainEqual(
           expect.objectContaining({ token: 'unknown' })
         );
-        
+
         // Should have warned about skipping these types
         expect(warnings.some(w => w.includes('Skipping parameter') && w.includes('any/unknown type'))).toBe(true);
       } finally {
@@ -640,15 +640,15 @@ describe('AngularParser - Constructor Token Resolution (FR-03)', () => {
     it('should skip primitive types with warning', async () => {
       // Reset warning state to ensure warnings are captured
       AngularParser.resetWarningState();
-      
+
       const originalWarn = console.warn;
       const warnings: string[] = [];
       console.warn = (message: string) => warnings.push(message);
-      
+
       try {
         const classes = await parser.findDecoratedClasses();
         const serviceWithPrimitives = classes.find(c => c.name === 'ServiceWithPrimitives');
-        
+
         // Should not include primitive type dependencies
         expect(serviceWithPrimitives?.dependencies).not.toContainEqual(
           expect.objectContaining({ token: 'string' })
@@ -656,7 +656,7 @@ describe('AngularParser - Constructor Token Resolution (FR-03)', () => {
         expect(serviceWithPrimitives?.dependencies).not.toContainEqual(
           expect.objectContaining({ token: 'number' })
         );
-        
+
         // Should have warned about skipping primitive types
         expect(warnings.some(w => w.includes('Skipping primitive type parameter'))).toBe(true);
       } finally {
@@ -669,7 +669,7 @@ describe('AngularParser - Constructor Token Resolution (FR-03)', () => {
     it('should handle classes with no constructor', async () => {
       const classes = await parser.findDecoratedClasses();
       const basicService = classes.find(c => c.name === 'BasicService');
-      
+
       // Classes without constructors should have empty dependencies
       expect(basicService?.dependencies).toEqual([]);
     });
@@ -677,7 +677,7 @@ describe('AngularParser - Constructor Token Resolution (FR-03)', () => {
     it('should handle empty constructors', async () => {
       const classes = await parser.findDecoratedClasses();
       const basicComponent = classes.find(c => c.name === 'BasicComponent');
-      
+
       // Classes with empty constructors should have empty dependencies
       expect(basicComponent?.dependencies).toEqual([]);
     });
@@ -694,15 +694,15 @@ describe('AngularParser - Constructor Token Resolution (FR-03)', () => {
   describe('Performance requirements', () => {
     it('should process constructor parameters efficiently', async () => {
       const startTime = Date.now();
-      
+
       const classes = await parser.findDecoratedClasses();
-      
+
       const endTime = Date.now();
       const duration = endTime - startTime;
-      
+
       // Should complete token resolution for all test fixtures in reasonable time
       expect(duration).toBeLessThan(500); // 500ms threshold for test fixtures
-      
+
       // Verify we actually processed some dependencies
       const totalDependencies = classes.reduce((sum, cls) => sum + cls.dependencies.length, 0);
       expect(totalDependencies).toBeGreaterThan(0);
@@ -735,10 +735,10 @@ describe('AngularParser - Parameter Decorator Handling (FR-04)', () => {
     it('should detect @Optional parameter decorator', async () => {
       const classes = await parser.findDecoratedClasses();
       const serviceWithOptional = classes.find(c => c.name === 'ServiceWithOptionalDep');
-      
+
       expect(serviceWithOptional).toBeDefined();
       expect(serviceWithOptional?.dependencies).toHaveLength(1);
-      
+
       const optionalDep = serviceWithOptional?.dependencies[0];
       expect(optionalDep?.flags?.optional).toBe(true);
       expect(optionalDep?.parameterName).toBe('optionalService');
@@ -748,10 +748,10 @@ describe('AngularParser - Parameter Decorator Handling (FR-04)', () => {
     it('should detect @Self parameter decorator', async () => {
       const classes = await parser.findDecoratedClasses();
       const serviceWithSelf = classes.find(c => c.name === 'ServiceWithSelfDep');
-      
+
       expect(serviceWithSelf).toBeDefined();
       expect(serviceWithSelf?.dependencies).toHaveLength(1);
-      
+
       const selfDep = serviceWithSelf?.dependencies[0];
       expect(selfDep?.flags?.self).toBe(true);
       expect(selfDep?.parameterName).toBe('selfService');
@@ -761,10 +761,10 @@ describe('AngularParser - Parameter Decorator Handling (FR-04)', () => {
     it('should detect @SkipSelf parameter decorator', async () => {
       const classes = await parser.findDecoratedClasses();
       const serviceWithSkipSelf = classes.find(c => c.name === 'ServiceWithSkipSelfDep');
-      
+
       expect(serviceWithSkipSelf).toBeDefined();
       expect(serviceWithSkipSelf?.dependencies).toHaveLength(1);
-      
+
       const skipSelfDep = serviceWithSkipSelf?.dependencies[0];
       expect(skipSelfDep?.flags?.skipSelf).toBe(true);
       expect(skipSelfDep?.parameterName).toBe('skipSelfService');
@@ -774,10 +774,10 @@ describe('AngularParser - Parameter Decorator Handling (FR-04)', () => {
     it('should detect @Host parameter decorator', async () => {
       const classes = await parser.findDecoratedClasses();
       const serviceWithHost = classes.find(c => c.name === 'ServiceWithHostDep');
-      
+
       expect(serviceWithHost).toBeDefined();
       expect(serviceWithHost?.dependencies).toHaveLength(1);
-      
+
       const hostDep = serviceWithHost?.dependencies[0];
       expect(hostDep?.flags?.host).toBe(true);
       expect(hostDep?.parameterName).toBe('hostService');
@@ -787,10 +787,10 @@ describe('AngularParser - Parameter Decorator Handling (FR-04)', () => {
     it('should detect multiple decorators on same parameter', async () => {
       const classes = await parser.findDecoratedClasses();
       const serviceWithMultiDecorators = classes.find(c => c.name === 'ServiceWithMultiDecorators');
-      
+
       expect(serviceWithMultiDecorators).toBeDefined();
       expect(serviceWithMultiDecorators?.dependencies).toHaveLength(1);
-      
+
       const multiDep = serviceWithMultiDecorators?.dependencies[0];
       expect(multiDep?.flags?.optional).toBe(true);
       expect(multiDep?.flags?.self).toBe(true);
@@ -801,10 +801,10 @@ describe('AngularParser - Parameter Decorator Handling (FR-04)', () => {
     it('should handle @Inject with parameter decorators', async () => {
       const classes = await parser.findDecoratedClasses();
       const serviceWithInjectAndDecorators = classes.find(c => c.name === 'ServiceWithInjectAndDecorators');
-      
+
       expect(serviceWithInjectAndDecorators).toBeDefined();
       expect(serviceWithInjectAndDecorators?.dependencies).toHaveLength(1);
-      
+
       const injectDep = serviceWithInjectAndDecorators?.dependencies[0];
       expect(injectDep?.token).toBe('API_TOKEN'); // From @Inject
       expect(injectDep?.flags?.optional).toBe(true); // From @Optional
@@ -814,17 +814,17 @@ describe('AngularParser - Parameter Decorator Handling (FR-04)', () => {
     it('should preserve parameter order with decorators', async () => {
       const classes = await parser.findDecoratedClasses();
       const serviceWithMixedDecorators = classes.find(c => c.name === 'ServiceWithMixedDecorators');
-      
+
       expect(serviceWithMixedDecorators).toBeDefined();
       expect(serviceWithMixedDecorators?.dependencies).toHaveLength(3);
-      
+
       const deps = serviceWithMixedDecorators?.dependencies;
       expect(deps?.[0]?.parameterName).toBe('regularService');
       expect(deps?.[0]?.flags?.optional).toBeUndefined();
-      
+
       expect(deps?.[1]?.parameterName).toBe('optionalService');
       expect(deps?.[1]?.flags?.optional).toBe(true);
-      
+
       expect(deps?.[2]?.parameterName).toBe('hostService');
       expect(deps?.[2]?.flags?.host).toBe(true);
     });
@@ -846,10 +846,10 @@ describe('AngularParser - Parameter Decorator Handling (FR-04)', () => {
     it('should ignore parameter decorators when disabled', async () => {
       const classes = await parser.findDecoratedClasses();
       const serviceWithOptional = classes.find(c => c.name === 'ServiceWithOptionalDep');
-      
+
       expect(serviceWithOptional).toBeDefined();
       expect(serviceWithOptional?.dependencies).toHaveLength(1);
-      
+
       const dep = serviceWithOptional?.dependencies[0];
       expect(dep?.flags?.optional).toBeUndefined();
       expect(dep?.flags?.self).toBeUndefined();
@@ -860,14 +860,14 @@ describe('AngularParser - Parameter Decorator Handling (FR-04)', () => {
 
     it('should extract tokens but ignore decorators for all decorator types', async () => {
       const classes = await parser.findDecoratedClasses();
-      
+
       // Check each service type
       const serviceNames = ['ServiceWithOptionalDep', 'ServiceWithSelfDep', 'ServiceWithSkipSelfDep', 'ServiceWithHostDep'];
-      
+
       for (const serviceName of serviceNames) {
         const service = classes.find(c => c.name === serviceName);
         expect(service).toBeDefined();
-        
+
         if (service?.dependencies.length > 0) {
           const dep = service.dependencies[0];
           expect(dep?.flags?.optional).toBeUndefined();
@@ -907,12 +907,12 @@ describe('AngularParser - Parameter Decorator Handling (FR-04)', () => {
 
     it('should maintain performance with decorator detection enabled', async () => {
       const startTime = Date.now();
-      
+
       await parser.findDecoratedClasses();
-      
+
       const endTime = Date.now();
       const duration = endTime - startTime;
-      
+
       // Decorator detection should add <10% performance overhead
       expect(duration).toBeLessThan(600); // Allowing slightly more time than base parsing
     });
@@ -941,10 +941,10 @@ describe('AngularParser - inject() Function Detection (TDD Cycle 2.1)', () => {
     it('should detect inject() with optional flag', async () => {
       const classes = await parser.findDecoratedClasses();
       const service = classes.find(c => c.name === 'ServiceWithInjectOptional');
-      
+
       expect(service).toBeDefined();
       expect(service?.dependencies).toHaveLength(1);
-      
+
       const dep = service?.dependencies[0];
       expect(dep?.token).toBe('BasicService');
       expect(dep?.flags?.optional).toBe(true);
@@ -956,10 +956,10 @@ describe('AngularParser - inject() Function Detection (TDD Cycle 2.1)', () => {
     it('should detect inject() with self flag', async () => {
       const classes = await parser.findDecoratedClasses();
       const service = classes.find(c => c.name === 'ServiceWithInjectSelf');
-      
+
       expect(service).toBeDefined();
       expect(service?.dependencies).toHaveLength(1);
-      
+
       const dep = service?.dependencies[0];
       expect(dep?.token).toBe('SelfService');
       expect(dep?.flags?.self).toBe(true);
@@ -971,10 +971,10 @@ describe('AngularParser - inject() Function Detection (TDD Cycle 2.1)', () => {
     it('should detect inject() with skipSelf flag', async () => {
       const classes = await parser.findDecoratedClasses();
       const service = classes.find(c => c.name === 'ServiceWithInjectSkipSelf');
-      
+
       expect(service).toBeDefined();
       expect(service?.dependencies).toHaveLength(1);
-      
+
       const dep = service?.dependencies[0];
       expect(dep?.token).toBe('SkipSelfService');
       expect(dep?.flags?.skipSelf).toBe(true);
@@ -986,10 +986,10 @@ describe('AngularParser - inject() Function Detection (TDD Cycle 2.1)', () => {
     it('should detect inject() with host flag', async () => {
       const classes = await parser.findDecoratedClasses();
       const service = classes.find(c => c.name === 'ServiceWithInjectHost');
-      
+
       expect(service).toBeDefined();
       expect(service?.dependencies).toHaveLength(1);
-      
+
       const dep = service?.dependencies[0];
       expect(dep?.token).toBe('HostService');
       expect(dep?.flags?.host).toBe(true);
@@ -1003,10 +1003,10 @@ describe('AngularParser - inject() Function Detection (TDD Cycle 2.1)', () => {
     it('should detect inject() with multiple options', async () => {
       const classes = await parser.findDecoratedClasses();
       const service = classes.find(c => c.name === 'ServiceWithInjectMultipleOptions');
-      
+
       expect(service).toBeDefined();
       expect(service?.dependencies).toHaveLength(1);
-      
+
       const dep = service?.dependencies[0];
       expect(dep?.token).toBe('OptionalService');
       expect(dep?.flags?.optional).toBe(true);
@@ -1018,16 +1018,16 @@ describe('AngularParser - inject() Function Detection (TDD Cycle 2.1)', () => {
     it('should detect multiple inject() calls in same class', async () => {
       const classes = await parser.findDecoratedClasses();
       const service = classes.find(c => c.name === 'ServiceWithMultipleInjects');
-      
+
       expect(service).toBeDefined();
       expect(service?.dependencies).toHaveLength(3);
-      
+
       const optionalDep = service?.dependencies.find(d => d.token === 'OptionalService');
       expect(optionalDep?.flags?.optional).toBe(true);
-      
+
       const selfDep = service?.dependencies.find(d => d.token === 'SelfService');
       expect(selfDep?.flags?.self).toBe(true);
-      
+
       const hostDep = service?.dependencies.find(d => d.token === 'HostService');
       expect(hostDep?.flags?.host).toBe(true);
     });
@@ -1035,10 +1035,10 @@ describe('AngularParser - inject() Function Detection (TDD Cycle 2.1)', () => {
     it('should handle inject() without options (empty flags)', async () => {
       const classes = await parser.findDecoratedClasses();
       const service = classes.find(c => c.name === 'ServiceWithBasicInject');
-      
+
       expect(service).toBeDefined();
       expect(service?.dependencies).toHaveLength(1);
-      
+
       const dep = service?.dependencies[0];
       expect(dep?.token).toBe('BasicService');
       expect(dep?.flags?.optional).toBeUndefined();
@@ -1050,10 +1050,10 @@ describe('AngularParser - inject() Function Detection (TDD Cycle 2.1)', () => {
     it('should detect inject() with token references', async () => {
       const classes = await parser.findDecoratedClasses();
       const service = classes.find(c => c.name === 'ServiceWithInjectToken');
-      
+
       expect(service).toBeDefined();
       expect(service?.dependencies).toHaveLength(1);
-      
+
       const dep = service?.dependencies[0];
       expect(dep?.token).toBe('API_CONFIG');
       expect(dep?.flags?.optional).toBe(true);
@@ -1064,14 +1064,14 @@ describe('AngularParser - inject() Function Detection (TDD Cycle 2.1)', () => {
     it('should handle mixed legacy decorators and modern inject()', async () => {
       const classes = await parser.findDecoratedClasses();
       const service = classes.find(c => c.name === 'ServiceWithMixedLegacyAndInject');
-      
+
       expect(service).toBeDefined();
       expect(service?.dependencies).toHaveLength(2);
-      
+
       // inject() dependency
       const injectDep = service?.dependencies.find(d => d.token === 'BasicService');
       expect(injectDep?.flags?.optional).toBe(true);
-      
+
       // Legacy decorator dependency
       const legacyDep = service?.dependencies.find(d => d.token === 'SelfService');
       expect(legacyDep?.flags?.self).toBe(true);
@@ -1094,10 +1094,10 @@ describe('AngularParser - inject() Function Detection (TDD Cycle 2.1)', () => {
     it('should still detect inject() calls but ignore options when includeDecorators is false', async () => {
       const classes = await parser.findDecoratedClasses();
       const service = classes.find(c => c.name === 'ServiceWithInjectOptional');
-      
+
       expect(service).toBeDefined();
       expect(service?.dependencies).toHaveLength(1);
-      
+
       const dep = service?.dependencies[0];
       expect(dep?.token).toBe('BasicService');
       // Options should be ignored when includeDecorators is false
@@ -1113,12 +1113,12 @@ describe('AngularParser - inject() Function Detection (TDD Cycle 2.1)', () => {
 
     it('should maintain performance with inject() detection', async () => {
       const startTime = Date.now();
-      
+
       await parser.findDecoratedClasses();
-      
+
       const endTime = Date.now();
       const duration = endTime - startTime;
-      
+
       // inject() detection should add minimal performance overhead
       expect(duration).toBeLessThan(800);
     });
