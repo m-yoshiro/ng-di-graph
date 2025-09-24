@@ -5,8 +5,8 @@
 import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
 import { existsSync, writeFileSync, unlinkSync, mkdirSync, rmSync } from 'fs';
 import { join } from 'path';
-import { AngularParser } from '../src/core/parser';
-import { CliOptions, ParserError } from '../src/types';
+import { AngularParser } from '../core/parser';
+import { CliOptions, ParserError } from '../types';
 
 describe('AngularParser - Project Loading (FR-01)', () => {
   const testTmpDir = './tmp/test-fixtures';
@@ -252,7 +252,7 @@ describe('AngularParser - Project Loading (FR-01)', () => {
 });
 
 describe('AngularParser - Decorated Class Collection (FR-02)', () => {
-  const testFixturesDir = './tests/fixtures';
+  const testFixturesDir = './src/tests/fixtures';
   const testTsConfig = join(testFixturesDir, 'tsconfig.json');
 
   describe('findDecoratedClasses() method', () => {
@@ -487,7 +487,7 @@ describe('AngularParser - Decorated Class Collection (FR-02)', () => {
 });
 
 describe('AngularParser - Constructor Token Resolution (FR-03)', () => {
-  const testTsConfig = './tests/fixtures/tsconfig.json';
+  const testTsConfig = './src/tests/fixtures/tsconfig.json';
   let parser: AngularParser;
 
   beforeEach(() => {
@@ -711,7 +711,7 @@ describe('AngularParser - Constructor Token Resolution (FR-03)', () => {
 });
 
 describe('AngularParser - Parameter Decorator Handling (FR-04)', () => {
-  const testTsConfig = './tests/fixtures/tsconfig.json';
+  const testTsConfig = './src/tests/fixtures/tsconfig.json';
   let parser: AngularParser;
 
   beforeEach(() => {
@@ -921,7 +921,7 @@ describe('AngularParser - Parameter Decorator Handling (FR-04)', () => {
 
 // TDD Cycle 2.1: inject() Function Detection Tests
 describe('AngularParser - inject() Function Detection (TDD Cycle 2.1)', () => {
-  const testFixturesDir = './tests/fixtures';
+  const testFixturesDir = './src/tests/fixtures';
   const testTsConfig = join(testFixturesDir, 'tsconfig.json');
   let parser: AngularParser;
 

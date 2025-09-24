@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'bun:test';
-import { buildGraph } from '../src/core/graph-builder';
-import type { ParsedClass, Graph, NodeKind } from '../src/types';
+import { buildGraph } from '../core/graph-builder';
+import type { ParsedClass, Graph, NodeKind } from '../types';
 
 describe('GraphBuilder', () => {
   describe('buildGraph', () => {

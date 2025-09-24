@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'bun:test';
-import { filterGraph } from '../src/core/graph-filter';
-import type { Graph, CliOptions } from '../src/types';
+import { filterGraph } from '../core/graph-filter';
+import type { Graph, CliOptions } from '../types';
 
 describe('Entry Point Filtering', () => {
   // Sample graph: Component -> ServiceA -> ServiceB

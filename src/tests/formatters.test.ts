@@ -1,9 +1,9 @@
 import { describe, it, expect, beforeEach, beforeAll, afterAll, vi } from 'bun:test';
 import { existsSync, readFileSync, mkdirSync, rmSync } from 'fs';
-import type { Graph } from '../src/types';
-import { JsonFormatter } from '../src/formatters/json-formatter';
-import { MermaidFormatter } from '../src/formatters/mermaid-formatter';
-import { OutputHandler } from '../src/core/output-handler';
+import type { Graph } from '../types';
+import { JsonFormatter } from '../formatters/json-formatter';
+import { MermaidFormatter } from '../formatters/mermaid-formatter';
+import { OutputHandler } from '../core/output-handler';
 
 describe('Output Formatting', () => {
   const sampleGraph: Graph = {

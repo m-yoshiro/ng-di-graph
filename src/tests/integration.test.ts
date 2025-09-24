@@ -1,14 +1,14 @@
 import { describe, it, expect } from 'bun:test';
-import { AngularParser } from '../src/core/parser';
-import { buildGraph } from '../src/core/graph-builder';
-import type { Graph, CliOptions } from '../src/types';
+import { AngularParser } from '../core/parser';
+import { buildGraph } from '../core/graph-builder';
+import type { Graph, CliOptions } from '../types';
 
 describe('Integration: Parser + GraphBuilder', () => {
   describe('End-to-end graph building', () => {
     it('should create complete graph from parsed TypeScript files', async () => {
       // Arrange
       const options: CliOptions = {
-        project: './tests/fixtures/tsconfig.json',
+        project: './src/tests/fixtures/tsconfig.json',
         format: 'json',
         direction: 'downstream',
         includeDecorators: false,
@@ -39,7 +39,7 @@ describe('Integration: Parser + GraphBuilder', () => {
     it('should correctly map dependencies from components to services', async () => {
       // Arrange
       const options: CliOptions = {
-        project: './tests/fixtures/tsconfig.json',
+        project: './src/tests/fixtures/tsconfig.json',
         format: 'json',
         direction: 'downstream',
         includeDecorators: false,
@@ -64,7 +64,7 @@ describe('Integration: Parser + GraphBuilder', () => {
     it('should handle complex dependency chains correctly', async () => {
       // Arrange
       const options: CliOptions = {
-        project: './tests/fixtures/tsconfig.json',
+        project: './src/tests/fixtures/tsconfig.json',
         format: 'json',
         direction: 'downstream',
         includeDecorators: false,
@@ -98,7 +98,7 @@ describe('Integration: Parser + GraphBuilder', () => {
     it('should preserve edge flags from parsing through graph building', async () => {
       // Arrange
       const options: CliOptions = {
-        project: './tests/fixtures/tsconfig.json',
+        project: './src/tests/fixtures/tsconfig.json',
         format: 'json',
         direction: 'downstream',
         includeDecorators: true,
@@ -130,7 +130,7 @@ describe('Integration: Parser + GraphBuilder', () => {
     it('should create unknown nodes for unresolved dependencies', async () => {
       // Arrange
       const options: CliOptions = {
-        project: './tests/fixtures/tsconfig.json',
+        project: './src/tests/fixtures/tsconfig.json',
         format: 'json',
         direction: 'downstream',
         includeDecorators: false,
@@ -157,7 +157,7 @@ describe('Integration: Parser + GraphBuilder', () => {
     it('should maintain consistent node and edge ordering', async () => {
       // Arrange
       const options: CliOptions = {
-        project: './tests/fixtures/tsconfig.json',
+        project: './src/tests/fixtures/tsconfig.json',
         format: 'json',
         direction: 'downstream',
         includeDecorators: false,

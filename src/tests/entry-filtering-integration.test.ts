@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'bun:test';
-import { buildGraph } from '../src/core/graph-builder';
-import { filterGraph } from '../src/core/graph-filter';
-import type { ParsedClass, CliOptions } from '../src/types';
+import { buildGraph } from '../core/graph-builder';
+import { filterGraph } from '../core/graph-filter';
+import type { ParsedClass, CliOptions } from '../types';
 
 describe('Entry Filtering Integration', () => {
   const sampleParsedClasses: ParsedClass[] = [

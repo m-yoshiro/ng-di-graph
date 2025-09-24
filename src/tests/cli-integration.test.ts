@@ -1,9 +1,9 @@
 import { describe, it, expect, mock, beforeEach, afterEach } from 'bun:test';
-import { AngularParser } from '../src/core/parser';
-import { buildGraph } from '../src/core/graph-builder';
-import { JsonFormatter } from '../src/formatters/json-formatter';
-import { MermaidFormatter } from '../src/formatters/mermaid-formatter';
-import type { CliOptions, Graph } from '../src/types';
+import { AngularParser } from '../core/parser';
+import { buildGraph } from '../core/graph-builder';
+import { JsonFormatter } from '../formatters/json-formatter';
+import { MermaidFormatter } from '../formatters/mermaid-formatter';
+import type { CliOptions, Graph } from '../types';
 
 describe('TDD Cycle 2.2: CLI Integration for --include-decorators', () => {
   let originalConsoleLog: typeof console.log;
@@ -33,19 +33,19 @@ describe('TDD Cycle 2.2: CLI Integration for --include-decorators', () => {
   describe('RED PHASE - CLI Flag Parsing Tests (Should Fail)', () => {
     it('should parse --include-decorators flag correctly from CLI arguments', async () => {
       // Arrange - Simulate CLI parsing (this test will fail until we verify CLI parsing works)
-      const cliArgs = ['--project', './tests/fixtures/tsconfig.json', '--include-decorators'];
+      const cliArgs = ['--project', './src/tests/fixtures/tsconfig.json', '--include-decorators'];
 
       // Act - Parse CLI arguments (simulated)
       const parsedArgs = parseCLIArguments(cliArgs);
 
       // Assert - Ensure flag is parsed correctly
       expect(parsedArgs.includeDecorators).toBe(true);
-      expect(parsedArgs.project).toBe('./tests/fixtures/tsconfig.json');
+      expect(parsedArgs.project).toBe('./src/tests/fixtures/tsconfig.json');
     });
 
     it('should default includeDecorators to false when flag is not provided', async () => {
       // Arrange - CLI args without --include-decorators flag
-      const cliArgs = ['--project', './tests/fixtures/tsconfig.json'];
+      const cliArgs = ['--project', './src/tests/fixtures/tsconfig.json'];
 
       // Act - Parse CLI arguments
       const parsedArgs = parseCLIArguments(cliArgs);
@@ -66,10 +66,10 @@ describe('TDD Cycle 2.2: CLI Integration for --include-decorators', () => {
     it('should validate --include-decorators flag combinations', async () => {
       // Arrange - Test various flag combinations
       const validCombinations = [
-        ['--project', './tests/fixtures/tsconfig.json', '--include-decorators'],
-        ['--project', './tests/fixtures/tsconfig.json', '--include-decorators', '--format', 'json'],
-        ['--project', './tests/fixtures/tsconfig.json', '--include-decorators', '--format', 'mermaid'],
-        ['--project', './tests/fixtures/tsconfig.json', '--include-decorators', '--verbose']
+        ['--project', './src/tests/fixtures/tsconfig.json', '--include-decorators'],
+        ['--project', './src/tests/fixtures/tsconfig.json', '--include-decorators', '--format', 'json'],
+        ['--project', './src/tests/fixtures/tsconfig.json', '--include-decorators', '--format', 'mermaid'],
+        ['--project', './src/tests/fixtures/tsconfig.json', '--include-decorators', '--verbose']
       ];
 
       // Act & Assert - All combinations should be valid
@@ -84,7 +84,7 @@ describe('TDD Cycle 2.2: CLI Integration for --include-decorators', () => {
     it('should include decorator flags when --include-decorators is true', async () => {
       // Arrange
       const options: CliOptions = {
-        project: './tests/fixtures/tsconfig.json',
+        project: './src/tests/fixtures/tsconfig.json',
         format: 'json',
         direction: 'downstream',
         includeDecorators: true,
@@ -113,7 +113,7 @@ describe('TDD Cycle 2.2: CLI Integration for --include-decorators', () => {
     it('should exclude decorator flags when --include-decorators is false', async () => {
       // Arrange
       const options: CliOptions = {
-        project: './tests/fixtures/tsconfig.json',
+        project: './src/tests/fixtures/tsconfig.json',
         format: 'json',
         direction: 'downstream',
         includeDecorators: false,
@@ -140,7 +140,7 @@ describe('TDD Cycle 2.2: CLI Integration for --include-decorators', () => {
     it('should handle mixed legacy decorators and modern inject() patterns', async () => {
       // Arrange
       const options: CliOptions = {
-        project: './tests/fixtures/tsconfig.json',
+        project: './src/tests/fixtures/tsconfig.json',
         format: 'json',
         direction: 'downstream',
         includeDecorators: true,
@@ -188,7 +188,7 @@ describe('TDD Cycle 2.2: CLI Integration for --include-decorators', () => {
       // Arrange - Full CLI command simulation
       const cliCommand = [
         'ng-di-graph',
-        '--project', './tests/fixtures/tsconfig.json',
+        '--project', './src/tests/fixtures/tsconfig.json',
         '--include-decorators',
         '--format', 'json',
         '--verbose'
@@ -219,7 +219,7 @@ describe('TDD Cycle 2.2: CLI Integration for --include-decorators', () => {
       // Arrange - CLI command without flag
       const cliCommand = [
         'ng-di-graph',
-        '--project', './tests/fixtures/tsconfig.json',
+        '--project', './src/tests/fixtures/tsconfig.json',
         '--format', 'json'
       ];
 
@@ -246,7 +246,7 @@ describe('TDD Cycle 2.2: CLI Integration for --include-decorators', () => {
       // Arrange - CLI command for Mermaid output
       const cliCommand = [
         'ng-di-graph',
-        '--project', './tests/fixtures/tsconfig.json',
+        '--project', './src/tests/fixtures/tsconfig.json',
         '--include-decorators',
         '--format', 'mermaid'
       ];
@@ -273,7 +273,7 @@ describe('TDD Cycle 2.2: CLI Integration for --include-decorators', () => {
 
       const cliCommand = [
         'ng-di-graph',
-        '--project', './tests/fixtures/tsconfig.json',
+        '--project', './src/tests/fixtures/tsconfig.json',
         '--include-decorators',
         '--format', 'json'
       ];
@@ -303,7 +303,7 @@ describe('TDD Cycle 2.2: CLI Integration for --include-decorators', () => {
       const invalidCommands = [
         ['ng-di-graph', '--include-decorators'], // Missing --project
         ['ng-di-graph', '--project', './nonexistent/tsconfig.json', '--include-decorators'], // Non-existent file
-        ['ng-di-graph', '--project', './tests/fixtures/tsconfig.json', '--include-decorators', '--format', 'invalid'] // Invalid format
+        ['ng-di-graph', '--project', './src/tests/fixtures/tsconfig.json', '--include-decorators', '--format', 'invalid'] // Invalid format
       ];
 
       // Act & Assert - Should handle errors gracefully
@@ -318,7 +318,7 @@ describe('TDD Cycle 2.2: CLI Integration for --include-decorators', () => {
       // Arrange - CLI with verbose mode to capture warnings
       const cliCommand = [
         'ng-di-graph',
-        '--project', './tests/fixtures/tsconfig.json',
+        '--project', './src/tests/fixtures/tsconfig.json',
         '--include-decorators',
         '--verbose'
       ];

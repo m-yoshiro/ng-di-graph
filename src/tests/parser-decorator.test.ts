@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
 import { Project } from 'ts-morph';
-import { AngularParser } from '../src/core/parser';
-import type { CliOptions } from '../src/types';
+import { AngularParser } from '../core/parser';
+import type { CliOptions } from '../types';
 
 describe('Parameter Decorator Detection - TDD Cycle 1.1', () => {
   let parser: AngularParser;
