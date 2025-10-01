@@ -1,11 +1,12 @@
 import { describe, it, expect, mock, beforeEach, afterEach } from 'bun:test';
 import { AngularParser } from '../core/parser';
 import { buildGraph } from '../core/graph-builder';
+import { filterGraph } from '../core/graph-filter';
 import { JsonFormatter } from '../formatters/json-formatter';
 import { MermaidFormatter } from '../formatters/mermaid-formatter';
 import type { CliOptions, Graph } from '../types';
 
-describe('TDD Cycle 2.2: CLI Integration for --include-decorators', () => {
+describe('TDD Cycle 2.2: CLI Integration for --include-decorators and --direction', () => {
   let originalConsoleLog: typeof console.log;
   let originalConsoleError: typeof console.error;
   let mockConsoleLog: any;
@@ -297,6 +298,386 @@ describe('TDD Cycle 2.2: CLI Integration for --include-decorators', () => {
     });
   });
 
+  describe('RED PHASE - Direction Option CLI Tests (Should Fail)', () => {
+    it('should parse --direction downstream flag correctly', async () => {
+      // Arrange - CLI args with downstream direction
+      const cliArgs = ['--project', './src/tests/fixtures/tsconfig.json', '--direction', 'downstream'];
+
+      // Act - Parse CLI arguments
+      const parsedArgs = parseCLIArguments(cliArgs);
+
+      // Assert - Should parse direction correctly
+      expect(parsedArgs.direction).toBe('downstream');
+      expect(parsedArgs.project).toBe('./src/tests/fixtures/tsconfig.json');
+    });
+
+    it('should parse --direction upstream flag correctly', async () => {
+      // Arrange - CLI args with upstream direction
+      const cliArgs = ['--project', './src/tests/fixtures/tsconfig.json', '--direction', 'upstream'];
+
+      // Act - Parse CLI arguments
+      const parsedArgs = parseCLIArguments(cliArgs);
+
+      // Assert - Should parse direction correctly
+      expect(parsedArgs.direction).toBe('upstream');
+    });
+
+    it('should parse --direction both flag correctly', async () => {
+      // Arrange - CLI args with both direction
+      const cliArgs = ['--project', './src/tests/fixtures/tsconfig.json', '--direction', 'both'];
+
+      // Act - Parse CLI arguments
+      const parsedArgs = parseCLIArguments(cliArgs);
+
+      // Assert - Should parse direction correctly
+      expect(parsedArgs.direction).toBe('both');
+    });
+
+    it('should parse -d short flag correctly', async () => {
+      // Arrange - CLI args with short flag
+      const cliArgs = ['--project', './src/tests/fixtures/tsconfig.json', '-d', 'upstream'];
+
+      // Act - Parse CLI arguments
+      const parsedArgs = parseCLIArguments(cliArgs);
+
+      // Assert - Should parse direction correctly
+      expect(parsedArgs.direction).toBe('upstream');
+    });
+
+    it('should default direction to downstream when not specified', async () => {
+      // Arrange - CLI args without direction flag
+      const cliArgs = ['--project', './src/tests/fixtures/tsconfig.json'];
+
+      // Act - Parse CLI arguments
+      const parsedArgs = parseCLIArguments(cliArgs);
+
+      // Assert - Should default to downstream
+      expect(parsedArgs.direction).toBe('downstream');
+    });
+
+    it('should reject invalid direction values', async () => {
+      // Arrange - CLI args with invalid direction
+      const cliCommand = [
+        'ng-di-graph',
+        '--project', './src/tests/fixtures/tsconfig.json',
+        '--direction', 'invalid'
+      ];
+
+      // Act - Execute CLI workflow
+      const result = await executeCLICommand(cliCommand);
+
+      // Assert - Should fail with clear error message
+      expect(result.exitCode).toBe(1);
+      expect(result.stderr).toContain('Invalid direction: invalid');
+      expect(result.stderr).toContain("Must be 'upstream', 'downstream', or 'both'");
+    });
+
+    it('should include --direction in CLI help text', async () => {
+      // Arrange - Request help
+      const helpOutput = getCLIHelpText();
+
+      // Assert - Help should include the direction flag
+      expect(helpOutput).toContain('--direction <dir>');
+      expect(helpOutput).toContain('filtering direction: upstream|downstream|both');
+      expect(helpOutput).toContain('default: "downstream"');
+    });
+
+    it('should validate direction flag combinations with other options', async () => {
+      // Arrange - Test various direction flag combinations
+      const validCombinations = [
+        ['--project', './src/tests/fixtures/tsconfig.json', '--direction', 'downstream', '--format', 'json'],
+        ['--project', './src/tests/fixtures/tsconfig.json', '--direction', 'upstream', '--format', 'mermaid'],
+        ['--project', './src/tests/fixtures/tsconfig.json', '--direction', 'both', '--entry', 'TestService'],
+        ['--project', './src/tests/fixtures/tsconfig.json', '--direction', 'both', '--include-decorators', '--verbose']
+      ];
+
+      // Act & Assert - All combinations should be valid
+      for (const args of validCombinations) {
+        const parsedArgs = parseCLIArguments(args);
+        expect(['downstream', 'upstream', 'both']).toContain(parsedArgs.direction);
+      }
+    });
+  });
+
+  describe('RED PHASE - Direction Functionality Tests (Should Fail)', () => {
+    it('should execute downstream filtering correctly via CLI', async () => {
+      // Arrange - CLI command with downstream direction and entry point
+      const cliCommand = [
+        'ng-di-graph',
+        '--project', './src/tests/fixtures/tsconfig.json',
+        '--direction', 'downstream',
+        '--entry', 'ServiceWithOptionalDep',
+        '--format', 'json'
+      ];
+
+      // Act - Execute CLI workflow
+      const result = await executeCLICommand(cliCommand);
+
+      // Assert - Should complete successfully
+      expect(result.exitCode).toBe(0);
+
+      const cleanOutput = result.stdout.trim();
+      expect(cleanOutput).toMatch(/^\{.*\}$/s);
+
+      const graph = JSON.parse(cleanOutput);
+      expect(graph.nodes.length).toBeGreaterThan(0);
+      expect(graph.edges.length).toBeGreaterThan(0);
+
+      // Should include entry point and its downstream dependencies
+      const nodeIds = graph.nodes.map((n: any) => n.id);
+      expect(nodeIds).toContain('ServiceWithOptionalDep');
+    });
+
+    it('should execute upstream filtering correctly via CLI', async () => {
+      // Arrange - CLI command with upstream direction and entry point
+      const cliCommand = [
+        'ng-di-graph',
+        '--project', './src/tests/fixtures/tsconfig.json',
+        '--direction', 'upstream',
+        '--entry', 'OptionalService',
+        '--format', 'json'
+      ];
+
+      // Act - Execute CLI workflow
+      const result = await executeCLICommand(cliCommand);
+
+      // Assert - Should complete successfully
+      expect(result.exitCode).toBe(0);
+
+      const cleanOutput = result.stdout.trim();
+      expect(cleanOutput).toMatch(/^\{.*\}$/s);
+
+      const graph = JSON.parse(cleanOutput);
+
+      // Should include entry point and services that depend on it
+      const nodeIds = graph.nodes.map((n: any) => n.id);
+      expect(nodeIds).toContain('OptionalService');
+    });
+
+    it('should execute bidirectional filtering correctly via CLI', async () => {
+      // Arrange - CLI command with both direction and entry point
+      const cliCommand = [
+        'ng-di-graph',
+        '--project', './src/tests/fixtures/tsconfig.json',
+        '--direction', 'both',
+        '--entry', 'ServiceWithOptionalDep',
+        '--format', 'json'
+      ];
+
+      // Act - Execute CLI workflow
+      const result = await executeCLICommand(cliCommand);
+
+      // Assert - Should complete successfully
+      expect(result.exitCode).toBe(0);
+
+      const cleanOutput = result.stdout.trim();
+      expect(cleanOutput).toMatch(/^\{.*\}$/s);
+
+      const graph = JSON.parse(cleanOutput);
+
+      // Should include entry point and both upstream and downstream dependencies
+      const nodeIds = graph.nodes.map((n: any) => n.id);
+      expect(nodeIds).toContain('ServiceWithOptionalDep');
+      expect(graph.nodes.length).toBeGreaterThan(0);
+    });
+
+    it('should handle multiple entry points with different directions', async () => {
+      // Arrange - CLI command with multiple entries and direction
+      const cliCommand = [
+        'ng-di-graph',
+        '--project', './src/tests/fixtures/tsconfig.json',
+        '--direction', 'both',
+        '--entry', 'ServiceWithOptionalDep', 'ServiceWithSelfDep',
+        '--format', 'json'
+      ];
+
+      // Act - Execute CLI workflow
+      const result = await executeCLICommand(cliCommand);
+
+      // Assert - Should complete successfully
+      expect(result.exitCode).toBe(0);
+
+      const cleanOutput = result.stdout.trim();
+      expect(cleanOutput).toMatch(/^\{.*\}$/s);
+
+      const graph = JSON.parse(cleanOutput);
+
+      // Should include both entry points
+      const nodeIds = graph.nodes.map((n: any) => n.id);
+      expect(nodeIds).toContain('ServiceWithOptionalDep');
+      expect(nodeIds).toContain('ServiceWithSelfDep');
+    });
+
+    it('should combine direction with include-decorators flag', async () => {
+      // Arrange - CLI command with both direction and decorator flags
+      const cliCommand = [
+        'ng-di-graph',
+        '--project', './src/tests/fixtures/tsconfig.json',
+        '--direction', 'downstream',
+        '--entry', 'ServiceWithOptionalDep',
+        '--include-decorators',
+        '--format', 'json'
+      ];
+
+      // Act - Execute CLI workflow
+      const result = await executeCLICommand(cliCommand);
+
+      // Assert - Should complete successfully with both features
+      expect(result.exitCode).toBe(0);
+
+      const cleanOutput = result.stdout.trim();
+      expect(cleanOutput).toMatch(/^\{.*\}$/s);
+
+      const graph = JSON.parse(cleanOutput);
+
+      // Should have nodes and potentially edges with flags
+      expect(graph.nodes.length).toBeGreaterThan(0);
+      const nodeIds = graph.nodes.map((n: any) => n.id);
+      expect(nodeIds).toContain('ServiceWithOptionalDep');
+    });
+
+    it('should output Mermaid format with direction filtering', async () => {
+      // Arrange - CLI command for Mermaid output with direction
+      const cliCommand = [
+        'ng-di-graph',
+        '--project', './src/tests/fixtures/tsconfig.json',
+        '--direction', 'downstream',
+        '--entry', 'ServiceWithOptionalDep',
+        '--format', 'mermaid'
+      ];
+
+      // Act - Execute CLI workflow
+      const result = await executeCLICommand(cliCommand);
+
+      // Assert - Should produce valid Mermaid output
+      expect(result.exitCode).toBe(0);
+
+      const mermaidOutput = result.stdout;
+      expect(mermaidOutput).toContain('flowchart LR');
+      expect(mermaidOutput).toContain('-->');
+      expect(mermaidOutput).toContain('ServiceWithOptionalDep');
+    });
+
+    it('should handle verbose mode with direction filtering', async () => {
+      // Arrange - CLI command with verbose and direction
+      const cliCommand = [
+        'ng-di-graph',
+        '--project', './src/tests/fixtures/tsconfig.json',
+        '--direction', 'upstream',
+        '--entry', 'OptionalDep',
+        '--verbose'
+      ];
+
+      // Act - Execute CLI workflow
+      const result = await executeCLICommand(cliCommand);
+
+      // Assert - Should include verbose output about filtering
+      expect(result.exitCode).toBe(0);
+      expect(result.stdout).toContain('✅ Project loaded successfully');
+      expect(result.stdout).toContain('✅ Found');
+      expect(result.stdout).toContain('decorated classes');
+      expect(result.stdout).toContain('✅ Graph built:');
+    });
+  });
+
+  describe('RED PHASE - Direction Performance and Edge Cases (Should Fail)', () => {
+    it('should handle direction filtering performance requirements', async () => {
+      // Arrange - Measure performance with direction filtering
+      const startTime = performance.now();
+
+      const cliCommand = [
+        'ng-di-graph',
+        '--project', './src/tests/fixtures/tsconfig.json',
+        '--direction', 'both',
+        '--entry', 'ServiceWithOptionalDep',
+        '--format', 'json'
+      ];
+
+      // Act - Execute CLI workflow
+      const result = await executeCLICommand(cliCommand);
+      const endTime = performance.now();
+      const executionTime = endTime - startTime;
+
+      // Assert - Should meet performance requirements
+      expect(result.exitCode).toBe(0);
+      expect(executionTime).toBeLessThan(10000); // <10 seconds as per NFR-01
+
+      // Should still produce correct output
+      const cleanOutput = result.stdout.trim();
+      expect(cleanOutput).toMatch(/^\{.*\}$/s);
+
+      const graph = JSON.parse(cleanOutput);
+      expect(graph.nodes.length).toBeGreaterThan(0);
+    });
+
+    it('should handle non-existent entry points with direction filtering', async () => {
+      // Arrange - CLI with non-existent entry point
+      const cliCommand = [
+        'ng-di-graph',
+        '--project', './src/tests/fixtures/tsconfig.json',
+        '--direction', 'both',
+        '--entry', 'NonExistentService',
+        '--verbose'
+      ];
+
+      // Act - Execute CLI workflow
+      const result = await executeCLICommand(cliCommand);
+
+      // Assert - Should handle gracefully with warning
+      expect(result.exitCode).toBe(0);
+
+      const cleanJsonOutput = result.stdout.substring(result.stdout.lastIndexOf('{'));
+      const graph = JSON.parse(cleanJsonOutput);
+
+      // Should return empty result but not crash
+      expect(graph.nodes.length).toBe(0);
+      expect(graph.edges.length).toBe(0);
+    });
+
+    it('should handle empty entry array with direction specified', async () => {
+      // Arrange - CLI with direction but no entry points
+      const cliCommand = [
+        'ng-di-graph',
+        '--project', './src/tests/fixtures/tsconfig.json',
+        '--direction', 'upstream',
+        '--format', 'json'
+      ];
+
+      // Act - Execute CLI workflow
+      const result = await executeCLICommand(cliCommand);
+
+      // Assert - Should return full graph (no filtering)
+      expect(result.exitCode).toBe(0);
+
+      const cleanOutput = result.stdout.trim();
+      expect(cleanOutput).toMatch(/^\{.*\}$/s);
+
+      const graph = JSON.parse(cleanOutput);
+
+      // Should include all nodes when no entry points specified
+      expect(graph.nodes.length).toBeGreaterThan(0);
+      expect(graph.edges.length).toBeGreaterThan(0);
+    });
+
+    it('should handle case sensitivity in direction values', async () => {
+      // Arrange - CLI args with different case direction
+      const invalidCases = ['DOWNSTREAM', 'Upstream', 'Both'];
+
+      // Act & Assert - Should reject case-sensitive values
+      for (const direction of invalidCases) {
+        const cliCommand = [
+          'ng-di-graph',
+          '--project', './src/tests/fixtures/tsconfig.json',
+          '--direction', direction
+        ];
+
+        const result = await executeCLICommand(cliCommand);
+        expect(result.exitCode).toBe(1);
+        expect(result.stderr).toContain(`Invalid direction: ${direction}`);
+      }
+    });
+  });
+
   describe('RED PHASE - Error Handling and Edge Cases (Should Fail)', () => {
     it('should handle invalid flag combinations gracefully', async () => {
       // Arrange - Invalid flag combinations
@@ -496,6 +877,19 @@ async function executeCLICommand(args: string[]): Promise<CLIResult> {
       verboseLogs.push(`✅ Graph built: ${graph.nodes.length} nodes, ${graph.edges.length} edges`);
       if (graph.circularDependencies.length > 0) {
         verboseLogs.push(`⚠️  Detected ${graph.circularDependencies.length} circular dependencies`);
+      }
+    }
+
+    // Apply entry point filtering if specified
+    if (options.entry && options.entry.length > 0) {
+      if (options.verbose) {
+        verboseLogs.push(`🔍 Filtering graph by entry points: ${options.entry.join(', ')}`);
+      }
+
+      graph = filterGraph(graph, options);
+
+      if (options.verbose) {
+        verboseLogs.push(`✅ Filtered graph: ${graph.nodes.length} nodes, ${graph.edges.length} edges`);
       }
     }
 
