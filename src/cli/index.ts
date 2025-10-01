@@ -27,6 +27,22 @@ program
 
 program.action(async (options) => {
   try {
+    // Validate direction option
+    const validDirections = ['upstream', 'downstream', 'both'];
+    if (options.direction && !validDirections.includes(options.direction)) {
+      console.error(`❌ Invalid direction: ${options.direction}`);
+      console.error("Must be 'upstream', 'downstream', or 'both'");
+      process.exit(1);
+    }
+
+    // Validate format option
+    const validFormats = ['json', 'mermaid'];
+    if (options.format && !validFormats.includes(options.format)) {
+      console.error(`❌ Invalid format: ${options.format}`);
+      console.error("Must be 'json' or 'mermaid'");
+      process.exit(1);
+    }
+
     const cliOptions: CliOptions = {
       project: options.project,
       format: options.format as 'json' | 'mermaid',
