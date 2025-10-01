@@ -1,7 +1,7 @@
 /**
  * Test fixtures for edge cases in decorator detection
  */
-import { Injectable, Component, Directive } from '@angular/core';
+import { Component, Directive, Injectable } from '@angular/core';
 
 // Multiple decorators - should be detected as the primary Angular decorator
 @Injectable()
@@ -12,7 +12,7 @@ export class MultipleDecoratorsService {
 
 // Custom decorator that's not Angular - should be ignored
 function CustomDecorator() {
-  return function(target: any) {};
+  return (target: any) => {};
 }
 
 @CustomDecorator()
@@ -28,15 +28,15 @@ export class MixedDecoratorsService {
 }
 
 // Different spacing patterns
-@Injectable( )
+@Injectable()
 export class SpacedDecoratorService {
   constructor() {}
 }
 
-@Component( {
+@Component({
   selector: 'app-spaced',
-  template: '<div>Spaced</div>'
-} )
+  template: '<div>Spaced</div>',
+})
 export class SpacedDecoratorComponent {
   constructor() {}
 }
@@ -52,7 +52,7 @@ export class ImportAliasService {
 
 @MyComponent({
   selector: 'app-alias',
-  template: '<div>Alias</div>'
+  template: '<div>Alias</div>',
 })
 export class ImportAliasComponent {
   constructor() {}
@@ -60,5 +60,5 @@ export class ImportAliasComponent {
 
 // Helper function to create decorator (not a real class)
 function Deprecated() {
-  return function(target: any) {};
+  return (target: any) => {};
 }

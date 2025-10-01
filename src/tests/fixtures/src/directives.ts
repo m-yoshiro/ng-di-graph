@@ -4,7 +4,7 @@
 import { Directive } from '@angular/core';
 
 @Directive({
-  selector: '[appBasic]'
+  selector: '[appBasic]',
 })
 export class BasicDirective {
   constructor() {}
@@ -12,7 +12,7 @@ export class BasicDirective {
 
 @Directive({
   selector: '[appAdvanced]',
-  exportAs: 'advancedDirective'
+  exportAs: 'advancedDirective',
 })
 export class AdvancedDirective {
   constructor() {}
@@ -22,7 +22,7 @@ export class AdvancedDirective {
 import { Directive as DirectiveDecorator } from '@angular/core';
 
 @DirectiveDecorator({
-  selector: '[appAliased]'
+  selector: '[appAliased]',
 })
 export class AliasedDirective {
   constructor() {}
@@ -32,8 +32,8 @@ export class AliasedDirective {
 @Directive({
   selector: '[appMultiline]',
   host: {
-    'class': 'multiline-directive'
-  }
+    class: 'multiline-directive',
+  },
 })
 export class MultiLineDirective {
   constructor() {}

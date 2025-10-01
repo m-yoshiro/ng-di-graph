@@ -2,7 +2,7 @@
  * Test fixtures for @Component decorated classes
  */
 import { Component, Inject } from '@angular/core';
-import { BasicService, TestService, ServiceA, ServiceB, API_CONFIG, API_TOKEN } from './services';
+import { API_CONFIG, API_TOKEN, BasicService, type ServiceA, type ServiceB, type TestService } from './services';
 
 @Component({
   selector: 'app-basic',

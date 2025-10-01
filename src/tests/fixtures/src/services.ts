@@ -1,7 +1,7 @@
 /**
  * Test fixtures for @Injectable decorated services
  */
-import { Injectable, Inject, Optional, Self, SkipSelf, Host } from '@angular/core';
+import { Host, Inject, Injectable, Optional, Self, SkipSelf } from '@angular/core';
 
 // Test tokens for @Inject patterns
 export const API_CONFIG = 'API_CONFIG';
