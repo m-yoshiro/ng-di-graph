@@ -80,3 +80,35 @@ export interface VerboseStats {
   totalProcessingTime: number;
   totalParameters: number;
 }
+
+/**
+ * Enhanced Type Validation - Task 3.3
+ * Structured warning system for comprehensive type analysis
+ */
+
+export interface Warning {
+  type: string; // Specific warning type (e.g., 'any_unknown_type')
+  message: string; // Human-readable warning message
+  file: string; // File path where warning occurred
+  line?: number; // Line number (optional)
+  column?: number; // Column number (optional)
+  suggestion?: string; // Actionable fix suggestion
+  severity: 'warning' | 'error' | 'info'; // Warning severity level
+}
+
+export interface StructuredWarnings {
+  categories: {
+    typeResolution: Warning[];
+    skippedTypes: Warning[];
+    unresolvedImports: Warning[];
+    circularReferences: Warning[];
+    performance: Warning[];
+  };
+  totalCount: number;
+}
+
+export interface TypeValidationResult {
+  isValid: boolean; // Whether type passed validation
+  token: string | null; // Resolved token or null if skipped
+  warnings: Warning[]; // Any warnings generated during validation
+}
