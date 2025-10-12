@@ -657,8 +657,8 @@ describe('AngularParser - Constructor Token Resolution (FR-03)', () => {
           expect.objectContaining({ token: 'number' })
         );
 
-        // Should have warned about skipping primitive types
-        expect(warnings.some(w => w.includes('Skipping primitive type parameter'))).toBe(true);
+        // Should have warned about skipping primitive types (check both explicit and inferred messages)
+        expect(warnings.some(w => w.includes('Skipping primitive type') || w.includes('Skipping inferred primitive type parameter'))).toBe(true);
       } finally {
         console.warn = originalWarn;
       }
