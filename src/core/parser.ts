@@ -17,6 +17,7 @@ import type {
   PropertyAssignment,
   PropertyDeclaration,
   SourceFile,
+  Type,
   TypeNode,
 } from 'ts-morph';
 import type {
@@ -27,12 +28,28 @@ import type {
   ParsedClass,
   ParsedDependency,
   ParserError,
+  StructuredWarnings,
   VerboseStats,
+  Warning,
 } from '../types';
 
 export class AngularParser {
   private _project?: Project;
   private static _globalWarnedTypes = new Set<string>(); // Global tracking across all parser instances
+  private _typeResolutionCache = new Map<string, string | null>();
+  private _circularTypeRefs = new Set<string>();
+  private _cacheHits = 0;
+  private _cacheMisses = 0;
+  private _structuredWarnings: StructuredWarnings = {
+    categories: {
+      typeResolution: [],
+      skippedTypes: [],
+      unresolvedImports: [],
+      circularReferences: [],
+      performance: [],
+    },
+    totalCount: 0,
+  };
 
   constructor(private _options: CliOptions) {}
 
@@ -41,6 +58,55 @@ export class AngularParser {
    */
   static resetWarningState(): void {
     AngularParser._globalWarnedTypes.clear();
+  }
+
+  /**
+   * Get structured warnings for analysis (Task 3.3)
+   * Returns a copy of the structured warnings collected during parsing
+   * @returns StructuredWarnings object with categorized warnings
+   */
+  getStructuredWarnings(): StructuredWarnings {
+    return {
+      categories: {
+        typeResolution: [...this._structuredWarnings.categories.typeResolution],
+        skippedTypes: [...this._structuredWarnings.categories.skippedTypes],
+        unresolvedImports: [...this._structuredWarnings.categories.unresolvedImports],
+        circularReferences: [...this._structuredWarnings.categories.circularReferences],
+        performance: [...this._structuredWarnings.categories.performance],
+      },
+      totalCount: this._structuredWarnings.totalCount,
+    };
+  }
+
+  /**
+   * Add structured warning to collection (Task 3.3)
+   * Includes global deduplication for both structured warnings and console output
+   * @param category Warning category
+   * @param warning Warning object
+   */
+  private addStructuredWarning(
+    category: keyof StructuredWarnings['categories'],
+    warning: Warning
+  ): void {
+    // Deduplicate using global warning tracking for both structured warnings and console output
+    const warnKey = `${category}_${warning.type}_${warning.file}_${warning.message}`;
+    if (!AngularParser._globalWarnedTypes.has(warnKey)) {
+      // Add to structured warnings array (deduplicated)
+      this._structuredWarnings.categories[category].push(warning);
+      this._structuredWarnings.totalCount++;
+
+      // Also output to console for immediate feedback
+      const location = warning.line
+        ? `${warning.file}:${warning.line}:${warning.column}`
+        : warning.file;
+      console.warn(`[${warning.severity.toUpperCase()}] ${warning.message} (${location})`);
+
+      if (warning.suggestion && this._options.verbose) {
+        console.warn(`  Suggestion: ${warning.suggestion}`);
+      }
+
+      AngularParser._globalWarnedTypes.add(warnKey);
+    }
   }
 
   /**
@@ -418,6 +484,9 @@ export class AngularParser {
    * @returns Array of parsed dependencies
    */
   private extractConstructorDependencies(classDeclaration: ClassDeclaration): ParsedDependency[] {
+    // Clear circular reference tracking to prevent false positives across multiple class analyses
+    this._circularTypeRefs.clear();
+
     const dependencies: ParsedDependency[] = [];
     const verboseStats = {
       decoratorCounts: { optional: 0, self: 0, skipSelf: 0, host: 0 },
@@ -484,6 +553,364 @@ export class AngularParser {
   }
 
   /**
+   * Check if type reference is circular (Task 3.3)
+   * @param typeText Type text to check
+   * @param typeNode TypeNode for context
+   * @returns True if circular reference detected
+   */
+  private isCircularTypeReference(typeText: string, typeNode: TypeNode): boolean {
+    // Basic circular reference detection
+    const currentClass = typeNode.getFirstAncestorByKind(SyntaxKind.ClassDeclaration);
+    if (currentClass) {
+      const className = currentClass.getName();
+      if (className === typeText) {
+        return true;
+      }
+    }
+
+    // Track type resolution chain
+    if (this._circularTypeRefs.has(typeText)) {
+      return true;
+    }
+
+    this._circularTypeRefs.add(typeText);
+    return false;
+  }
+
+  /**
+   * Check if type is generic (Task 3.3)
+   * @param typeText Type text to check
+   * @returns True if generic type
+   */
+  private isGenericType(typeText: string): boolean {
+    return typeText.includes('<') && typeText.includes('>');
+  }
+
+  /**
+   * Handle generic types (Task 3.3)
+   * @param typeText Generic type text
+   * @param filePath File path for context
+   * @param lineNumber Line number
+   * @param columnNumber Column number
+   * @returns Token string or null
+   */
+  private handleGenericType(
+    typeText: string,
+    filePath: string,
+    lineNumber: number,
+    columnNumber: number
+  ): string | null {
+    if (this._options.verbose) {
+      console.log(`Processing generic type: ${typeText}`);
+    }
+
+    // For now, return the full generic type
+    // Future enhancement: could extract base type
+    return typeText;
+  }
+
+  /**
+   * Check if type is union type (Task 3.3)
+   * @param typeText Type text to check
+   * @returns True if union type
+   */
+  private isUnionType(typeText: string): boolean {
+    return typeText.includes(' | ') && !typeText.includes('<');
+  }
+
+  /**
+   * Handle union types (Task 3.3)
+   * @param typeText Union type text
+   * @param filePath File path for context
+   * @param lineNumber Line number
+   * @param columnNumber Column number
+   * @returns Null (union types are skipped)
+   */
+  private handleUnionType(
+    typeText: string,
+    filePath: string,
+    lineNumber: number,
+    columnNumber: number
+  ): string | null {
+    this.addStructuredWarning('skippedTypes', {
+      type: 'complex_union_type',
+      message: `Skipping complex union type: ${typeText}`,
+      file: filePath,
+      line: lineNumber,
+      column: columnNumber,
+      suggestion: 'Consider using a single service type or interface',
+      severity: 'info',
+    });
+    return null;
+  }
+
+  /**
+   * Check if type can be resolved through imports (Task 3.3)
+   * Handles module-scoped types (e.g., MyModule.ScopedService)
+   * @param typeNode TypeNode to check
+   * @returns True if type can be resolved
+   */
+  private canResolveType(typeNode: TypeNode): boolean {
+    try {
+      const sourceFile = typeNode.getSourceFile();
+      const typeText = typeNode.getText();
+
+      // First, check if the type itself is resolvable via TypeScript's type system
+      const type = typeNode.getType();
+      const typeTextFromSystem = type.getText();
+      const symbol = type.getSymbol();
+
+      // Check for error types first (unresolved imports/types show as 'error')
+      if (typeTextFromSystem === 'error' || typeTextFromSystem === 'any' || type.isUnknown()) {
+        return false;
+      }
+
+      // If no symbol and not a primitive, it's unresolved
+      if (!symbol) {
+        return false;
+      }
+
+      // Check if it's a known global type
+      const globalTypes = ['Array', 'Promise', 'Observable', 'Date', 'Error'];
+      if (globalTypes.includes(typeText)) {
+        return true;
+      }
+
+      // Handle module-scoped types (e.g., MyModule.ScopedService)
+      let simpleTypeText = typeText;
+      if (typeText.includes('.')) {
+        const parts = typeText.split('.');
+        simpleTypeText = parts[0]; // Check if the namespace exists
+      }
+
+      // Check if type is imported
+      const imports = sourceFile.getImportDeclarations();
+      for (const importDecl of imports) {
+        const namedImports = importDecl.getNamedImports();
+        for (const namedImport of namedImports) {
+          // Check both full type and simple type for module-scoped
+          if (namedImport.getName() === typeText || namedImport.getName() === simpleTypeText) {
+            return true;
+          }
+        }
+      }
+
+      // Check if type is declared in current file
+      const typeAliases = sourceFile.getTypeAliases();
+      const interfaces = sourceFile.getInterfaces();
+      const classes = sourceFile.getClasses();
+
+      // Check for both full type name and simple type
+      const declared = [...typeAliases, ...interfaces, ...classes].some(
+        (decl) => decl.getName() === typeText || decl.getName() === simpleTypeText
+      );
+
+      if (declared) {
+        return true;
+      }
+
+      // Check for namespace declarations (for module-scoped types)
+      if (typeText.includes('.')) {
+        const namespaces = sourceFile.getModules();
+        for (const namespace of namespaces) {
+          if (namespace.getName() === simpleTypeText) {
+            // Namespace exists, assume the nested type exists
+            return true;
+          }
+        }
+      }
+
+      // If we reach here, the type wasn't found in imports, declarations, or namespaces
+      // Even if we have a symbol, if we can't locate the declaration, treat it as unresolved
+      // This prevents false positives for TypeScript error types that have symbols but are actually unresolved
+      return false;
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * Enhanced type token extraction with advanced analysis (Task 3.3)
+   * @param typeNode TypeNode to extract token from
+   * @param filePath File path for context
+   * @param lineNumber Line number
+   * @param columnNumber Column number
+   * @returns Token string or null
+   */
+  private extractTypeTokenEnhanced(
+    typeNode: TypeNode,
+    filePath: string,
+    lineNumber: number,
+    columnNumber: number
+  ): string | null {
+    const typeText = typeNode.getText();
+
+    if (this._options.verbose) {
+      console.log(
+        `Type resolution steps: Processing '${typeText}' at ${filePath}:${lineNumber}:${columnNumber}`
+      );
+    }
+
+    // Check for circular references
+    if (this.isCircularTypeReference(typeText, typeNode)) {
+      this.addStructuredWarning('circularReferences', {
+        type: 'circular_type_reference',
+        message: `Circular type reference detected: ${typeText}`,
+        file: filePath,
+        line: lineNumber,
+        column: columnNumber,
+        suggestion: 'Consider using interfaces or breaking the circular dependency',
+        severity: 'warning',
+      });
+      return null;
+    }
+
+    // Handle generic types
+    if (this.isGenericType(typeText)) {
+      return this.handleGenericType(typeText, filePath, lineNumber, columnNumber);
+    }
+
+    // Handle union types
+    if (this.isUnionType(typeText)) {
+      return this.handleUnionType(typeText, filePath, lineNumber, columnNumber);
+    }
+
+    // Standard validation
+    if (this.shouldSkipType(typeText)) {
+      this.addStructuredWarning('skippedTypes', {
+        type: 'any_unknown_type',
+        message: `Skipping parameter with any/unknown type: ${typeText}`,
+        file: filePath,
+        line: lineNumber,
+        column: columnNumber,
+        suggestion: 'Consider adding explicit type annotation',
+        severity: 'warning',
+      });
+      return null;
+    }
+
+    if (this.isPrimitiveType(typeText)) {
+      this.addStructuredWarning('skippedTypes', {
+        type: 'primitive_type',
+        message: `Skipping primitive type: ${typeText}`,
+        file: filePath,
+        line: lineNumber,
+        column: columnNumber,
+        suggestion: 'Use dependency injection for services, not primitive types',
+        severity: 'info',
+      });
+      return null;
+    }
+
+    // Validate type resolution
+    if (!this.canResolveType(typeNode)) {
+      this.addStructuredWarning('unresolvedImports', {
+        type: 'unresolved_type',
+        message: `Unresolved type '${typeText}' - check imports`,
+        file: filePath,
+        line: lineNumber,
+        column: columnNumber,
+        suggestion: `Ensure ${typeText} is properly imported`,
+        severity: 'warning',
+      });
+      return null;
+    }
+
+    return typeText;
+  }
+
+  /**
+   * Resolve inferred types with enhanced validation (Task 3.3)
+   * @param type Type object from ts-morph
+   * @param typeText Type text representation
+   * @param param Parameter declaration for context
+   * @param filePath File path for warnings
+   * @param lineNumber Line number for warnings
+   * @param columnNumber Column number for warnings
+   * @returns Resolved token or null
+   */
+  private resolveInferredTypeEnhanced(
+    type: Type,
+    typeText: string,
+    param: ParameterDeclaration,
+    filePath: string,
+    lineNumber: number,
+    columnNumber: number
+  ): string | null {
+    if (this._options.verbose) {
+      console.log(`Attempting to resolve inferred type: ${typeText}`);
+    }
+
+    // Try symbol-based resolution
+    const symbol = type.getSymbol?.();
+    if (symbol) {
+      const symbolName = symbol.getName();
+      if (symbolName && symbolName !== '__type') {
+        return symbolName;
+      }
+    }
+
+    // Try type alias resolution
+    const aliasSymbol = type.getAliasSymbol?.();
+    if (aliasSymbol) {
+      // Check if the alias symbol actually has declarations (unresolved types don't)
+      const declarations = aliasSymbol.getDeclarations();
+      if (declarations && declarations.length > 0) {
+        const aliasName = aliasSymbol.getName();
+        return aliasName;
+      }
+    }
+
+    // Standard validation with structured warnings
+    // Deduplication is now handled by addStructuredWarning()
+    if (this.shouldSkipType(typeText)) {
+      this.addStructuredWarning('skippedTypes', {
+        type: 'inferred_any_unknown',
+        message: `Skipping parameter '${param.getName()}' with inferred any/unknown type`,
+        file: filePath,
+        line: lineNumber,
+        column: columnNumber,
+        suggestion: 'Add explicit type annotation to improve type safety',
+        severity: 'warning',
+      });
+      return null;
+    }
+
+    if (this.isPrimitiveType(typeText)) {
+      this.addStructuredWarning('skippedTypes', {
+        type: 'inferred_primitive',
+        message: `Skipping inferred primitive type parameter '${param.getName()}': ${typeText}`,
+        file: filePath,
+        line: lineNumber,
+        column: columnNumber,
+        suggestion: 'Use dependency injection for services, not primitive types',
+        severity: 'info',
+      });
+      return null;
+    }
+
+    // Check if type is resolvable (has symbol or is a known global)
+    // If no symbol and no valid alias symbol (with declarations), the type is unresolved (missing import)
+    const aliasSymbolCheck = type.getAliasSymbol?.();
+    const hasValidAliasSymbol = aliasSymbolCheck && aliasSymbolCheck.getDeclarations().length > 0;
+
+    if (!symbol && !hasValidAliasSymbol) {
+      this.addStructuredWarning('unresolvedImports', {
+        type: 'unresolved_type',
+        message: `Unresolved type '${typeText}' - check imports`,
+        file: filePath,
+        line: lineNumber,
+        column: columnNumber,
+        suggestion: `Ensure ${typeText} is properly imported`,
+        severity: 'warning',
+      });
+      return null;
+    }
+
+    return typeText;
+  }
+
+  /**
    * Parse a single constructor parameter to extract dependency token
    * Implements FR-03 token resolution priority: @Inject > type annotation > inferred type
    * Implements FR-04 parameter decorator handling
@@ -492,81 +919,132 @@ export class AngularParser {
    */
   private parseConstructorParameter(param: ParameterDeclaration): ParsedDependency | null {
     const parameterName = param.getName();
+    const filePath = param.getSourceFile().getFilePath();
+    const lineNumber = param.getStartLineNumber();
+    const columnNumber = param.getStart() - param.getStartLinePos();
 
-    // Extract parameter decorators (FR-04)
-    const flags = this.extractParameterDecorators(param);
+    // Performance tracking
+    const startTime = performance.now();
 
-    // Check for @Inject decorator first (highest priority)
-    const injectDecorator = param.getDecorator('Inject');
-    if (injectDecorator) {
-      const token = this.extractInjectToken(injectDecorator);
-      if (token) {
+    // Cache key for performance monitoring (needs to be in outer scope for finally block)
+    let cacheKey: string | null = null;
+
+    try {
+      // Extract parameter decorators (FR-04)
+      const flags = this.extractParameterDecorators(param);
+
+      // Check for @Inject decorator first (highest priority)
+      const injectDecorator = param.getDecorator('Inject');
+      if (injectDecorator) {
+        const token = this.extractInjectToken(injectDecorator);
+        if (token) {
+          return {
+            token,
+            flags,
+            parameterName,
+          };
+        }
+      }
+
+      // Check for inject() function pattern (second priority)
+      const initializer = param.getInitializer();
+      if (initializer) {
+        const injectResult = this.analyzeInjectCall(initializer);
+        if (injectResult) {
+          // If legacy decorators are present, they completely override inject() options
+          // Otherwise, use inject() options
+          const finalFlags = Object.keys(flags).length > 0 ? flags : injectResult.flags;
+          return {
+            token: injectResult.token,
+            flags: finalFlags,
+            parameterName,
+          };
+        }
+      }
+
+      // Fall back to type annotation with enhanced validation (medium priority)
+      const typeNode_check = param.getTypeNode();
+      if (typeNode_check) {
+        const token = this.extractTypeTokenEnhanced(
+          typeNode_check,
+          filePath,
+          lineNumber,
+          columnNumber
+        );
+        if (token) {
+          return {
+            token,
+            flags,
+            parameterName,
+          };
+        }
+      }
+
+      // Handle inferred types with caching (lowest priority)
+      const type = param.getType();
+      const typeText = type.getText(param);
+      cacheKey = `${filePath}:${parameterName}:${typeText}`;
+
+      // Check cache first
+      if (this._typeResolutionCache.has(cacheKey)) {
+        this._cacheHits++;
+        const cachedResult = this._typeResolutionCache.get(cacheKey);
+
+        if (this._options.verbose) {
+          console.log(`Cache hit for parameter '${parameterName}': ${typeText}`);
+        }
+
+        return cachedResult ? { token: cachedResult, flags, parameterName } : null;
+      }
+
+      // Cache miss
+      this._cacheMisses++;
+
+      if (this._options.verbose) {
+        console.log(`Cache miss for parameter '${parameterName}': ${typeText}`);
+      }
+
+      // Resolve and cache
+      const resolvedToken = this.resolveInferredTypeEnhanced(
+        type,
+        typeText,
+        param,
+        filePath,
+        lineNumber,
+        columnNumber
+      );
+
+      this._typeResolutionCache.set(cacheKey, resolvedToken);
+
+      if (resolvedToken) {
         return {
-          token,
+          token: resolvedToken,
           flags,
           parameterName,
         };
       }
-    }
 
-    // Check for inject() function pattern (second priority)
-    const initializer = param.getInitializer();
-    if (initializer) {
-      const injectResult = this.analyzeInjectCall(initializer);
-      if (injectResult) {
-        // If legacy decorators are present, they completely override inject() options
-        // Otherwise, use inject() options
-        const finalFlags = Object.keys(flags).length > 0 ? flags : injectResult.flags;
-        return {
-          token: injectResult.token,
-          flags: finalFlags,
-          parameterName,
-        };
-      }
-    }
-
-    // Fall back to type annotation (medium priority)
-    const typeNode = param.getTypeNode();
-    if (typeNode) {
-      const token = this.extractTypeToken(typeNode);
-      if (token) {
-        return {
-          token,
-          flags,
-          parameterName,
-        };
-      }
-    }
-
-    // Handle inferred types (lowest priority)
-    const type = param.getType();
-    const typeText = type.getText(param);
-
-    if (this.shouldSkipType(typeText)) {
-      const filePath = param.getSourceFile().getFilePath();
-      const warnKey = `any_unknown_${filePath}_${parameterName}_${typeText}`;
-      if (!AngularParser._globalWarnedTypes.has(warnKey)) {
-        console.warn(`Skipping parameter '${parameterName}' with any/unknown type in ${filePath}`);
-        AngularParser._globalWarnedTypes.add(warnKey);
-      }
       return null;
-    }
-
-    if (this.isPrimitiveType(typeText)) {
-      const filePath = param.getSourceFile().getFilePath();
-      const warnKey = `primitive_${filePath}_${parameterName}_${typeText}`;
-      if (!AngularParser._globalWarnedTypes.has(warnKey)) {
-        console.warn(`Skipping primitive type parameter '${parameterName}': ${typeText}`);
-        AngularParser._globalWarnedTypes.add(warnKey);
+    } finally {
+      // Performance monitoring (only for successfully resolved types)
+      const duration = performance.now() - startTime;
+      if (cacheKey && duration > 10) {
+        // 10ms threshold
+        // Only emit performance warning for successfully cached types (not null/skipped types)
+        const cachedToken = this._typeResolutionCache.get(cacheKey);
+        if (cachedToken) {
+          this.addStructuredWarning('performance', {
+            type: 'slow_type_resolution',
+            message: `Slow type resolution for parameter '${parameterName}' (${duration.toFixed(2)}ms)`,
+            file: filePath,
+            line: lineNumber,
+            column: columnNumber,
+            suggestion: 'Consider adding explicit type annotation',
+            severity: 'info',
+          });
+        }
       }
-      return null;
     }
-
-    return {
-      token: typeText,
-      flags,
-      parameterName,
-    };
   }
 
   /**
