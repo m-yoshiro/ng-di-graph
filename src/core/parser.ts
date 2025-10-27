@@ -32,6 +32,7 @@ import type {
   VerboseStats,
   Warning,
 } from '../types';
+import { CliError, ErrorHandler } from './error-handler';
 
 export class AngularParser {
   private _project?: Project;
@@ -116,12 +117,11 @@ export class AngularParser {
   loadProject(): void {
     // Validate tsconfig path exists
     if (!existsSync(this._options.project)) {
-      const error = new Error(
-        `tsconfig.json not found at: ${this._options.project}`
-      ) as ParserError;
-      error.code = 'TSCONFIG_NOT_FOUND';
-      error.filePath = this._options.project;
-      throw error;
+      throw ErrorHandler.createError(
+        `tsconfig.json not found at: ${this._options.project}`,
+        'TSCONFIG_NOT_FOUND',
+        this._options.project
+      );
     }
 
     try {
@@ -131,10 +131,11 @@ export class AngularParser {
         JSON.parse(configContent);
       } catch (jsonError) {
         const errorMessage = jsonError instanceof Error ? jsonError.message : String(jsonError);
-        const parserError = new Error(`Invalid tsconfig.json: ${errorMessage}`) as ParserError;
-        parserError.code = 'TSCONFIG_INVALID';
-        parserError.filePath = this._options.project;
-        throw parserError;
+        throw ErrorHandler.createError(
+          `Invalid tsconfig.json: ${errorMessage}`,
+          'TSCONFIG_INVALID',
+          this._options.project
+        );
       }
 
       // Load Project with ts-morph
@@ -144,9 +145,11 @@ export class AngularParser {
 
       // Validate project loaded successfully
       if (!this._project) {
-        const error = new Error('Failed to load TypeScript project') as ParserError;
-        error.code = 'PROJECT_LOAD_FAILED';
-        throw error;
+        throw ErrorHandler.createError(
+          'Failed to load TypeScript project',
+          'PROJECT_LOAD_FAILED',
+          this._options.project
+        );
       }
 
       // Basic validation - try to get source files to ensure project is valid
@@ -161,54 +164,55 @@ export class AngularParser {
         const firstDiagnostic = diagnostics[0];
         const message = firstDiagnostic.getMessageText();
 
-        const parserError = new Error(`TypeScript configuration error: ${message}`) as ParserError;
-        parserError.code = 'PROJECT_LOAD_FAILED';
-        parserError.filePath = this._options.project;
-        throw parserError;
+        throw ErrorHandler.createError(
+          `TypeScript configuration error: ${message}`,
+          'PROJECT_LOAD_FAILED',
+          this._options.project,
+          { diagnosticCount: diagnostics.length }
+        );
       }
     } catch (error) {
-      if (error instanceof Error) {
-        // Check if it's already a ParserError
-        if ('code' in error) {
-          throw error;
-        }
+      // Re-throw CliError instances
+      if (error instanceof CliError) {
+        throw error;
+      }
 
+      if (error instanceof Error) {
         // Handle different types of ts-morph/TypeScript errors
         if (
           error.message.includes('JSON') ||
           error.message.includes('Unexpected token') ||
           error.message.includes('expected')
         ) {
-          const parserError = new Error(`Invalid tsconfig.json: ${error.message}`) as ParserError;
-          parserError.code = 'TSCONFIG_INVALID';
-          parserError.filePath = this._options.project;
-          throw parserError;
+          throw ErrorHandler.createError(
+            `Invalid tsconfig.json: ${error.message}`,
+            'TSCONFIG_INVALID',
+            this._options.project
+          );
         }
 
         if (error.message.includes('TypeScript') || error.message.includes('Compiler option')) {
-          const parserError = new Error(
-            `TypeScript compilation failed: ${error.message}`
-          ) as ParserError;
-          parserError.code = 'PROJECT_LOAD_FAILED';
-          parserError.filePath = this._options.project;
-          throw parserError;
+          throw ErrorHandler.createError(
+            `TypeScript compilation failed: ${error.message}`,
+            'COMPILATION_ERROR',
+            this._options.project
+          );
         }
 
         // Generic project loading failure
-        const parserError = new Error(
-          `Failed to load TypeScript project: ${error.message}`
-        ) as ParserError;
-        parserError.code = 'PROJECT_LOAD_FAILED';
-        parserError.filePath = this._options.project;
-        throw parserError;
+        throw ErrorHandler.createError(
+          `Failed to load TypeScript project: ${error.message}`,
+          'PROJECT_LOAD_FAILED',
+          this._options.project
+        );
       }
 
       // Unknown error type
-      const parserError = new Error(
-        'Failed to load TypeScript project due to unknown error'
-      ) as ParserError;
-      parserError.code = 'PROJECT_LOAD_FAILED';
-      throw parserError;
+      throw ErrorHandler.createError(
+        'Failed to load TypeScript project due to unknown error',
+        'PROJECT_LOAD_FAILED',
+        this._options.project
+      );
     }
   }
 
@@ -249,22 +253,33 @@ export class AngularParser {
     }
 
     if (!this._project) {
-      throw new Error('Failed to load TypeScript project');
+      throw ErrorHandler.createError(
+        'Failed to load TypeScript project',
+        'PROJECT_LOAD_FAILED',
+        this._options.project
+      );
     }
 
     const decoratedClasses: ParsedClass[] = [];
     const sourceFiles = this._project.getSourceFiles();
+    let processedFiles = 0;
+    let skippedFiles = 0;
 
     if (this._options.verbose) {
       console.log(`Processing ${sourceFiles.length} source files`);
     }
 
     for (const sourceFile of sourceFiles) {
+      const filePath = sourceFile.getFilePath();
       try {
+        if (this._options.verbose) {
+          console.log(`🔍 Parsing file: ${filePath}`);
+        }
+
         const classes = sourceFile.getClasses();
 
         if (this._options.verbose) {
-          console.log(`File: ${sourceFile.getFilePath()}, Classes: ${classes.length}`);
+          console.log(`File: ${filePath}, Classes: ${classes.length}`);
         }
 
         // Process regular class declarations
@@ -281,12 +296,34 @@ export class AngularParser {
         // Look for anonymous class expressions in variable declarations
         // Pattern: const X = Decorator()(class { ... })
         this.detectAnonymousClasses(sourceFile);
+
+        processedFiles++;
       } catch (error) {
-        // Graceful error recovery: warn and continue with next file
-        console.warn(
-          `Warning: Failed to parse file ${sourceFile.getFilePath()}: ${error instanceof Error ? error.message : String(error)}`
+        // Graceful error recovery: warn and continue with next file (FR-14)
+        skippedFiles++;
+
+        if (error instanceof CliError) {
+          if (!error.isFatal()) {
+            ErrorHandler.warn(error.message, filePath);
+            continue;
+          }
+          throw error;
+        }
+
+        // Non-fatal file parsing error - continue processing
+        ErrorHandler.warn(
+          `Failed to parse file (skipping): ${error instanceof Error ? error.message : 'Unknown error'}`,
+          filePath
         );
       }
+    }
+
+    if (this._options.verbose) {
+      console.log(`✅ Processed ${processedFiles} files, skipped ${skippedFiles} files`);
+    }
+
+    if (decoratedClasses.length === 0) {
+      ErrorHandler.warn('No decorated classes found in the project');
     }
 
     return decoratedClasses;
