@@ -4,6 +4,7 @@
  * Supports both Node.js (via ts-node) and Bun native execution
  */
 import { Command } from 'commander';
+import { CliError, ErrorHandler } from '../core/error-handler';
 import { buildGraph } from '../core/graph-builder';
 import { filterGraph } from '../core/graph-filter';
 import { OutputHandler } from '../core/output-handler';
@@ -30,17 +31,19 @@ program.action(async (options) => {
     // Validate direction option
     const validDirections = ['upstream', 'downstream', 'both'];
     if (options.direction && !validDirections.includes(options.direction)) {
-      console.error(`❌ Invalid direction: ${options.direction}`);
-      console.error("Must be 'upstream', 'downstream', or 'both'");
-      process.exit(1);
+      throw ErrorHandler.createError(
+        `Invalid direction: ${options.direction}. Must be 'upstream', 'downstream', or 'both'`,
+        'INVALID_ARGUMENTS'
+      );
     }
 
     // Validate format option
     const validFormats = ['json', 'mermaid'];
     if (options.format && !validFormats.includes(options.format)) {
-      console.error(`❌ Invalid format: ${options.format}`);
-      console.error("Must be 'json' or 'mermaid'");
-      process.exit(1);
+      throw ErrorHandler.createError(
+        `Invalid format: ${options.format}. Must be 'json' or 'mermaid'`,
+        'INVALID_ARGUMENTS'
+      );
     }
 
     const cliOptions: CliOptions = {
@@ -130,22 +133,48 @@ program.action(async (options) => {
       console.log(`✅ Output written to: ${cliOptions.out}`);
     }
   } catch (error) {
-    if (error instanceof Error) {
-      console.error('❌ Error:', error.message);
-      if (options.verbose && error.stack) {
-        console.error('Stack trace:', error.stack);
-      }
+    // Handle CliError instances with structured error handling
+    if (error instanceof CliError) {
+      ErrorHandler.handleError(error, options.verbose);
+    } else if (error instanceof Error) {
+      // Convert generic Error to CliError
+      const cliError = ErrorHandler.createError(error.message, 'INTERNAL_ERROR', undefined, {
+        originalError: error.name,
+      });
+      ErrorHandler.handleError(cliError, options.verbose);
     } else {
-      console.error('❌ Unknown error:', error);
+      // Handle unknown error types
+      const cliError = ErrorHandler.createError(
+        'An unexpected error occurred',
+        'INTERNAL_ERROR',
+        undefined,
+        { error: String(error) }
+      );
+      ErrorHandler.handleError(cliError, options.verbose);
     }
-    process.exit(1);
   }
 });
 
-// Handle unhandled promise rejections
+// Enhanced unhandled rejection handling
 process.on('unhandledRejection', (reason, promise) => {
-  console.error('❌ Unhandled Rejection at:', promise, 'reason:', reason);
-  process.exit(1);
+  const error = ErrorHandler.createError(
+    `Unhandled promise rejection: ${reason}`,
+    'INTERNAL_ERROR',
+    undefined,
+    { promise: String(promise) }
+  );
+  ErrorHandler.handleError(error, false);
+});
+
+// Enhanced uncaught exception handling
+process.on('uncaughtException', (error) => {
+  const cliError = ErrorHandler.createError(
+    `Uncaught exception: ${error.message}`,
+    'INTERNAL_ERROR',
+    undefined,
+    { stack: error.stack }
+  );
+  ErrorHandler.handleError(cliError, true);
 });
 
 // Parse command line arguments

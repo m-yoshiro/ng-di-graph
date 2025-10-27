@@ -60,10 +60,15 @@ export interface ParameterAnalysisResult {
   source: 'decorator' | 'inject' | 'type';
 }
 
+// Legacy ParserError interface - maintained for backward compatibility
+// New error handling uses CliError from error-handler.ts
 export interface ParserError extends Error {
   code: 'TSCONFIG_NOT_FOUND' | 'TSCONFIG_INVALID' | 'PROJECT_LOAD_FAILED' | 'COMPILATION_ERROR';
   filePath?: string;
 }
+
+// Re-export error handling types for convenience
+export type { CliError, ErrorCode, ExitCodes } from '../core/error-handler';
 
 export interface VerboseStats {
   decoratorCounts: {
