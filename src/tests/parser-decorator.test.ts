@@ -401,7 +401,7 @@ describe('EdgeFlags Integration Enhancement - TDD Cycle 1.2', () => {
       const sourceFile = project.createSourceFile(
         'test.ts',
         `
-        import { Injectable, Host, MyService } from '@angular/core';
+        import { Injectable, Host } from '@angular/core';
 
         @Injectable()
         export class MyService {}
@@ -438,7 +438,7 @@ describe('EdgeFlags Integration Enhancement - TDD Cycle 1.2', () => {
       const sourceFile = project.createSourceFile(
         'test.ts',
         `
-        import { Injectable, SkipSelf, MyService } from '@angular/core';
+        import { Injectable, SkipSelf } from '@angular/core';
 
         @Injectable()
         export class MyService {}
@@ -468,7 +468,7 @@ describe('EdgeFlags Integration Enhancement - TDD Cycle 1.2', () => {
       const sourceFile = project.createSourceFile(
         'test.ts',
         `
-        import { Injectable, Optional, MyService, AnotherService } from '@angular/core';
+        import { Injectable, Optional } from '@angular/core';
 
         @Injectable()
         export class MyService {}
@@ -518,7 +518,7 @@ describe('EdgeFlags Integration Enhancement - TDD Cycle 1.2', () => {
       const sourceFile = project.createSourceFile(
         'test.ts',
         `
-        import { Injectable, Optional, MyService } from '@angular/core';
+        import { Injectable, Optional } from '@angular/core';
 
         @Injectable()
         export class MyService {}
@@ -549,7 +549,7 @@ describe('EdgeFlags Integration Enhancement - TDD Cycle 1.2', () => {
       const sourceFile = project.createSourceFile(
         'test.ts',
         `
-        import { Injectable, Optional, Self, MyService } from '@angular/core';
+        import { Injectable, Optional, Self } from '@angular/core';
 
         @Injectable()
         export class MyService {}
@@ -587,7 +587,7 @@ describe('EdgeFlags Integration Enhancement - TDD Cycle 1.2', () => {
       const sourceFile = project.createSourceFile(
         'test.ts',
         `
-        import { Injectable, Host, MyService } from '@angular/core';
+        import { Injectable, Host } from '@angular/core';
 
         @Injectable()
         export class MyService {}

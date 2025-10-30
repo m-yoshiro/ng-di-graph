@@ -33,6 +33,7 @@ import type {
   Warning,
 } from '../types';
 import { CliError, ErrorHandler } from './error-handler';
+import { LogCategory, type Logger } from './logger';
 
 export class AngularParser {
   private _project?: Project;
@@ -52,7 +53,10 @@ export class AngularParser {
     totalCount: 0,
   };
 
-  constructor(private _options: CliOptions) {}
+  constructor(
+    private _options: CliOptions,
+    private _logger?: Logger
+  ) {}
 
   /**
    * Reset global warning deduplication state (useful for testing)
@@ -265,6 +269,15 @@ export class AngularParser {
     let processedFiles = 0;
     let skippedFiles = 0;
 
+    // Clear circular reference tracking for cross-class detection
+    this._circularTypeRefs.clear();
+
+    // Logger: Start timing file processing
+    this._logger?.time('findDecoratedClasses');
+    this._logger?.info(LogCategory.FILE_PROCESSING, 'Starting file processing', {
+      fileCount: sourceFiles.length,
+    });
+
     if (this._options.verbose) {
       console.log(`Processing ${sourceFiles.length} source files`);
     }
@@ -276,11 +289,18 @@ export class AngularParser {
           console.log(`🔍 Parsing file: ${filePath}`);
         }
 
+        this._logger?.debug(LogCategory.FILE_PROCESSING, 'Processing file', { filePath });
+
         const classes = sourceFile.getClasses();
 
         if (this._options.verbose) {
           console.log(`File: ${filePath}, Classes: ${classes.length}`);
         }
+
+        this._logger?.debug(LogCategory.AST_ANALYSIS, 'Analyzing classes in file', {
+          filePath,
+          classCount: classes.length,
+        });
 
         // Process regular class declarations
         for (const classDeclaration of classes) {
@@ -290,6 +310,11 @@ export class AngularParser {
             if (this._options.verbose) {
               console.log(`Found decorated class: ${parsedClass.name} (${parsedClass.kind})`);
             }
+            this._logger?.info(LogCategory.AST_ANALYSIS, 'Found decorated class', {
+              className: parsedClass.name,
+              kind: parsedClass.kind,
+              filePath,
+            });
           }
         }
 
@@ -321,6 +346,15 @@ export class AngularParser {
     if (this._options.verbose) {
       console.log(`✅ Processed ${processedFiles} files, skipped ${skippedFiles} files`);
     }
+
+    // Logger: End timing and log completion
+    const elapsed = this._logger?.timeEnd('findDecoratedClasses') || 0;
+    this._logger?.info(LogCategory.PERFORMANCE, 'File processing complete', {
+      totalClasses: decoratedClasses.length,
+      processedFiles,
+      skippedFiles,
+      timing: elapsed,
+    });
 
     if (decoratedClasses.length === 0) {
       ErrorHandler.warn('No decorated classes found in the project');
@@ -521,9 +555,6 @@ export class AngularParser {
    * @returns Array of parsed dependencies
    */
   private extractConstructorDependencies(classDeclaration: ClassDeclaration): ParsedDependency[] {
-    // Clear circular reference tracking to prevent false positives across multiple class analyses
-    this._circularTypeRefs.clear();
-
     const dependencies: ParsedDependency[] = [];
     const verboseStats = {
       decoratorCounts: { optional: 0, self: 0, skipSelf: 0, host: 0 },
@@ -633,9 +664,9 @@ export class AngularParser {
    */
   private handleGenericType(
     typeText: string,
-    filePath: string,
-    lineNumber: number,
-    columnNumber: number
+    _filePath: string,
+    _lineNumber: number,
+    _columnNumber: number
   ): string | null {
     if (this._options.verbose) {
       console.log(`Processing generic type: ${typeText}`);

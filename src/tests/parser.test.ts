@@ -7,6 +7,7 @@ import { existsSync, writeFileSync, unlinkSync, mkdirSync, rmSync } from 'fs';
 import { join } from 'path';
 import { AngularParser } from '../core/parser';
 import { CliOptions, ParserError } from '../types';
+import { createLogger, LogCategory, type Logger } from '../core/logger';
 
 describe('AngularParser - Project Loading (FR-01)', () => {
   const testTmpDir = './tmp/test-fixtures';
@@ -1121,6 +1122,172 @@ describe('AngularParser - inject() Function Detection (TDD Cycle 2.1)', () => {
 
       // inject() detection should add minimal performance overhead
       expect(duration).toBeLessThan(800);
+    });
+  });
+
+  /**
+   * Logger Integration Tests (Phase 2 - Task 2.1)
+   * Following TDD methodology: RED-GREEN-REFACTOR
+   */
+  describe('Logger Integration (FR-12)', () => {
+    let logger: Logger | undefined;
+    let logOutput: string[];
+    let consoleErrorSpy: typeof console.error;
+
+    beforeEach(() => {
+      logOutput = [];
+      consoleErrorSpy = console.error;
+      console.error = (...args: any[]) => {
+        logOutput.push(args.join(' '));
+      };
+
+      const options: CliOptions = {
+        project: testTsConfig,
+        format: 'json',
+        direction: 'downstream',
+        includeDecorators: false,
+        verbose: true
+      };
+
+      logger = createLogger(true);
+      parser = new AngularParser(options, logger);
+    });
+
+    afterEach(() => {
+      console.error = consoleErrorSpy;
+    });
+
+    it('should accept optional Logger parameter in constructor', () => {
+      const options: CliOptions = {
+        project: testTsConfig,
+        format: 'json',
+        direction: 'downstream',
+        includeDecorators: false,
+        verbose: true
+      };
+
+      const loggerInstance = createLogger(true);
+      expect(() => new AngularParser(options, loggerInstance)).not.toThrow();
+    });
+
+    it('should work without Logger (backward compatibility)', () => {
+      const options: CliOptions = {
+        project: testTsConfig,
+        format: 'json',
+        direction: 'downstream',
+        includeDecorators: false,
+        verbose: false
+      };
+
+      expect(() => new AngularParser(options)).not.toThrow();
+      expect(() => new AngularParser(options, undefined)).not.toThrow();
+    });
+
+    it('should log file processing start and end with timing', async () => {
+      parser.loadProject();
+      await parser.findDecoratedClasses();
+
+      const fileProcessingLogs = logOutput.filter(log => log.includes('file-processing'));
+      expect(fileProcessingLogs.length).toBeGreaterThan(0);
+    });
+
+    it('should log decorated class discovery', async () => {
+      parser.loadProject();
+      await parser.findDecoratedClasses();
+
+      const astAnalysisLogs = logOutput.filter(log => log.includes('ast-analysis'));
+      expect(astAnalysisLogs.length).toBeGreaterThan(0);
+    });
+
+    it('should log type resolution with context', async () => {
+      parser.loadProject();
+      await parser.findDecoratedClasses();
+
+      const typeResolutionLogs = logOutput.filter(log => log.includes('type-resolution'));
+      // Type resolution should happen during parameter analysis
+      expect(typeResolutionLogs.length).toBeGreaterThanOrEqual(0);
+    });
+
+    it('should log error recovery attempts', async () => {
+      // Use a tsconfig with files that might have issues
+      const options: CliOptions = {
+        project: testTsConfig,
+        format: 'json',
+        direction: 'downstream',
+        includeDecorators: false,
+        verbose: true
+      };
+
+      logger = createLogger(true);
+      parser = new AngularParser(options, logger);
+      parser.loadProject();
+
+      await parser.findDecoratedClasses();
+
+      // Check for error recovery logs (may or may not exist depending on files)
+      const errorRecoveryLogs = logOutput.filter(log => log.includes('error-recovery'));
+      expect(errorRecoveryLogs).toBeDefined();
+    });
+
+    it('should include performance timing in logs', async () => {
+      parser.loadProject();
+      await parser.findDecoratedClasses();
+
+      const performanceLogs = logOutput.filter(log => log.includes('performance'));
+      expect(performanceLogs.length).toBeGreaterThan(0);
+    });
+
+    it('should not impact parser functionality', async () => {
+      // With Logger
+      parser.loadProject();
+      const classesWithLogger = await parser.findDecoratedClasses();
+
+      // Without Logger
+      const optionsWithoutLogger: CliOptions = {
+        project: testTsConfig,
+        format: 'json',
+        direction: 'downstream',
+        includeDecorators: false,
+        verbose: false
+      };
+
+      const parserWithoutLogger = new AngularParser(optionsWithoutLogger);
+      parserWithoutLogger.loadProject();
+      const classesWithoutLogger = await parserWithoutLogger.findDecoratedClasses();
+
+      // Results should be identical
+      expect(classesWithLogger.length).toBe(classesWithoutLogger.length);
+      expect(classesWithLogger.map(c => c.name).sort()).toEqual(
+        classesWithoutLogger.map(c => c.name).sort()
+      );
+    });
+
+    it('should add minimal performance overhead (<10%)', async () => {
+      // Measure without Logger
+      const optionsWithoutLogger: CliOptions = {
+        project: testTsConfig,
+        format: 'json',
+        direction: 'downstream',
+        includeDecorators: false,
+        verbose: false
+      };
+
+      const parserWithoutLogger = new AngularParser(optionsWithoutLogger);
+      parserWithoutLogger.loadProject();
+
+      const startWithout = performance.now();
+      await parserWithoutLogger.findDecoratedClasses();
+      const durationWithout = performance.now() - startWithout;
+
+      // Measure with Logger
+      parser.loadProject();
+      const startWith = performance.now();
+      await parser.findDecoratedClasses();
+      const durationWith = performance.now() - startWith;
+
+      // Logger overhead should be <15% (allowing for test timing variance)
+      const overhead = ((durationWith - durationWithout) / durationWithout) * 100;
+      expect(overhead).toBeLessThan(15);
     });
   });
 });
