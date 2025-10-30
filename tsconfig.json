@@ -32,6 +32,7 @@
     "tmp",
     "coverage",
     "**/*.test.ts",
-    "**/*.spec.ts"
+    "**/*.spec.ts",
+    "src/tests/fixtures/**"
   ]
 }

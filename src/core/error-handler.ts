@@ -85,6 +85,7 @@ export class CliError extends Error {
  * ErrorHandler - Static utility class for error handling
  * Provides centralized error formatting and exit code management
  */
+// biome-ignore lint/complexity/noStaticOnlyClass: Centralized error handling pattern
 export class ErrorHandler {
   /**
    * Map error code to exit code
@@ -165,7 +166,7 @@ export class ErrorHandler {
     }
 
     // Recovery guidance
-    const guidance = this.getRecoveryGuidance(error);
+    const guidance = ErrorHandler.getRecoveryGuidance(error);
     if (guidance) {
       lines.push('');
       lines.push('💡 Suggestions:');
@@ -289,10 +290,10 @@ Consider filing an issue if the problem persists`;
    * @param verbose Include verbose error information
    */
   static handleError(error: CliError, verbose = false): never {
-    const formattedError = this.formatError(error, verbose);
+    const formattedError = ErrorHandler.formatError(error, verbose);
     console.error(formattedError);
 
-    const exitCode = this.classifyExitCode(error);
+    const exitCode = ErrorHandler.classifyExitCode(error);
     process.exit(exitCode);
   }
 

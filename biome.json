@@ -9,6 +9,7 @@
       "coverage/**",
       "**/*.test.ts",
       "**/*.spec.ts",
+      "src/tests/fixtures/**",
       "**/*.js",
       "**/*.js.map"
     ],
