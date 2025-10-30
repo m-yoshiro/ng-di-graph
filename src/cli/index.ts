@@ -7,6 +7,7 @@ import { Command } from 'commander';
 import { CliError, ErrorHandler } from '../core/error-handler';
 import { buildGraph } from '../core/graph-builder';
 import { filterGraph } from '../core/graph-filter';
+import { LogCategory, createLogger } from '../core/logger';
 import { OutputHandler } from '../core/output-handler';
 import { AngularParser } from '../core/parser';
 import { JsonFormatter } from '../formatters/json-formatter';
@@ -56,6 +57,19 @@ program.action(async (options) => {
       verbose: options.verbose,
     };
 
+    // Create Logger when verbose mode is enabled
+    const logger = createLogger(cliOptions.verbose);
+
+    if (logger) {
+      logger.time('total-execution');
+      logger.info(LogCategory.FILE_PROCESSING, 'CLI execution started', {
+        runtime: process.versions.bun ? 'Bun' : 'Node.js',
+        version: process.versions.bun || process.versions.node,
+        options: cliOptions,
+      });
+    }
+
+    // Keep backward compatibility with console.log for user-facing output
     if (cliOptions.verbose) {
       console.log('🔧 CLI Options:', JSON.stringify(cliOptions, null, 2));
       console.log(
@@ -63,8 +77,8 @@ program.action(async (options) => {
       );
     }
 
-    // Initialize parser
-    const parser = new AngularParser(cliOptions);
+    // Initialize parser with logger
+    const parser = new AngularParser(cliOptions, logger);
 
     if (cliOptions.verbose) {
       console.log('📂 Loading TypeScript project...');
@@ -88,12 +102,12 @@ program.action(async (options) => {
       console.log(`✅ Found ${parsedClasses.length} decorated classes`);
     }
 
-    // Build dependency graph
+    // Build dependency graph with logger
     if (cliOptions.verbose) {
       console.log('🔗 Building dependency graph...');
     }
 
-    let graph = buildGraph(parsedClasses);
+    let graph = buildGraph(parsedClasses, logger);
 
     if (cliOptions.verbose) {
       console.log(`✅ Graph built: ${graph.nodes.length} nodes, ${graph.edges.length} edges`);
@@ -115,12 +129,12 @@ program.action(async (options) => {
       }
     }
 
-    // Format output
+    // Format output with logger
     let formatter: JsonFormatter | MermaidFormatter;
     if (cliOptions.format === 'mermaid') {
-      formatter = new MermaidFormatter();
+      formatter = new MermaidFormatter(logger);
     } else {
-      formatter = new JsonFormatter();
+      formatter = new JsonFormatter(logger);
     }
 
     const formattedOutput = formatter.format(graph);
@@ -131,6 +145,17 @@ program.action(async (options) => {
 
     if (cliOptions.verbose && cliOptions.out) {
       console.log(`✅ Output written to: ${cliOptions.out}`);
+    }
+
+    // Display performance summary
+    if (logger) {
+      const totalTime = logger.timeEnd('total-execution');
+      const stats = logger.getStats();
+
+      console.error('\n📊 Performance Summary:');
+      console.error(`  Total time: ${totalTime.toFixed(2)}ms`);
+      console.error(`  Peak memory: ${(stats.memoryUsage.peakUsage / 1024 / 1024).toFixed(2)}MB`);
+      console.error(`  Total logs: ${stats.totalLogs}`);
     }
   } catch (error) {
     // Handle CliError instances with structured error handling
