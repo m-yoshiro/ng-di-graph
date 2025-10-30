@@ -4,6 +4,7 @@ import type { Graph } from '../types';
 import { JsonFormatter } from '../formatters/json-formatter';
 import { MermaidFormatter } from '../formatters/mermaid-formatter';
 import { OutputHandler } from '../core/output-handler';
+import { createLogger, type Logger } from '../core/logger';
 
 describe('Output Formatting', () => {
   const sampleGraph: Graph = {
@@ -172,13 +173,71 @@ describe('Output Formatting', () => {
       };
 
       const result = formatter.format(complexGraph);
-      
+
       // Should remove all special characters except alphanumeric and underscore
       expect(result).toContain('ComponentSpecial');
       expect(result).toContain('Service123');
       expect(result).not.toContain('@');
       expect(result).not.toContain('#');
       expect(result).not.toContain('$');
+    });
+
+    describe('Logger Integration (Phase 2.3)', () => {
+      it('should accept optional Logger in constructor', () => {
+        const logger = createLogger(true) as Logger;
+        const formatterWithLogger = new MermaidFormatter(logger);
+
+        expect(formatterWithLogger).toBeDefined();
+      });
+
+      it('should work without Logger (backward compatibility)', () => {
+        const formatterWithoutLogger = new MermaidFormatter();
+        const result = formatterWithoutLogger.format(sampleGraph);
+
+        expect(result).toBeDefined();
+        expect(result).toContain('flowchart LR');
+      });
+
+      it('should log output generation start when Logger provided', () => {
+        const logger = createLogger(true) as Logger;
+        const infoSpy = vi.spyOn(logger, 'info');
+
+        const formatterWithLogger = new MermaidFormatter(logger);
+        formatterWithLogger.format(sampleGraph);
+
+        expect(infoSpy).toHaveBeenCalledWith(
+          expect.any(String),
+          expect.stringContaining('Generating Mermaid output'),
+          expect.any(Object)
+        );
+      });
+
+      it('should log output generation completion with timing', () => {
+        const logger = createLogger(true) as Logger;
+        const timeEndSpy = vi.spyOn(logger, 'timeEnd');
+
+        const formatterWithLogger = new MermaidFormatter(logger);
+        formatterWithLogger.format(sampleGraph);
+
+        expect(timeEndSpy).toHaveBeenCalledWith('mermaid-format');
+      });
+
+      it('should log output size information', () => {
+        const logger = createLogger(true) as Logger;
+        const infoSpy = vi.spyOn(logger, 'info');
+
+        const formatterWithLogger = new MermaidFormatter(logger);
+        const result = formatterWithLogger.format(sampleGraph);
+
+        // Check for completion log with output size
+        expect(infoSpy).toHaveBeenCalledWith(
+          expect.any(String),
+          expect.stringContaining('Mermaid output complete'),
+          expect.objectContaining({
+            outputSize: result.length
+          })
+        );
+      });
     });
 
     describe('EdgeFlags JSON Serialization (TDD Cycle 1.2)', () => {
@@ -311,6 +370,64 @@ describe('Output Formatting', () => {
         expect(parsed.edges[0].flags).toEqual({ optional: true });
         expect(parsed.edges[1].flags).toEqual({ self: true, skipSelf: false });
         expect(parsed.edges[2].flags).toBeUndefined();
+      });
+    });
+
+    describe('Logger Integration (Phase 2.3)', () => {
+      it('should accept optional Logger in constructor', () => {
+        const logger = createLogger(true) as Logger;
+        const formatterWithLogger = new JsonFormatter(logger);
+
+        expect(formatterWithLogger).toBeDefined();
+      });
+
+      it('should work without Logger (backward compatibility)', () => {
+        const formatterWithoutLogger = new JsonFormatter();
+        const result = formatterWithoutLogger.format(sampleGraph);
+
+        expect(result).toBeDefined();
+        expect(() => JSON.parse(result)).not.toThrow();
+      });
+
+      it('should log output generation start when Logger provided', () => {
+        const logger = createLogger(true) as Logger;
+        const infoSpy = vi.spyOn(logger, 'info');
+
+        const formatterWithLogger = new JsonFormatter(logger);
+        formatterWithLogger.format(sampleGraph);
+
+        expect(infoSpy).toHaveBeenCalledWith(
+          expect.any(String), // LogCategory
+          expect.stringContaining('Generating JSON output'),
+          expect.any(Object)
+        );
+      });
+
+      it('should log output generation completion with timing', () => {
+        const logger = createLogger(true) as Logger;
+        const timeEndSpy = vi.spyOn(logger, 'timeEnd');
+
+        const formatterWithLogger = new JsonFormatter(logger);
+        formatterWithLogger.format(sampleGraph);
+
+        expect(timeEndSpy).toHaveBeenCalledWith('json-format');
+      });
+
+      it('should log output size information', () => {
+        const logger = createLogger(true) as Logger;
+        const infoSpy = vi.spyOn(logger, 'info');
+
+        const formatterWithLogger = new JsonFormatter(logger);
+        const result = formatterWithLogger.format(sampleGraph);
+
+        // Check for completion log with output size
+        expect(infoSpy).toHaveBeenCalledWith(
+          expect.any(String),
+          expect.stringContaining('JSON output complete'),
+          expect.objectContaining({
+            outputSize: result.length
+          })
+        );
       });
     });
   });

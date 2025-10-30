@@ -1,3 +1,4 @@
+import { LogCategory, type Logger } from '../core/logger';
 import type { Graph } from '../types';
 
 /**
@@ -6,13 +7,38 @@ import type { Graph } from '../types';
  */
 export class MermaidFormatter {
   /**
+   * Logger instance for verbose output (optional)
+   * @private
+   */
+  private readonly _logger?: Logger;
+
+  /**
+   * Create a new Mermaid formatter
+   * @param logger Optional Logger instance for verbose mode
+   */
+  constructor(logger?: Logger) {
+    this._logger = logger;
+  }
+
+  /**
    * Format a dependency graph as Mermaid flowchart
    * @param graph The dependency graph to format
    * @returns Mermaid flowchart string
    */
   format(graph: Graph): string {
+    this._logger?.time('mermaid-format');
+    this._logger?.info(LogCategory.PERFORMANCE, 'Generating Mermaid output', {
+      nodeCount: graph.nodes.length,
+      edgeCount: graph.edges.length,
+    });
     if (graph.nodes.length === 0) {
-      return 'flowchart LR\n  %% Empty graph - no nodes to display';
+      const result = 'flowchart LR\n  %% Empty graph - no nodes to display';
+      const elapsed = this._logger?.timeEnd('mermaid-format') ?? 0;
+      this._logger?.info(LogCategory.PERFORMANCE, 'Mermaid output complete', {
+        outputSize: result.length,
+        elapsed,
+      });
+      return result;
     }
 
     const lines = ['flowchart LR'];
@@ -38,7 +64,15 @@ export class MermaidFormatter {
       }
     }
 
-    return lines.join('\n');
+    const result = lines.join('\n');
+
+    const elapsed = this._logger?.timeEnd('mermaid-format') ?? 0;
+    this._logger?.info(LogCategory.PERFORMANCE, 'Mermaid output complete', {
+      outputSize: result.length,
+      elapsed,
+    });
+
+    return result;
   }
 
   /**
