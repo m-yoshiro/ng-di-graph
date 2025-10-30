@@ -4,6 +4,7 @@
  */
 
 import type { Edge, Graph, Node, NodeKind, ParsedClass } from '../types';
+import { LogCategory, type Logger } from './logger';
 
 /**
  * Validates input parameters for the buildGraph function
@@ -134,9 +135,16 @@ function detectCircularDependencies(
 /**
  * Builds a dependency graph from parsed Angular classes
  * @param parsedClasses Array of parsed classes with their dependencies
+ * @param logger Optional Logger instance for verbose mode logging
  * @returns Graph containing nodes and edges representing the dependency relationships
  */
-export function buildGraph(parsedClasses: ParsedClass[]): Graph {
+export function buildGraph(parsedClasses: ParsedClass[], logger?: Logger): Graph {
+  // Start performance timing
+  logger?.time('buildGraph');
+  logger?.info(LogCategory.GRAPH_CONSTRUCTION, 'Starting graph construction', {
+    classCount: parsedClasses.length,
+  });
+
   // Validate input parameters
   validateInput(parsedClasses);
 
@@ -154,7 +162,12 @@ export function buildGraph(parsedClasses: ParsedClass[]): Graph {
     }
   }
 
+  logger?.info(LogCategory.GRAPH_CONSTRUCTION, `Created ${nodeMap.size} nodes`, {
+    nodeCount: nodeMap.size,
+  });
+
   // Second pass: Create edges and unknown nodes for dependencies
+  let unknownNodeCount = 0;
   for (const parsedClass of parsedClasses) {
     for (const dependency of parsedClass.dependencies) {
       // Create unknown node if dependency doesn't exist
@@ -162,6 +175,11 @@ export function buildGraph(parsedClasses: ParsedClass[]): Graph {
         nodeMap.set(dependency.token, {
           id: dependency.token,
           kind: 'unknown',
+        });
+        unknownNodeCount++;
+        logger?.warn(LogCategory.GRAPH_CONSTRUCTION, `Created unknown node: ${dependency.token}`, {
+          nodeId: dependency.token,
+          referencedBy: parsedClass.name,
         });
       }
 
@@ -180,6 +198,11 @@ export function buildGraph(parsedClasses: ParsedClass[]): Graph {
     }
   }
 
+  logger?.info(LogCategory.GRAPH_CONSTRUCTION, `Created ${edges.length} edges`, {
+    edgeCount: edges.length,
+    unknownNodeCount,
+  });
+
   // Convert map to array and sort for consistency
   const nodes = Array.from(nodeMap.values()).sort((a, b) => a.id.localeCompare(b.id));
 
@@ -191,7 +214,25 @@ export function buildGraph(parsedClasses: ParsedClass[]): Graph {
   });
 
   // Detect circular dependencies
+  logger?.time('circularDetection');
   const { circularDependencies, circularEdges } = detectCircularDependencies(edges, nodes);
+  const circularDetectionTime = logger?.timeEnd('circularDetection');
+
+  if (circularDependencies.length > 0) {
+    logger?.warn(
+      LogCategory.GRAPH_CONSTRUCTION,
+      `Circular dependencies detected: ${circularDependencies.length}`,
+      {
+        circularCount: circularDependencies.length,
+        cycles: circularDependencies,
+        detectionTime: circularDetectionTime,
+      }
+    );
+  } else {
+    logger?.info(LogCategory.GRAPH_CONSTRUCTION, 'No circular dependencies detected', {
+      detectionTime: circularDetectionTime,
+    });
+  }
 
   // Mark circular edges
   for (const edge of edges) {
@@ -200,6 +241,15 @@ export function buildGraph(parsedClasses: ParsedClass[]): Graph {
       edge.isCircular = true;
     }
   }
+
+  // Complete performance timing
+  const duration = logger?.timeEnd('buildGraph');
+  logger?.info(LogCategory.GRAPH_CONSTRUCTION, 'Graph construction complete', {
+    duration,
+    nodeCount: nodes.length,
+    edgeCount: edges.length,
+    circularCount: circularDependencies.length,
+  });
 
   return {
     nodes,
