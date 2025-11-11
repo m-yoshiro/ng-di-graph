@@ -1,5 +1,5 @@
 /**
- * End-to-End Integration Tests for Verbose Mode (Phase 3.2)
+ * End-to-End Integration Tests for Verbose Mode
  * Tests the complete verbose mode workflow with Logger propagation
  */
 import { describe, it, expect, beforeEach } from 'bun:test';
@@ -7,25 +7,23 @@ import { AngularParser } from '../core/parser';
 import { buildGraph } from '../core/graph-builder';
 import { JsonFormatter } from '../formatters/json-formatter';
 import { MermaidFormatter } from '../formatters/mermaid-formatter';
-import { createLogger, type Logger } from '../core/logger';
+import type { Logger } from '../core/logger';
 import type { CliOptions } from '../types';
+import { createTestCliOptions, createTestLogger } from './helpers/test-utils';
 
-describe('Verbose Mode Integration Tests (Phase 3.2)', () => {
-  const testProjectPath = './src/tests/fixtures/tsconfig.json';
+describe('Verbose Mode - E2E Tests', () => {
   let cliOptions: CliOptions;
 
   beforeEach(() => {
-    cliOptions = {
-      project: testProjectPath,
-      format: 'json',
+    cliOptions = createTestCliOptions({
       verbose: false,
       includeDecorators: false,
-    };
+    });
   });
 
   describe('Logger Creation and Propagation', () => {
     it('should create Logger when verbose is true', () => {
-      const logger = createLogger(true);
+      const logger = createTestLogger(true);
       expect(logger).toBeDefined();
       expect(typeof logger?.info).toBe('function');
       expect(typeof logger?.debug).toBe('function');
@@ -37,12 +35,12 @@ describe('Verbose Mode Integration Tests (Phase 3.2)', () => {
     });
 
     it('should return undefined when verbose is false', () => {
-      const logger = createLogger(false);
+      const logger = createTestLogger(false);
       expect(logger).toBeUndefined();
     });
 
     it('should propagate Logger to AngularParser', () => {
-      const logger = createLogger(true) as Logger;
+      const logger = createTestLogger(true) as Logger;
       const parser = new AngularParser(cliOptions, logger);
 
       expect(parser).toBeDefined();
@@ -50,7 +48,7 @@ describe('Verbose Mode Integration Tests (Phase 3.2)', () => {
     });
 
     it('should propagate Logger to buildGraph', async () => {
-      const logger = createLogger(true) as Logger;
+      const logger = createTestLogger(true) as Logger;
       const parser = new AngularParser(cliOptions, logger);
       parser.loadProject();
 
@@ -62,7 +60,7 @@ describe('Verbose Mode Integration Tests (Phase 3.2)', () => {
     });
 
     it('should propagate Logger to formatters', () => {
-      const logger = createLogger(true) as Logger;
+      const logger = createTestLogger(true) as Logger;
       const jsonFormatter = new JsonFormatter(logger);
       const mermaidFormatter = new MermaidFormatter(logger);
 
@@ -78,7 +76,7 @@ describe('Verbose Mode Integration Tests (Phase 3.2)', () => {
         verbose: true,
       };
 
-      const logger = createLogger(verboseOptions.verbose) as Logger;
+      const logger = createTestLogger(verboseOptions.verbose) as Logger;
       expect(logger).toBeDefined();
 
       // Start timing
@@ -120,7 +118,7 @@ describe('Verbose Mode Integration Tests (Phase 3.2)', () => {
         verbose: false,
       };
 
-      const logger = createLogger(nonVerboseOptions.verbose);
+      const logger = createTestLogger(nonVerboseOptions.verbose);
       expect(logger).toBeUndefined();
 
       // Parser without logger
@@ -150,7 +148,7 @@ describe('Verbose Mode Integration Tests (Phase 3.2)', () => {
         format: 'mermaid',
       };
 
-      const logger = createLogger(verboseOptions.verbose) as Logger;
+      const logger = createTestLogger(verboseOptions.verbose) as Logger;
 
       // Parse and build
       const parser = new AngularParser(verboseOptions, logger);
@@ -173,7 +171,7 @@ describe('Verbose Mode Integration Tests (Phase 3.2)', () => {
 
   describe('Performance Metrics', () => {
     it('should track performance timing accurately', () => {
-      const logger = createLogger(true) as Logger;
+      const logger = createTestLogger(true) as Logger;
 
       logger.time('operation1');
       // Simulate some work
@@ -188,7 +186,7 @@ describe('Verbose Mode Integration Tests (Phase 3.2)', () => {
     });
 
     it('should track memory usage', () => {
-      const logger = createLogger(true) as Logger;
+      const logger = createTestLogger(true) as Logger;
 
       // Generate some logs
       for (let i = 0; i < 10; i++) {
@@ -203,7 +201,7 @@ describe('Verbose Mode Integration Tests (Phase 3.2)', () => {
     });
 
     it('should aggregate statistics correctly', () => {
-      const logger = createLogger(true) as Logger;
+      const logger = createTestLogger(true) as Logger;
 
       // Generate various log types
       logger.info('file-processing', 'Processing file 1');
@@ -244,7 +242,7 @@ describe('Verbose Mode Integration Tests (Phase 3.2)', () => {
       // Test with verbose (with Logger)
       const verboseOptions = { ...cliOptions, verbose: true };
       for (let i = 0; i < iterations; i++) {
-        const logger = createLogger(true) as Logger;
+        const logger = createTestLogger(true) as Logger;
         const start = performance.now();
 
         const parser = new AngularParser(verboseOptions, logger);
@@ -273,7 +271,7 @@ describe('Verbose Mode Integration Tests (Phase 3.2)', () => {
 
   describe('Logger Integration Completeness', () => {
     it('should collect comprehensive statistics from all components', async () => {
-      const logger = createLogger(true) as Logger;
+      const logger = createTestLogger(true) as Logger;
 
       const verboseOptions: CliOptions = {
         ...cliOptions,
