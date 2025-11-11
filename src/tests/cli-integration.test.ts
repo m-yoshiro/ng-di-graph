@@ -6,7 +6,7 @@ import { JsonFormatter } from '../formatters/json-formatter';
 import { MermaidFormatter } from '../formatters/mermaid-formatter';
 import type { CliOptions, Graph } from '../types';
 
-describe('TDD Cycle 2.2: CLI Integration for --include-decorators and --direction', () => {
+describe('CLI Integration - Core Features', () => {
   let originalConsoleLog: typeof console.log;
   let originalConsoleError: typeof console.error;
   let mockConsoleLog: any;
