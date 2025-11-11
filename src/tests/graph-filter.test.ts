@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from 'bun:test';
+import { buildGraph } from '../core/graph-builder';
 import { filterGraph } from '../core/graph-filter';
-import type { Graph, CliOptions } from '../types';
+import type { Graph, CliOptions, ParsedClass } from '../types';
 
 describe('Entry Point Filtering', () => {
   // Sample graph: Component -> ServiceA -> ServiceB
@@ -312,6 +313,76 @@ describe('Entry Point Filtering', () => {
       expect(filteredGraph.nodes.length).toBeGreaterThan(0);
       expect(filteredGraph.nodes.find(n => n.id === 'TestComponent')).toBeDefined();
       expect(filteredGraph.nodes.find(n => n.id === 'ServiceA')).toBeDefined();
+    });
+  });
+
+  describe('Integration with Graph Builder', () => {
+    it('should integrate graph building and filtering correctly', () => {
+      const sampleParsedClasses: ParsedClass[] = [
+        {
+          name: 'AppComponent',
+          kind: 'component',
+          filePath: '/src/app.component.ts',
+          dependencies: [
+            { token: 'UserService', parameterName: 'userService' },
+            { token: 'LogService', parameterName: 'logService' }
+          ]
+        },
+        {
+          name: 'UserService',
+          kind: 'service',
+          filePath: '/src/user.service.ts',
+          dependencies: [
+            { token: 'HttpClient', parameterName: 'http' }
+          ]
+        },
+        {
+          name: 'LogService',
+          kind: 'service',
+          filePath: '/src/log.service.ts',
+          dependencies: []
+        },
+        {
+          name: 'AdminComponent',
+          kind: 'component',
+          filePath: '/src/admin.component.ts',
+          dependencies: [
+            { token: 'AdminService', parameterName: 'adminService' }
+          ]
+        },
+        {
+          name: 'AdminService',
+          kind: 'service',
+          filePath: '/src/admin.service.ts',
+          dependencies: []
+        }
+      ];
+
+      // Build the full graph
+      const fullGraph = buildGraph(sampleParsedClasses);
+
+      expect(fullGraph.nodes).toHaveLength(6); // 5 parsed + 1 unknown (HttpClient)
+      expect(fullGraph.edges).toHaveLength(4);
+
+      // Filter by AppComponent entry point
+      const options: CliOptions = {
+        project: './tsconfig.json',
+        format: 'json',
+        direction: 'downstream',
+        includeDecorators: false,
+        verbose: false,
+        entry: ['AppComponent']
+      };
+
+      const filteredGraph = filterGraph(fullGraph, options);
+
+      // Should include: AppComponent, UserService, LogService, HttpClient
+      // Should exclude: AdminComponent, AdminService
+      expect(filteredGraph.nodes).toHaveLength(4);
+      expect(filteredGraph.edges).toHaveLength(3);
+
+      const nodeIds = filteredGraph.nodes.map(n => n.id).sort();
+      expect(nodeIds).toEqual(['AppComponent', 'HttpClient', 'LogService', 'UserService']);
     });
   });
 });
