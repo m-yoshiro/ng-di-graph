@@ -6,6 +6,9 @@
   "bin": {
     "ng-di-graph": "dist/cli/index.js"
   },
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "dev": "bun src/cli/index.ts",
     "dev:node": "ts-node src/cli/index.ts",
@@ -21,7 +24,8 @@
     "typecheck": "tsc --noEmit",
     "typecheck:bun": "bun x tsc --noEmit",
     "clean": "rimraf dist",
-    "install:bun": "bun install"
+    "install:bun": "bun install",
+    "prepublishOnly": "npm run build"
   },
   "keywords": [
     "angular",
