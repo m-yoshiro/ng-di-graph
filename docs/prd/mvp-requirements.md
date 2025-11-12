@@ -7,6 +7,75 @@
 
 ---
 
+## 0. Distribution & Installation
+
+### 0.1 Global NPM Package Requirements
+
+The tool must be installable and executable globally via npm:
+
+```bash
+npm install -g ng-di-graph
+ng-di-graph --help
+```
+
+#### 0.1.1 Package Configuration Requirements
+
+| Requirement | Implementation | Status |
+|------------|----------------|---------|
+| **Executable Entry Point** | `bin` field in package.json pointing to `dist/cli/index.js` | ✅ Configured |
+| **Shebang Line** | `#!/usr/bin/env node` at top of CLI entry file | ✅ Present |
+| **Published Files** | `files` field limiting npm package to `dist/` directory only | ✅ Configured |
+| **Pre-publish Build** | `prepublishOnly` script to auto-build before publishing | ✅ Configured |
+| **Executable Permissions** | Git tracking of executable bit on CLI entry file | ✅ Configured |
+| **Node.js Compatibility** | Build output targets Node.js runtime (current: Node.js bundle) | ✅ Configured |
+
+#### 0.1.2 Distribution Strategy
+
+**Selected Approach: Node.js-Compatible Bundle**
+
+The tool compiles TypeScript to Node.js-compatible JavaScript:
+- **Runtime**: Requires Node.js ≥18.0.0 (specified in `engines` field)
+- **Build Output**: Single bundled JavaScript file with dependencies
+- **Package Size**: Small (~100KB estimated)
+- **Compatibility**: Works on any system with Node.js installed
+- **Development Tool**: Built with Bun for fast development, runs on Node.js for distribution
+
+**Rejected Alternative: Bun Standalone Executable**
+- Would require `bun build --compile` creating platform-specific binaries
+- Large package size (~30-50MB with embedded runtime)
+- Platform-specific builds required for cross-platform support
+- Not suitable for npm distribution model
+
+#### 0.1.3 Local Testing Workflow
+
+Before publishing to npm, developers must test global installation locally:
+
+```bash
+# 1. Build the project
+npm run build
+
+# 2. Create global symlink
+npm link
+
+# 3. Test from any directory
+ng-di-graph --help
+ng-di-graph -p ./tsconfig.json -f json
+
+# 4. Cleanup when done
+npm unlink -g ng-di-graph
+```
+
+#### 0.1.4 Publishing Requirements
+
+| Step | Command | Description |
+|------|---------|-------------|
+| **Version Update** | Manual edit of `package.json` | Update semantic version |
+| **Pre-publish Build** | Auto-runs via `prepublishOnly` | Ensures fresh compiled code |
+| **Publish** | `npm publish` | Upload to npm registry |
+| **Verification** | `npm info ng-di-graph` | Confirm published successfully |
+
+---
+
 ## 1. Background & Purpose
 Unit testing in Angular often requires a clear understanding of which services, components, or directives are injected into one another. Manually mapping these dependencies is time‑consuming and error‑prone.
 The goal of this project is to deliver a **command‑line tool** that parses a TypeScript codebase with *ts‑morph*, extracts constructor‑based DI dependencies, and outputs a lightweight graph. This first iteration focuses on the minimum features required to make that workflow viable.
