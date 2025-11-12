@@ -29,6 +29,17 @@ A command-line tool that analyzes Angular TypeScript codebases to extract depend
 
 ### Installation
 
+**Global Installation (Recommended for end users):**
+```bash
+npm install -g ng-di-graph
+```
+
+Once installed globally, the `ng-di-graph` command is available system-wide from any directory.
+
+**Local Development Setup:**
+
+For contributors and developers working on ng-di-graph itself:
+
 **With Bun (Recommended):**
 ```bash
 # Install Bun
@@ -37,7 +48,7 @@ curl -fsSL https://bun.sh/install | bash
 # Install dependencies
 bun install
 
-# Run the CLI
+# Run the CLI in development mode
 npm run dev -- --project ./tsconfig.json --format json
 ```
 
@@ -46,7 +57,7 @@ npm run dev -- --project ./tsconfig.json --format json
 # Install dependencies
 npm install
 
-# Run the CLI
+# Run the CLI in development mode
 npm run dev:node -- --project ./tsconfig.json --format json
 ```
 
@@ -366,6 +377,64 @@ Contributions are welcome! Please follow these guidelines:
 6. **Follow existing patterns** - Review existing code structure
 
 See [AI Development Guide](docs/rules/ai-development-guide.md) for detailed development workflow.
+
+## Publishing
+
+For maintainers publishing new versions to npm:
+
+### Pre-Publish Checklist
+
+```bash
+# 1. Run all quality checks
+npm run lint
+npm run typecheck
+npm run test
+npm run build
+
+# 2. Test local installation with npm link
+npm link
+ng-di-graph --help
+ng-di-graph --version
+
+# 3. Test from a different directory
+cd /tmp
+ng-di-graph --help
+
+# 4. Clean up test installation
+npm unlink -g ng-di-graph
+cd <project-directory>
+
+# 5. Verify package contents
+npm pack --dry-run
+```
+
+### Publishing to npm
+
+```bash
+# 1. Update version in package.json (manual edit)
+#    Follow semantic versioning: MAJOR.MINOR.PATCH
+
+# 2. Commit version change
+git add package.json
+git commit -m "chore: bump version to x.x.x"
+
+# 3. Create git tag
+git tag v<version>
+git push origin main --tags
+
+# 4. Publish to npm registry (requires npm account and authentication)
+npm publish
+
+# 5. Verify published package
+npm info ng-di-graph
+```
+
+### Publishing Notes
+
+- The `prepublishOnly` script automatically runs `npm run build` before publishing
+- The `files` field in package.json ensures only the `dist/` directory is published
+- Package size should be approximately 4-5 MB (compressed tarball)
+- After publishing, test the published package: `npm install -g ng-di-graph@latest`
 
 ## Roadmap
 
