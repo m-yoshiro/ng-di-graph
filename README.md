@@ -1,18 +1,15 @@
 # ng-di-graph
 
 [![Version](https://img.shields.io/badge/version-0.1.0-blue.svg)](package.json)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue.svg)](https://www.typescriptlang.org/)
-[![Test Coverage](https://img.shields.io/badge/coverage-99.06%25-brightgreen.svg)](#test-coverage)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 A command-line tool that analyzes Angular TypeScript codebases to extract dependency injection relationships and generate visual dependency graphs.
 
 **Target Angular Versions:** 17-20
-**Primary Runtime:** Bun 1.2+ (Node.js 18+ supported as fallback)
 
 ## Features
 
-✨ **Complete MVP Implementation** - All 14 functional requirements (FR-01 to FR-14) fully implemented
+✨ **Complete Feature Set** - Production-ready dependency graph analysis for Angular applications
 
 - 🔍 **Dependency Analysis** - Extract DI relationships from `@Injectable`, `@Component`, and `@Directive` classes
 - 🎯 **Constructor Injection** - Analyze constructor parameters with type annotations and `@Inject()` tokens
@@ -25,43 +22,15 @@ A command-line tool that analyzes Angular TypeScript codebases to extract depend
 - 🛡️ **Graceful Error Handling** - Continue processing when individual files fail
 - ⚡ **High Performance** - Process medium-sized projects (<10 seconds) with memory optimization
 
-## Quick Start
+## Installation
 
-### Installation
-
-**Global Installation (Recommended for end users):**
 ```bash
 npm install -g ng-di-graph
 ```
 
 Once installed globally, the `ng-di-graph` command is available system-wide from any directory.
 
-**Local Development Setup:**
-
-For contributors and developers working on ng-di-graph itself:
-
-**With Bun (Recommended):**
-```bash
-# Install Bun
-curl -fsSL https://bun.sh/install | bash
-
-# Install dependencies
-bun install
-
-# Run the CLI in development mode
-npm run dev -- --project ./tsconfig.json --format json
-```
-
-**With Node.js:**
-```bash
-# Install dependencies
-npm install
-
-# Run the CLI in development mode
-npm run dev:node -- --project ./tsconfig.json --format json
-```
-
-### Basic Usage
+## Usage
 
 ```bash
 # Analyze an Angular project and output JSON
@@ -165,157 +134,6 @@ Mermaid diagrams can be:
 - Embedded in documentation sites
 - Converted to images using CLI tools
 
-## Architecture
-
-```
-┌─────────────────────────────────────────────────────────┐
-│                     CLI Interface                        │
-│                   (Commander.js)                         │
-└────────────────┬────────────────────────────────────────┘
-                 │
-                 ▼
-┌─────────────────────────────────────────────────────────┐
-│                  AngularParser                           │
-│              (ts-morph AST parsing)                      │
-│  • Discover decorated classes                           │
-│  • Analyze constructor parameters                       │
-│  • Resolve dependency tokens                            │
-│  • Extract parameter decorators                         │
-└────────────────┬────────────────────────────────────────┘
-                 │
-                 ▼
-┌─────────────────────────────────────────────────────────┐
-│                  GraphBuilder                            │
-│           (In-memory graph construction)                 │
-│  • Build nodes and edges                                │
-│  • Detect circular dependencies                         │
-│  • Apply entry point filtering                          │
-└────────────────┬────────────────────────────────────────┘
-                 │
-                 ▼
-┌─────────────────────────────────────────────────────────┐
-│              Output Formatters                           │
-│        • JSON Serialization                              │
-│        • Mermaid Flowchart Generation                    │
-└─────────────────────────────────────────────────────────┘
-```
-
-### Technology Stack
-
-- **[ts-morph](https://ts-morph.com/)** (v21.0.0) - TypeScript compiler API wrapper for AST parsing
-- **[Commander.js](https://github.com/tj/commander.js)** (v11.0.0) - CLI argument parsing
-- **[Bun](https://bun.sh)** (1.2+) - High-performance JavaScript runtime (primary)
-- **[TypeScript](https://www.typescriptlang.org/)** (v5.0) - Type-safe implementation
-- **[Biome](https://biomejs.dev/)** (v1.8.0) - Fast linting and formatting
-
-## Development
-
-### Prerequisites
-
-- **Bun 1.2+** (recommended) or **Node.js 18+**
-- **TypeScript 5.0+**
-- Angular project with TypeScript (versions 17-20 supported)
-
-### Setup Development Environment
-
-```bash
-# Clone the repository
-git clone <repository-url>
-cd ng-di-graph
-
-# Install dependencies (Bun)
-bun install
-
-# Or with npm
-npm install
-
-# Run tests in watch mode (TDD workflow)
-npm run test:watch
-
-# Run all tests
-npm run test
-
-# Check code quality
-npm run check
-```
-
-### Available Scripts
-
-**Development:**
-- `npm run dev` - Run CLI with Bun (fast startup)
-- `npm run dev:node` - Run CLI with Node.js & ts-node
-- `npm run test` - Run full test suite (395 tests)
-- `npm run test:watch` - Watch mode for TDD development
-- `npm run test:coverage` - Generate coverage report
-
-**Code Quality:**
-- `npm run lint` - Check code with Biome
-- `npm run lint:fix` - Auto-fix Biome issues
-- `npm run format` - Format code with Biome
-- `npm run check` - Combined lint & typecheck
-- `npm run typecheck` - TypeScript type checking
-- `npm run typecheck:bun` - TypeScript via Bun
-
-**Build:**
-- `npm run build` - Build with Bun bundler (sub-second builds)
-- `npm run build:node` - Build with TypeScript compiler
-- `npm run clean` - Remove dist directory
-
-### Test Coverage
-
-The project maintains high test coverage with comprehensive test suites:
-
-- **Total Tests:** 395 passing
-- **Function Coverage:** 93.28%
-- **Line Coverage:** 99.06%
-- **Test Execution Time:** ~62 seconds
-
-**Coverage by Module:**
-- `parser.ts` - 97.78% (comprehensive decorator & token tests)
-- `graph-builder.ts` - 100%
-- `formatters` - 100%
-- `graph-filter.ts` - 100%
-- `logger.ts` - 100%
-- `error-handler.ts` - 81.82% (edge case handling)
-
-### Test-Driven Development
-
-This project follows strict TDD methodology:
-
-1. **Write failing tests first** using `npm run test:watch`
-2. **Implement minimal code** to pass tests
-3. **Refactor** while keeping tests green
-4. **Maintain high coverage** (>90% target)
-
-See [TDD Development Workflow](docs/instructions/tdd-development-workflow.md) for detailed guidelines.
-
-## Performance
-
-### Benchmarks
-
-- **Startup Time (Bun):** ~0.6 seconds
-- **Startup Time (Node.js):** ~1.3 seconds
-- **Medium Project (<500 files):** <10 seconds
-- **Memory Usage:** Optimized for large codebases
-- **Build Time:** <1 second (Bun bundler)
-
-### Performance Features
-
-- Parallel file processing where possible
-- Efficient AST traversal with ts-morph
-- Memory-optimized graph construction
-- Streaming output for large graphs
-- Built-in performance metrics (with `--verbose`)
-
-## Project Documentation
-
-The project includes comprehensive documentation:
-
-- **[CLAUDE.md](CLAUDE.md)** - AI development instructions and project overview
-- **[MVP Requirements](docs/prd/mvp-requirements.md)** - Complete product requirements document
-- **[AI Development Guide](docs/rules/ai-development-guide.md)** - AI-assisted development best practices
-- **[TDD Workflow](docs/instructions/tdd-development-workflow.md)** - Test-driven development methodology
-
 ## Use Cases
 
 ### 1. Test Planning
@@ -367,74 +185,7 @@ Exit codes:
 
 ## Contributing
 
-Contributions are welcome! Please follow these guidelines:
-
-1. **Follow TDD methodology** - Write tests first, then implementation
-2. **Maintain test coverage** - Ensure >90% coverage for new code
-3. **Use Biome for linting** - Run `npm run lint:fix` before committing
-4. **Type safety** - All code must pass `npm run typecheck`
-5. **Run full test suite** - Ensure `npm run test` passes
-6. **Follow existing patterns** - Review existing code structure
-
-See [AI Development Guide](docs/rules/ai-development-guide.md) for detailed development workflow.
-
-## Publishing
-
-For maintainers publishing new versions to npm:
-
-### Pre-Publish Checklist
-
-```bash
-# 1. Run all quality checks
-npm run lint
-npm run typecheck
-npm run test
-npm run build
-
-# 2. Test local installation with npm link
-npm link
-ng-di-graph --help
-ng-di-graph --version
-
-# 3. Test from a different directory
-cd /tmp
-ng-di-graph --help
-
-# 4. Clean up test installation
-npm unlink -g ng-di-graph
-cd <project-directory>
-
-# 5. Verify package contents
-npm pack --dry-run
-```
-
-### Publishing to npm
-
-```bash
-# 1. Update version in package.json (manual edit)
-#    Follow semantic versioning: MAJOR.MINOR.PATCH
-
-# 2. Commit version change
-git add package.json
-git commit -m "chore: bump version to x.x.x"
-
-# 3. Create git tag
-git tag v<version>
-git push origin main --tags
-
-# 4. Publish to npm registry (requires npm account and authentication)
-npm publish
-
-# 5. Verify published package
-npm info ng-di-graph
-```
-
-### Publishing Notes
-
-- The `prepublishOnly` script automatically runs `npm run build` before publishing
-- The `files` field in package.json ensures only the `dist/` directory is published
-- Package size should be approximately 4-5 MB (compressed tarball)
-- After publishing, test the published package: `npm install -g ng-di-graph@latest`
+Contributions are welcome! Please see our [Contributing Guide](CONTRIBUTING.md) for development setup, code quality standards, and the pull request process.
 
 ## Roadmap
 
@@ -458,10 +209,6 @@ MIT License - See [LICENSE](LICENSE) file for details
 
 ## Version
 
-Current version: **0.1.0 (MVP)**
+Current version: **0.1.0**
 
-All 14 functional requirements (FR-01 to FR-14) are complete and production-ready.
-
----
-
-**Built with ⚡ [Bun](https://bun.sh) for optimal performance**
+All core features are complete and production-ready.
