@@ -3,7 +3,7 @@
 [![Version](https://img.shields.io/badge/version-0.1.0-blue.svg)](package.json)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
-A command-line tool that analyzes Angular TypeScript codebases to extract dependency injection relationships and generate visual dependency graphs.
+A command-line tool that analyzes Angular TypeScript codebases to extract dependency injection relationships.
 
 **Target Angular Versions:** 17-20
 
@@ -18,17 +18,12 @@ A command-line tool that analyzes Angular TypeScript codebases to extract depend
 - 🎨 **Entry Point Filtering** - Generate sub-graphs from specific starting nodes
 - 🔄 **Bidirectional Analysis** - Explore upstream dependencies, downstream consumers, or both
 - 🔁 **Circular Detection** - Automatically detect and report circular dependencies
-- 📝 **Verbose Logging** - Detailed parsing and resolution information with timing metrics
-- 🛡️ **Graceful Error Handling** - Continue processing when individual files fail
-- ⚡ **High Performance** - Process medium-sized projects (<10 seconds) with memory optimization
 
 ## Installation
 
 ```bash
 npm install -g ng-di-graph
 ```
-
-Once installed globally, the `ng-di-graph` command is available system-wide from any directory.
 
 ## Usage
 
@@ -186,22 +181,6 @@ Exit codes:
 ## Contributing
 
 Contributions are welcome! Please see our [Contributing Guide](CONTRIBUTING.md) for development setup, code quality standards, and the pull request process.
-
-## Roadmap
-
-Future enhancements being considered:
-
-- Generic type parameter handling (`Service<T>`)
-- Angular module boundary visualization
-- Provider array parsing (`useClass`, `useFactory`, `useValue`)
-- `forwardRef` resolution
-- `InjectionToken` definition analysis
-- Stand-alone component provider composition
-- Additional output formats (DOT, PlantUML)
-- VS Code extension
-- Web UI for interactive graph exploration
-- Nx workspace integration
-- ESLint plugin for DI best practices
 
 ## License
 
