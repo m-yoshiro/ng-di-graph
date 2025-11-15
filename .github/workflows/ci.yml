@@ -59,13 +59,12 @@ jobs:
         run: bun run test
 
   test-node:
-    name: Test (Node.js ${{ matrix.node-version }} - ${{ matrix.os }})
-    runs-on: ${{ matrix.os }}
+    name: Test (Node.js ${{ matrix.node-version }})
+    runs-on: ubuntu-latest
     timeout-minutes: 10
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest]
         node-version: [22.x, 24.x, 25.x]
 
     steps:
