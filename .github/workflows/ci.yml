@@ -58,31 +58,6 @@ jobs:
       - name: Run tests
         run: bun run test
 
-  test-node:
-    name: Test (Node.js ${{ matrix.node-version }})
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    strategy:
-      fail-fast: false
-      matrix:
-        node-version: [22.x, 24.x, 25.x]
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ matrix.node-version }}
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Run tests
-        run: npm run test
-
   coverage:
     name: Coverage Check
     runs-on: ubuntu-latest
@@ -141,30 +116,42 @@ jobs:
           fi
           echo "✅ Build output verified"
 
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist-artifact
+          path: dist/
+
   test-cli-installation:
-    name: Test CLI Installation & Execution
+    name: Test CLI Installation (Node.js ${{ matrix.node-version }})
     runs-on: ubuntu-latest
     needs: build
-    timeout-minutes: 5
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        node-version: [22.x, 24.x, 25.x]
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js 22.x
+      - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 22.x
-          cache: 'npm'
+          node-version: ${{ matrix.node-version }}
 
-      - name: Install dependencies
-        run: npm ci
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: dist-artifact
+          path: dist/
 
-      - name: Build project
-        run: npm run build
-
-      - name: Install CLI globally
-        run: npm install -g .
+      - name: Link library globally
+        run: |
+          cd dist
+          npm install  # Node.js 用に依存解決（型定義など）
+          npm link
 
       - name: Test CLI version command
         run: ng-di-graph --version | grep "0.1.0"
