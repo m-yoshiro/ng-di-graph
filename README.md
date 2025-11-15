@@ -1,5 +1,6 @@
 # ng-di-graph
 
+[![CI](https://github.com/m-yoshiro/ng-di-graph/actions/workflows/ci.yml/badge.svg)](https://github.com/m-yoshiro/ng-di-graph/actions/workflows/ci.yml)
 [![Version](https://img.shields.io/badge/version-0.1.0-blue.svg)](package.json)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
