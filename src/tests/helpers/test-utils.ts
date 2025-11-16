@@ -3,7 +3,8 @@
  * Provides reusable helper functions for test setup and mocking
  */
 
-import { type Logger, createLogger } from '../../core/logger';
+import { createLogger } from '../../core/logger';
+import type { LogCategory, LogContext, Logger, LoggingStats } from '../../core/logger';
 import { AngularParser } from '../../core/parser';
 import type { CliOptions, Edge, Graph, Node } from '../../types';
 
@@ -56,6 +57,103 @@ export function createTestParser(
  */
 export function createTestLogger(verbose = false): Logger | undefined {
   return createLogger(verbose);
+}
+
+type LogLevel = 'debug' | 'info' | 'warn' | 'error';
+
+/**
+ * Lightweight stub logger that captures log events without touching the console.
+ * Enables deterministic assertions in tests that need to observe instrumentation.
+ */
+export class StubLogger implements Logger {
+  public readonly logs: Array<{
+    level: LogLevel;
+    category: LogCategory;
+    message: string;
+    context?: LogContext;
+  }> = [];
+  private readonly _timers = new Map<string, number>();
+  private readonly _completedTimers = new Map<string, number>();
+  private readonly _stats: LoggingStats = {
+    totalLogs: 0,
+    categoryCounts: {} as Record<LogCategory, number>,
+    performanceMetrics: {
+      totalTime: 0,
+      fileProcessingTime: 0,
+      graphBuildingTime: 0,
+      outputGenerationTime: 0,
+    },
+    memoryUsage: {
+      peakUsage: 0,
+      currentUsage: 0,
+    },
+  };
+
+  debug(category: LogCategory, message: string, context?: LogContext): void {
+    this._record('debug', category, message, context);
+  }
+
+  info(category: LogCategory, message: string, context?: LogContext): void {
+    this._record('info', category, message, context);
+  }
+
+  warn(category: LogCategory, message: string, context?: LogContext): void {
+    this._record('warn', category, message, context);
+  }
+
+  error(category: LogCategory, message: string, context?: LogContext): void {
+    this._record('error', category, message, context);
+  }
+
+  time(label: string): void {
+    this._timers.set(label, performance.now());
+  }
+
+  timeEnd(label: string): number {
+    const start = this._timers.get(label);
+    if (start === undefined) {
+      throw new Error(`Timer '${label}' was not started`);
+    }
+    const elapsed = performance.now() - start;
+    this._timers.delete(label);
+    this._completedTimers.set(label, elapsed);
+    return elapsed;
+  }
+
+  getStats(): LoggingStats {
+    return {
+      ...this._stats,
+      categoryCounts: { ...this._stats.categoryCounts },
+      performanceMetrics: { ...this._stats.performanceMetrics },
+      memoryUsage: { ...this._stats.memoryUsage },
+    };
+  }
+
+  getCompletedTimerLabels(): string[] {
+    return [...this._completedTimers.keys()];
+  }
+
+  getTimerDuration(label: string): number | undefined {
+    return this._completedTimers.get(label);
+  }
+
+  private _record(
+    level: LogLevel,
+    category: LogCategory,
+    message: string,
+    context?: LogContext
+  ): void {
+    this.logs.push({ level, category, message, context });
+    this._stats.totalLogs++;
+    this._stats.categoryCounts[category] = (this._stats.categoryCounts[category] ?? 0) + 1;
+  }
+}
+
+/**
+ * Factory for stub logger instances so tests can avoid importing the class directly.
+ */
+export function createStubLogger(): StubLogger {
+  return new StubLogger();
 }
 
 /**
