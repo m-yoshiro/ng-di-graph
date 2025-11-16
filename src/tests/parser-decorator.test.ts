@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'bun:test';
 import { AngularParser } from '../core/parser';
 import type { CliOptions } from '../types';
 
-describe('Decorator Detection (FR-04)', () => {
+describe('Decorator Detection', () => {
   const testTsConfig = './src/tests/fixtures/tsconfig.json';
   let parser: AngularParser;
 
