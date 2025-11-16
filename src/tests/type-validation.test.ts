@@ -1,8 +1,3 @@
-/**
- * Test suite for AngularParser - Enhanced Type Validation (FR-09 Enhanced)
- * Following TDD methodology - RED phase (failing tests first)
- * Task 3.3: Enhanced Type Validation and Warnings
- */
 import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
 import { existsSync, mkdirSync, rmSync, writeFileSync } from 'fs';
 import { join } from 'path';

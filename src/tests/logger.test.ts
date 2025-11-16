@@ -1,9 +1,3 @@
-/**
- * Logger Core Interface Tests
- * Following TDD methodology: RED-GREEN-REFACTOR
- * Tests written FIRST before implementation
- */
-
 import { describe, expect, it, beforeEach, afterEach } from 'bun:test';
 import { LogCategory, createLogger, type Logger, type LoggingStats } from '../core/logger';
 

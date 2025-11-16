@@ -2,21 +2,7 @@ import { describe, it, expect, beforeEach } from 'bun:test';
 import { AngularParser } from '../core/parser';
 import type { CliOptions } from '../types';
 
-/**
- * Parameter Decorator Detection Tests (FR-04)
- *
- * This test suite validates decorator detection through the public API only.
- * All tests use findDecoratedClasses() and verify decorator flags in dependencies.
- *
- * Coverage:
- * - Legacy parameter decorators (@Optional, @Self, @SkipSelf, @Host)
- * - Modern inject() function with options
- * - Multiple decorators and precedence rules
- * - Error handling and edge cases
- *
- * Uses existing test fixtures from src/tests/fixtures/
- */
-describe('Decorator Detection (FR-04)', () => {
+describe('Decorator Detection', () => {
   const testTsConfig = './src/tests/fixtures/tsconfig.json';
   let parser: AngularParser;
 
