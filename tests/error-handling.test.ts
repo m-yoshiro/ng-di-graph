@@ -1,25 +1,17 @@
-/**
- * Comprehensive error handling tests
- * Tests FR-10 requirements from PRD Section 13
- */
 import { afterEach, beforeEach, describe, expect, it } from 'bun:test';
-import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { mkdirSync, rmSync } from 'node:fs';
 import type { CliError, ErrorCode, ExitCodes } from '../src/core/error-handler';
 
-// These will be implemented in error-handler.ts
 let CliErrorClass: any;
 let ErrorHandlerClass: any;
 let ExitCodesEnum: any;
 
-// Dynamically import to avoid compile errors before implementation
 try {
   const module = require('../src/core/error-handler');
   CliErrorClass = module.CliError;
   ErrorHandlerClass = module.ErrorHandler;
   ExitCodesEnum = module.ExitCodes;
 } catch {
-  // Module doesn't exist yet - tests will fail (RED phase)
 }
 
 describe('ErrorHandler - Exit Codes and Messages', () => {
