@@ -1,7 +1,3 @@
-/**
- * Comprehensive error handling tests
- * Tests FR-10 requirements from PRD Section 13
- */
 import { afterEach, beforeEach, describe, expect, it } from 'bun:test';
 import { mkdirSync, rmSync } from 'node:fs';
 import type { CliError, ErrorCode, ExitCodes } from '../src/core/error-handler';
