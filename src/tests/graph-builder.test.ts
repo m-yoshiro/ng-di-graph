@@ -6,20 +6,14 @@ import type { ParsedClass, Graph, NodeKind } from '../types';
 describe('GraphBuilder', () => {
   describe('buildGraph', () => {
     it('should create an empty graph for empty input', () => {
-      // Arrange
       const parsedClasses: ParsedClass[] = [];
-
-      // Act
       const result: Graph = buildGraph(parsedClasses);
-
-      // Assert
       expect(result.nodes).toEqual([]);
       expect(result.edges).toEqual([]);
       expect(result.circularDependencies).toEqual([]);
     });
 
     it('should create a single node without edges for a class with no dependencies', () => {
-      // Arrange
       const parsedClasses: ParsedClass[] = [
         {
           name: 'UserService',
@@ -28,11 +22,7 @@ describe('GraphBuilder', () => {
           dependencies: []
         }
       ];
-
-      // Act
       const result: Graph = buildGraph(parsedClasses);
-
-      // Assert
       expect(result.nodes).toEqual([
         { id: 'UserService', kind: 'service' }
       ]);
@@ -41,7 +31,6 @@ describe('GraphBuilder', () => {
     });
 
     it('should create nodes and edges for a simple dependency relationship', () => {
-      // Arrange
       const parsedClasses: ParsedClass[] = [
         {
           name: 'UserComponent',
@@ -61,11 +50,7 @@ describe('GraphBuilder', () => {
           dependencies: []
         }
       ];
-
-      // Act
       const result: Graph = buildGraph(parsedClasses);
-
-      // Assert
       expect(result.nodes).toEqual([
         { id: 'UserComponent', kind: 'component' },
         { id: 'UserService', kind: 'service' }
@@ -77,7 +62,6 @@ describe('GraphBuilder', () => {
     });
 
     it('should handle missing dependencies by creating unknown nodes', () => {
-      // Arrange
       const parsedClasses: ParsedClass[] = [
         {
           name: 'UserComponent',
@@ -91,11 +75,7 @@ describe('GraphBuilder', () => {
           ]
         }
       ];
-
-      // Act
       const result: Graph = buildGraph(parsedClasses);
-
-      // Assert
       expect(result.nodes).toEqual([
         { id: 'MissingService', kind: 'unknown' },
         { id: 'UserComponent', kind: 'component' }
@@ -107,7 +87,6 @@ describe('GraphBuilder', () => {
     });
 
     it('should preserve edge flags when creating edges', () => {
-      // Arrange
       const parsedClasses: ParsedClass[] = [
         {
           name: 'UserComponent',
@@ -131,11 +110,7 @@ describe('GraphBuilder', () => {
           dependencies: []
         }
       ];
-
-      // Act
       const result: Graph = buildGraph(parsedClasses);
-
-      // Assert
       expect(result.edges).toEqual([
         {
           from: 'UserComponent',
@@ -149,7 +124,6 @@ describe('GraphBuilder', () => {
     });
 
     it('should ensure node uniqueness - no duplicate nodes', () => {
-      // Arrange
       const parsedClasses: ParsedClass[] = [
         {
           name: 'ComponentA',
@@ -180,11 +154,7 @@ describe('GraphBuilder', () => {
           dependencies: []
         }
       ];
-
-      // Act
       const result: Graph = buildGraph(parsedClasses);
-
-      // Assert
       expect(result.nodes).toHaveLength(3);
       expect(result.nodes.find(n => n.id === 'SharedService')).toEqual({
         id: 'SharedService',
@@ -194,7 +164,6 @@ describe('GraphBuilder', () => {
     });
 
     it('should sort nodes and edges for consistent output', () => {
-      // Arrange
       const parsedClasses: ParsedClass[] = [
         {
           name: 'ZService',
@@ -214,11 +183,7 @@ describe('GraphBuilder', () => {
           ]
         }
       ];
-
-      // Act
       const result: Graph = buildGraph(parsedClasses);
-
-      // Assert
       // Nodes should be sorted alphabetically by id
       expect(result.nodes[0].id).toBe('AComponent');
       expect(result.nodes[1].id).toBe('ZService');
@@ -232,7 +197,6 @@ describe('GraphBuilder', () => {
 
     describe('circular dependency detection', () => {
       it('should detect a simple 2-node circular dependency', () => {
-        // Arrange
         const parsedClasses: ParsedClass[] = [
           {
             name: 'ServiceA',
@@ -257,11 +221,7 @@ describe('GraphBuilder', () => {
             ]
           }
         ];
-
-        // Act
         const result: Graph = buildGraph(parsedClasses);
-
-        // Assert
         expect(result.circularDependencies).toHaveLength(1);
         expect(result.circularDependencies[0]).toEqual(['ServiceA', 'ServiceB', 'ServiceA']);
         
@@ -273,7 +233,6 @@ describe('GraphBuilder', () => {
       });
 
       it('should detect a 3-node circular dependency', () => {
-        // Arrange
         const parsedClasses: ParsedClass[] = [
           {
             name: 'ServiceA',
@@ -309,11 +268,7 @@ describe('GraphBuilder', () => {
             ]
           }
         ];
-
-        // Act
         const result: Graph = buildGraph(parsedClasses);
-
-        // Assert
         expect(result.circularDependencies).toHaveLength(1);
         expect(result.circularDependencies[0]).toEqual(['ServiceA', 'ServiceB', 'ServiceC', 'ServiceA']);
         
@@ -325,7 +280,6 @@ describe('GraphBuilder', () => {
       });
 
       it('should detect multiple separate circular dependencies', () => {
-        // Arrange
         const parsedClasses: ParsedClass[] = [
           // First cycle: A -> B -> A
           {
@@ -374,11 +328,7 @@ describe('GraphBuilder', () => {
             ]
           }
         ];
-
-        // Act
         const result: Graph = buildGraph(parsedClasses);
-
-        // Assert
         expect(result.circularDependencies).toHaveLength(2);
         
         // Check both cycles are detected
@@ -388,7 +338,6 @@ describe('GraphBuilder', () => {
       });
 
       it('should handle self-referencing dependencies', () => {
-        // Arrange
         const parsedClasses: ParsedClass[] = [
           {
             name: 'SelfService',
@@ -402,11 +351,7 @@ describe('GraphBuilder', () => {
             ]
           }
         ];
-
-        // Act
         const result: Graph = buildGraph(parsedClasses);
-
-        // Assert
         expect(result.circularDependencies).toHaveLength(1);
         expect(result.circularDependencies[0]).toEqual(['SelfService', 'SelfService']);
         
@@ -416,7 +361,6 @@ describe('GraphBuilder', () => {
       });
 
       it('should not mark non-circular edges as circular', () => {
-        // Arrange - Tree structure with no cycles
         const parsedClasses: ParsedClass[] = [
           {
             name: 'ComponentA',
@@ -457,11 +401,7 @@ describe('GraphBuilder', () => {
             dependencies: []
           }
         ];
-
-        // Act
         const result: Graph = buildGraph(parsedClasses);
-
-        // Assert
         expect(result.circularDependencies).toEqual([]);
         
         // Check that no edges are marked as circular
@@ -473,17 +413,14 @@ describe('GraphBuilder', () => {
 
     describe('input validation', () => {
       it('should throw error for null input', () => {
-        // Act & Assert
         expect(() => buildGraph(null as any)).toThrow('parsedClasses parameter cannot be null or undefined');
       });
 
       it('should throw error for undefined input', () => {
-        // Act & Assert
         expect(() => buildGraph(undefined as any)).toThrow('parsedClasses parameter cannot be null or undefined');
       });
 
       it('should throw error for malformed ParsedClass - missing name', () => {
-        // Arrange
         const malformedClasses = [
           {
             kind: 'service' as NodeKind,
@@ -491,13 +428,10 @@ describe('GraphBuilder', () => {
             dependencies: []
           } as any
         ];
-
-        // Act & Assert
         expect(() => buildGraph(malformedClasses)).toThrow('ParsedClass must have a valid name property');
       });
 
       it('should throw error for malformed ParsedClass - missing kind', () => {
-        // Arrange
         const malformedClasses = [
           {
             name: 'TestService',
@@ -505,13 +439,10 @@ describe('GraphBuilder', () => {
             dependencies: []
           } as any
         ];
-
-        // Act & Assert
         expect(() => buildGraph(malformedClasses)).toThrow('ParsedClass must have a valid kind property');
       });
 
       it('should throw error for malformed ParsedClass - missing dependencies', () => {
-        // Arrange
         const malformedClasses = [
           {
             name: 'TestService',
@@ -519,13 +450,10 @@ describe('GraphBuilder', () => {
             filePath: '/src/service.ts'
           } as any
         ];
-
-        // Act & Assert
         expect(() => buildGraph(malformedClasses)).toThrow('ParsedClass must have a dependencies array');
       });
 
       it('should throw error for malformed ParsedClass - invalid dependencies type', () => {
-        // Arrange
         const malformedClasses = [
           {
             name: 'TestService',
@@ -534,13 +462,10 @@ describe('GraphBuilder', () => {
             dependencies: 'invalid' as any
           }
         ];
-
-        // Act & Assert
         expect(() => buildGraph(malformedClasses)).toThrow('ParsedClass dependencies must be an array');
       });
 
       it('should throw error for malformed dependency - missing token', () => {
-        // Arrange
         const malformedClasses = [
           {
             name: 'TestService',
@@ -553,13 +478,10 @@ describe('GraphBuilder', () => {
             ]
           }
         ];
-
-        // Act & Assert
         expect(() => buildGraph(malformedClasses)).toThrow('ParsedDependency must have a valid token property');
       });
 
       it('should handle empty string names gracefully', () => {
-        // Arrange
         const classesWithEmptyName = [
           {
             name: '',
@@ -568,13 +490,10 @@ describe('GraphBuilder', () => {
             dependencies: []
           }
         ];
-
-        // Act & Assert
         expect(() => buildGraph(classesWithEmptyName)).toThrow('ParsedClass name cannot be empty');
       });
 
       it('should handle whitespace-only names gracefully', () => {
-        // Arrange
         const classesWithWhitespaceName = [
           {
             name: '   ',
@@ -583,15 +502,12 @@ describe('GraphBuilder', () => {
             dependencies: []
           }
         ];
-
-        // Act & Assert
         expect(() => buildGraph(classesWithWhitespaceName)).toThrow('ParsedClass name cannot be empty');
       });
     });
 
     describe('performance', () => {
       it('should handle large graphs efficiently (performance requirement)', () => {
-        // Arrange - Create a large graph with 100 nodes and no cycles
         const parsedClasses: ParsedClass[] = [];
         
         // Create a tree structure: Node0 -> Node1 -> Node2 -> ... -> Node99
@@ -604,8 +520,6 @@ describe('GraphBuilder', () => {
             dependencies
           });
         }
-
-        // Act & Assert - Should complete within reasonable time (< 100ms for 100 nodes)
         const startTime = performance.now();
         const result = buildGraph(parsedClasses);
         const endTime = performance.now();
@@ -621,7 +535,6 @@ describe('GraphBuilder', () => {
       });
 
       it('should detect cycles efficiently in complex graphs', () => {
-        // Arrange - Create a complex graph with multiple cycles
         const parsedClasses: ParsedClass[] = [];
         
         // Create multiple interconnected cycles
@@ -646,8 +559,6 @@ describe('GraphBuilder', () => {
             dependencies: [{ token: `B${nextIndex}`, parameterName: 'dep' }]
           });
         }
-
-        // Act & Assert
         const startTime = performance.now();
         const result = buildGraph(parsedClasses);
         const endTime = performance.now();
@@ -662,9 +573,8 @@ describe('GraphBuilder', () => {
     });
   });
 
-  describe('EdgeFlags Enhancement (TDD Cycle 1.2)', () => {
+  describe('EdgeFlags enhancement', () => {
     it('should handle multiple decorators on same parameter', () => {
-      // Arrange
       const parsedClasses: ParsedClass[] = [
         {
           name: 'ComplexComponent',
@@ -684,11 +594,7 @@ describe('GraphBuilder', () => {
           ]
         }
       ];
-
-      // Act
       const result: Graph = buildGraph(parsedClasses);
-
-      // Assert
       expect(result.edges).toHaveLength(1);
       expect(result.edges[0].flags).toEqual({
         optional: true,
@@ -699,7 +605,6 @@ describe('GraphBuilder', () => {
     });
 
     it('should handle undefined flags gracefully', () => {
-      // Arrange
       const parsedClasses: ParsedClass[] = [
         {
           name: 'SimpleComponent',
@@ -714,17 +619,12 @@ describe('GraphBuilder', () => {
           ]
         }
       ];
-
-      // Act
       const result: Graph = buildGraph(parsedClasses);
-
-      // Assert
       expect(result.edges).toHaveLength(1);
       expect(result.edges[0].flags).toBeUndefined();
     });
 
     it('should handle empty flags object', () => {
-      // Arrange
       const parsedClasses: ParsedClass[] = [
         {
           name: 'EmptyFlagsComponent',
@@ -739,17 +639,12 @@ describe('GraphBuilder', () => {
           ]
         }
       ];
-
-      // Act
       const result: Graph = buildGraph(parsedClasses);
-
-      // Assert
       expect(result.edges).toHaveLength(1);
       expect(result.edges[0].flags).toEqual({});
     });
 
     it('should preserve all EdgeFlags types correctly', () => {
-      // Arrange - Test each flag type individually
       const parsedClasses: ParsedClass[] = [
         {
           name: 'FlagTestComponent',
@@ -779,11 +674,7 @@ describe('GraphBuilder', () => {
           ]
         }
       ];
-
-      // Act
       const result: Graph = buildGraph(parsedClasses);
-
-      // Assert
       expect(result.edges).toHaveLength(4);
       
       const optionalEdge = result.edges.find(e => e.to === 'OptionalService');
@@ -800,7 +691,6 @@ describe('GraphBuilder', () => {
     });
 
     it('should handle false flag values correctly', () => {
-      // Arrange
       const parsedClasses: ParsedClass[] = [
         {
           name: 'FalseValueComponent',
@@ -820,11 +710,7 @@ describe('GraphBuilder', () => {
           ]
         }
       ];
-
-      // Act
       const result: Graph = buildGraph(parsedClasses);
-
-      // Assert
       expect(result.edges).toHaveLength(1);
       expect(result.edges[0].flags).toEqual({
         optional: false,
@@ -835,7 +721,6 @@ describe('GraphBuilder', () => {
     });
 
     it('should preserve flags during circular dependency detection', () => {
-      // Arrange
       const parsedClasses: ParsedClass[] = [
         {
           name: 'CircularServiceA',
@@ -862,11 +747,7 @@ describe('GraphBuilder', () => {
           ]
         }
       ];
-
-      // Act
       const result: Graph = buildGraph(parsedClasses);
-
-      // Assert
       expect(result.circularDependencies).toHaveLength(1);
       expect(result.edges).toHaveLength(2);
       
@@ -880,7 +761,6 @@ describe('GraphBuilder', () => {
     });
 
     it('should validate EdgeFlags type safety', () => {
-      // Arrange - Test that all EdgeFlags properties are properly typed and optional
       const parsedClasses: ParsedClass[] = [
         {
           name: 'TypeSafetyComponent',
@@ -915,11 +795,7 @@ describe('GraphBuilder', () => {
           ]
         }
       ];
-
-      // Act
       const result: Graph = buildGraph(parsedClasses);
-
-      // Assert
       expect(result.edges).toHaveLength(5);
       
       // Test individual flag isolation
