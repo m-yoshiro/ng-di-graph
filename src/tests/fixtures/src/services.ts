@@ -87,7 +87,7 @@ export class ServiceB {
   constructor() {}
 }
 
-// Services for parameter decorator testing (FR-04)
+// Services covering optional/self/host decorators
 
 // Optional dependency
 @Injectable()
@@ -165,7 +165,7 @@ export class ServiceWithMixedDecorators {
   ) {}
 }
 
-// Modern Angular inject() function patterns for TDD Cycle 2.1
+// Fixtures for inject() flag handling
 
 import { inject } from '@angular/core';
 
