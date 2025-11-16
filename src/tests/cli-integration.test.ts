@@ -268,7 +268,7 @@ describe('CLI Integration - Core Features', () => {
       expect(mermaidOutput).toContain('ServiceWithInjectOptional');
     });
 
-    it('should handle performance requirements with decorator analysis', async () => {
+    it('should finish decorator analysis in under 10 seconds', async () => {
       // Arrange - Measure performance with decorator analysis
       const startTime = performance.now();
 
@@ -286,7 +286,7 @@ describe('CLI Integration - Core Features', () => {
 
       // Assert - Should meet performance requirements
       expect(result.exitCode).toBe(0);
-      expect(executionTime).toBeLessThan(10000); // <10 seconds as per NFR-01
+      expect(executionTime).toBeLessThan(10000);
 
       // Should still produce correct output
       const cleanOutput = result.stdout.trim();
@@ -581,7 +581,7 @@ describe('CLI Integration - Core Features', () => {
   });
 
   describe('RED PHASE - Direction Performance and Edge Cases (Should Fail)', () => {
-    it('should handle direction filtering performance requirements', async () => {
+    it('should finish direction filtering in under 10 seconds', async () => {
       // Arrange - Measure performance with direction filtering
       const startTime = performance.now();
 
@@ -600,7 +600,7 @@ describe('CLI Integration - Core Features', () => {
 
       // Assert - Should meet performance requirements
       expect(result.exitCode).toBe(0);
-      expect(executionTime).toBeLessThan(10000); // <10 seconds as per NFR-01
+      expect(executionTime).toBeLessThan(10000);
 
       // Should still produce correct output
       const cleanOutput = result.stdout.trim();

@@ -16,7 +16,7 @@ import {
   createSelfReferencingGraph
 } from './fixtures/sample-graphs';
 
-describe('Bidirectional Filtering (FR-13)', () => {
+describe('Bidirectional Filtering', () => {
   let complexTestGraph: Graph;
   let smallTestGraph: Graph;
   let isolatedNodesGraph: Graph;
@@ -377,7 +377,7 @@ describe('Bidirectional Filtering (FR-13)', () => {
       expect(result.nodes.length).toBeGreaterThan(0);
     });
 
-    it('should handle medium graphs within performance requirements', () => {
+    it('should handle medium graphs within 100ms', () => {
       const mediumGraph = createMediumTestGraph(100); // 100 nodes
       const startTime = performance.now();
 
@@ -395,7 +395,7 @@ describe('Bidirectional Filtering (FR-13)', () => {
       const endTime = performance.now();
       const executionTime = endTime - startTime;
 
-      expect(executionTime).toBeLessThan(100); // <100ms for <500 nodes (requirement from plan)
+      expect(executionTime).toBeLessThan(100);
       expect(result.nodes.length).toBeGreaterThan(0);
     });
 
