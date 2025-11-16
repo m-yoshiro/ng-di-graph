@@ -240,7 +240,7 @@ describe('Output Formatting', () => {
       });
     });
 
-    describe('EdgeFlags JSON Serialization (TDD Cycle 1.2)', () => {
+    describe('EdgeFlags JSON serialization', () => {
       let formatter: JsonFormatter;
       
       beforeEach(() => {
@@ -248,7 +248,6 @@ describe('Output Formatting', () => {
       });
 
       it('should serialize all EdgeFlags types to JSON correctly', () => {
-        // Arrange
         const graphWithAllFlags: Graph = {
           nodes: [
             { id: 'ComponentWithAllFlags', kind: 'component' },
@@ -268,11 +267,7 @@ describe('Output Formatting', () => {
           ],
           circularDependencies: []
         };
-
-        // Act
         const result = formatter.format(graphWithAllFlags);
-
-        // Assert
         const parsed = JSON.parse(result);
         expect(parsed.edges[0].flags).toEqual({
           optional: true,
@@ -283,7 +278,6 @@ describe('Output Formatting', () => {
       });
 
       it('should handle undefined flags in JSON serialization', () => {
-        // Arrange
         const graphWithUndefinedFlags: Graph = {
           nodes: [
             { id: 'ComponentNoFlags', kind: 'component' },
@@ -298,17 +292,12 @@ describe('Output Formatting', () => {
           ],
           circularDependencies: []
         };
-
-        // Act
         const result = formatter.format(graphWithUndefinedFlags);
-
-        // Assert
         const parsed = JSON.parse(result);
         expect(parsed.edges[0].flags).toBeUndefined();
       });
 
       it('should serialize empty flags object to JSON', () => {
-        // Arrange
         const graphWithEmptyFlags: Graph = {
           nodes: [
             { id: 'ComponentEmptyFlags', kind: 'component' },
@@ -323,17 +312,12 @@ describe('Output Formatting', () => {
           ],
           circularDependencies: []
         };
-
-        // Act
         const result = formatter.format(graphWithEmptyFlags);
-
-        // Assert
         const parsed = JSON.parse(result);
         expect(parsed.edges[0].flags).toEqual({});
       });
 
       it('should serialize complex multi-edge flags correctly', () => {
-        // Arrange
         const complexFlagsGraph: Graph = {
           nodes: [
             { id: 'MultiEdgeComponent', kind: 'component' },
@@ -360,11 +344,7 @@ describe('Output Formatting', () => {
           ],
           circularDependencies: []
         };
-
-        // Act
         const result = formatter.format(complexFlagsGraph);
-
-        // Assert
         const parsed = JSON.parse(result);
         expect(parsed.edges).toHaveLength(3);
         expect(parsed.edges[0].flags).toEqual({ optional: true });
