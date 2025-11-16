@@ -39,12 +39,12 @@
   "devDependencies": {
     "@biomejs/biome": "^1.8.0",
     "@types/node": "^20.0.0",
-    "rimraf": "^5.0.0",
+    "rimraf": "^6.0.0",
     "ts-node": "^10.9.0",
     "typescript": "^5.0.0"
   },
   "dependencies": {
-    "commander": "^11.0.0",
+    "commander": "^14.0.0",
     "ts-morph": "^21.0.0"
   },
   "engines": {
