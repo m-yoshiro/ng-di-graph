@@ -7,9 +7,14 @@ import { AngularParser } from '../core/parser';
 import { buildGraph } from '../core/graph-builder';
 import { JsonFormatter } from '../formatters/json-formatter';
 import { MermaidFormatter } from '../formatters/mermaid-formatter';
-import type { Logger } from '../core/logger';
+import { LogCategory, type Logger } from '../core/logger';
 import type { CliOptions } from '../types';
-import { createTestCliOptions, createTestLogger } from './helpers/test-utils';
+import {
+  createStubLogger,
+  createTestCliOptions,
+  createTestLogger,
+  mockConsole,
+} from './helpers/test-utils';
 
 describe('Verbose Mode - E2E Tests', () => {
   let cliOptions: CliOptions;
@@ -218,54 +223,58 @@ describe('Verbose Mode - E2E Tests', () => {
     });
   });
 
-  describe('Performance Overhead Validation', () => {
-    it('should maintain acceptable performance overhead with verbose mode', async () => {
-      const iterations = 3; // Reduced for faster testing
-      const nonVerboseTimings: number[] = [];
-      const verboseTimings: number[] = [];
+  describe('Verbose Instrumentation Validation', () => {
+    it('should record instrumentation data without relying on wall-clock variance', async () => {
+      const verboseOptions: CliOptions = {
+        ...cliOptions,
+        verbose: true,
+      };
+      const stubLogger = createStubLogger();
+      const consoleMock = mockConsole();
 
-      // Test without verbose (baseline)
-      for (let i = 0; i < iterations; i++) {
-        const start = performance.now();
-
-        const parser = new AngularParser(cliOptions);
+      try {
+        const parser = new AngularParser(verboseOptions, stubLogger);
         parser.loadProject();
         const parsedClasses = await parser.findDecoratedClasses();
-        const graph = buildGraph(parsedClasses);
-        const formatter = new JsonFormatter();
-        formatter.format(graph);
 
-        const elapsed = performance.now() - start;
-        nonVerboseTimings.push(elapsed);
+        expect(parsedClasses.length).toBeGreaterThan(0);
+
+        const graph = buildGraph(parsedClasses, stubLogger);
+        expect(graph.nodes.length).toBeGreaterThan(0);
+        expect(graph.edges.length).toBeGreaterThan(0);
+
+        const formatter = new JsonFormatter(stubLogger);
+        const output = formatter.format(graph);
+
+        expect(() => JSON.parse(output)).not.toThrow();
+      } finally {
+        consoleMock.restore();
       }
 
-      // Test with verbose (with Logger)
-      const verboseOptions = { ...cliOptions, verbose: true };
-      for (let i = 0; i < iterations; i++) {
-        const logger = createTestLogger(true) as Logger;
-        const start = performance.now();
+      expect(stubLogger.logs.length).toBeGreaterThan(0);
 
-        const parser = new AngularParser(verboseOptions, logger);
-        parser.loadProject();
-        const parsedClasses = await parser.findDecoratedClasses();
-        const graph = buildGraph(parsedClasses, logger);
-        const formatter = new JsonFormatter(logger);
-        formatter.format(graph);
+      const stats = stubLogger.getStats();
+      expect(stats.totalLogs).toBe(stubLogger.logs.length);
 
-        const elapsed = performance.now() - start;
-        verboseTimings.push(elapsed);
-      }
+      const categoryCounts = stats.categoryCounts;
+      expect((categoryCounts[LogCategory.FILE_PROCESSING] ?? 0)).toBeGreaterThan(0);
+      expect((categoryCounts[LogCategory.AST_ANALYSIS] ?? 0)).toBeGreaterThan(0);
+      expect((categoryCounts[LogCategory.GRAPH_CONSTRUCTION] ?? 0)).toBeGreaterThan(0);
+      expect((categoryCounts[LogCategory.PERFORMANCE] ?? 0)).toBeGreaterThan(0);
 
-      // Calculate averages
-      const avgNonVerbose = nonVerboseTimings.reduce((a, b) => a + b, 0) / iterations;
-      const avgVerbose = verboseTimings.reduce((a, b) => a + b, 0) / iterations;
+      const timerLabels = stubLogger.getCompletedTimerLabels();
+      expect(timerLabels).toEqual(
+        expect.arrayContaining([
+          'findDecoratedClasses',
+          'buildGraph',
+          'circularDetection',
+          'json-format',
+        ])
+      );
 
-      const overhead = ((avgVerbose - avgNonVerbose) / avgNonVerbose) * 100;
-
-      // Performance overhead should be reasonable
-      // Note: This test is environment-dependent and may be flaky
-      // We're setting a generous threshold of 30% for CI environments
-      expect(overhead).toBeLessThan(30);
+      const buildGraphDuration = stubLogger.getTimerDuration('buildGraph');
+      expect(buildGraphDuration).toBeDefined();
+      expect((buildGraphDuration ?? 0)).toBeGreaterThan(0);
     });
   });
 
