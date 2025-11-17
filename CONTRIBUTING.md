@@ -56,9 +56,9 @@ See [TDD Development Workflow](docs/instructions/tdd-development-workflow.md) fo
 - `npm run test:coverage` - Generate coverage report
 
 **Code Quality:**
-- `npm run lint` - Check code with Biome
-- `npm run lint:fix` - Auto-fix Biome issues
-- `npm run format` - Format code with Biome
+- `npm run lint` - Check code with Biome v2
+- `npm run lint:fix` - Auto-fix Biome v2 issues
+- `npm run format` - Format code with Biome v2
 - `npm run check` - Combined lint & typecheck
 - `npm run typecheck` - TypeScript type checking
 - `npm run typecheck:bun` - TypeScript via Bun
@@ -116,14 +116,14 @@ start coverage/index.html  # Windows
 
 1. **Follow TDD methodology** - Write tests first, then implementation
 2. **Maintain test coverage** - Ensure >90% coverage for new code
-3. **Use Biome for linting** - Run `npm run lint:fix` before committing
+3. **Use Biome v2 for linting** - Run `npm run lint:fix` before committing
 4. **Type safety** - All code must pass `npm run typecheck`
 5. **Run full test suite** - Ensure `npm run test` passes
 6. **Follow existing patterns** - Review existing code structure
 
 ### Code Style
 
-- Use Biome for consistent formatting
+- Use Biome v2 for consistent formatting
 - Follow TypeScript best practices
 - Write clear, descriptive variable and function names
 - Add JSDoc comments for public APIs
