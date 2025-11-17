@@ -6,7 +6,7 @@ import { CliOptions, ParserError } from '../types';
 import { createLogger, LogCategory, type Logger } from '../core/logger';
 import { createStubLogger, mockConsole } from './helpers/test-utils';
 
-describe('AngularParser - Project Loading (FR-01)', () => {
+describe('AngularParser - Project Loading', () => {
   const testTmpDir = './tmp/test-fixtures';
   const validTsConfig = './tsconfig.json';
   const testValidTsConfig = join(testTmpDir, 'valid-tsconfig.json');
@@ -249,7 +249,7 @@ describe('AngularParser - Project Loading (FR-01)', () => {
   });
 });
 
-describe('AngularParser - Decorated Class Collection (FR-02)', () => {
+describe('AngularParser - Decorated Class Collection', () => {
   const testFixturesDir = './src/tests/fixtures';
   const testTsConfig = join(testFixturesDir, 'tsconfig.json');
 
