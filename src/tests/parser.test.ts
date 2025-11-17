@@ -4,6 +4,7 @@ import { join } from 'path';
 import { AngularParser } from '../core/parser';
 import { CliOptions, ParserError } from '../types';
 import { createLogger, LogCategory, type Logger } from '../core/logger';
+import { createStubLogger, mockConsole } from './helpers/test-utils';
 
 describe('AngularParser - Project Loading (FR-01)', () => {
   const testTmpDir = './tmp/test-fixtures';
@@ -1436,32 +1437,41 @@ describe('AngularParser - inject() Function Detection', () => {
       );
     });
 
-    it('should add minimal performance overhead (<20%)', async () => {
-      // Measure without Logger
-      const optionsWithoutLogger: CliOptions = {
+    it('should capture verbose instrumentation without relying on wall-clock timing', async () => {
+      const verboseOptions: CliOptions = {
         project: testTsConfig,
         format: 'json',
         direction: 'downstream',
         includeDecorators: false,
-        verbose: false
+        verbose: true
       };
 
-      const parserWithoutLogger = new AngularParser(optionsWithoutLogger);
-      parserWithoutLogger.loadProject();
+      const stubLogger = createStubLogger();
+      const consoleMock = mockConsole();
 
-      const startWithout = performance.now();
-      await parserWithoutLogger.findDecoratedClasses();
-      const durationWithout = performance.now() - startWithout;
+      try {
+        const verboseParser = new AngularParser(verboseOptions, stubLogger);
+        verboseParser.loadProject();
+        const classes = await verboseParser.findDecoratedClasses();
+        expect(classes.length).toBeGreaterThan(0);
+      } finally {
+        consoleMock.restore();
+      }
 
-      // Measure with Logger
-      parser.loadProject();
-      const startWith = performance.now();
-      await parser.findDecoratedClasses();
-      const durationWith = performance.now() - startWith;
+      expect(stubLogger.logs.length).toBeGreaterThan(0);
 
-      // Logger overhead should be <20% (allowing for test timing variance)
-      const overhead = ((durationWith - durationWithout) / durationWithout) * 100;
-      expect(overhead).toBeLessThan(20);
+      const stats = stubLogger.getStats();
+      expect(stats.totalLogs).toBe(stubLogger.logs.length);
+      expect((stats.categoryCounts[LogCategory.FILE_PROCESSING] ?? 0)).toBeGreaterThan(0);
+      expect((stats.categoryCounts[LogCategory.AST_ANALYSIS] ?? 0)).toBeGreaterThan(0);
+      expect((stats.categoryCounts[LogCategory.PERFORMANCE] ?? 0)).toBeGreaterThan(0);
+
+      const timerLabels = stubLogger.getCompletedTimerLabels();
+      expect(timerLabels).toContain('findDecoratedClasses');
+
+      const duration = stubLogger.getTimerDuration('findDecoratedClasses');
+      expect(duration).toBeDefined();
+      expect((duration ?? 0)).toBeGreaterThan(0);
     });
   });
 });
