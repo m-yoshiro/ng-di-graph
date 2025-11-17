@@ -7,7 +7,7 @@ import { Command } from 'commander';
 import { CliError, ErrorHandler } from '../core/error-handler';
 import { buildGraph } from '../core/graph-builder';
 import { filterGraph } from '../core/graph-filter';
-import { LogCategory, createLogger } from '../core/logger';
+import { createLogger, LogCategory } from '../core/logger';
 import { OutputHandler } from '../core/output-handler';
 import { AngularParser } from '../core/parser';
 import { JsonFormatter } from '../formatters/json-formatter';
