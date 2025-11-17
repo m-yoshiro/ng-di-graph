@@ -77,9 +77,9 @@ This project uses Bun as the primary runtime environment for optimal performance
 - `npm run test:coverage` - Run tests with built-in coverage reporting
 - `npm run build` - Build with Bun bundler (sub-second builds)
 - `npm run build:node` - Build with TypeScript compiler (legacy fallback)
-- `npm run lint` - Code linting and formatting with Biome
-- `npm run lint:fix` - Auto-fix linting issues with Biome
-- `npm run format` - Format code with Biome  
+- `npm run lint` - Code linting and formatting with Biome v2
+- `npm run lint:fix` - Auto-fix linting issues with Biome v2
+- `npm run format` - Format code with Biome v2  
 - `npm run check` - Combined lint and typecheck validation
 - `npm run typecheck` - TypeScript type checking
 - `npm run typecheck:bun` - TypeScript type checking via Bun

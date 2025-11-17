@@ -3,8 +3,8 @@
  * Provides reusable helper functions for test setup and mocking
  */
 
-import { createLogger } from '../../core/logger';
 import type { LogCategory, LogContext, Logger, LoggingStats } from '../../core/logger';
+import { createLogger } from '../../core/logger';
 import { AngularParser } from '../../core/parser';
 import type { CliOptions, Edge, Graph, Node } from '../../types';
 

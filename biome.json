@@ -1,30 +1,30 @@
 {
-  "$schema": "https://biomejs.dev/schemas/1.8.0/schema.json",
+  "$schema": "https://biomejs.dev/schemas/2.3.6/schema.json",
   "files": {
-    "include": ["src/**/*.ts"],
-    "ignore": [
-      "node_modules/**",
-      "dist/**",
-      "tmp/**",
-      "coverage/**",
-      "**/*.test.ts",
-      "**/*.spec.ts",
-      "src/tests/fixtures/**",
-      "**/*.js",
-      "**/*.js.map"
+    "includes": [
+      "**/src/**/*.ts",
+      "!**/node_modules/**",
+      "!**/dist/**",
+      "!**/tmp/**",
+      "!**/coverage/**",
+      "!**/*.test.ts",
+      "!**/*.spec.ts",
+      "!**/src/tests/fixtures/**",
+      "!**/*.js",
+      "!**/*.js.map"
     ],
     "maxSize": 10485760
   },
-  "organizeImports": {
-    "enabled": true
-  },
+  "assist": { "actions": { "source": { "organizeImports": "on" } } },
   "linter": {
     "enabled": true,
     "rules": {
       "recommended": true,
       "correctness": {
         "noUnusedVariables": "error",
-        "useExhaustiveDependencies": "warn"
+        "useExhaustiveDependencies": "warn",
+        "noUnusedImports": "error",
+        "noUnusedPrivateClassMembers": "error"
       },
       "style": {
         "noParameterAssign": "warn",
@@ -40,10 +40,7 @@
         "noUselessConstructor": "error"
       }
     },
-    "ignore": [
-      "src/**/*.js",
-      "src/**/*.js.map"
-    ]
+    "includes": ["**", "!**/src/**/*.js", "!**/src/**/*.js.map"]
   },
   "formatter": {
     "enabled": true,
@@ -53,11 +50,7 @@
     "lineEnding": "lf",
     "lineWidth": 100,
     "attributePosition": "auto",
-    "ignore": [
-      "dist/**",
-      "node_modules/**",
-      "**/*.js.map"
-    ]
+    "includes": ["**", "!**/dist/**", "!**/node_modules/**", "!**/*.js.map"]
   },
   "javascript": {
     "formatter": {

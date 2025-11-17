@@ -451,7 +451,7 @@ Before committing code, run the complete validation suite:
 
 ```bash
 # Run all validation checks
-npm run lint          # Biome linting
+npm run lint          # Biome v2 linting
 npm run typecheck     # TypeScript type checking
 npm run test          # All tests
 npm run test:coverage # Coverage validation

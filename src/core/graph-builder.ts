@@ -3,7 +3,7 @@
  * Transforms parsed classes into graph data structure
  */
 
-import type { Edge, Graph, Node, NodeKind, ParsedClass } from '../types';
+import type { Edge, Graph, Node, ParsedClass } from '../types';
 import { LogCategory, type Logger } from './logger';
 
 /**

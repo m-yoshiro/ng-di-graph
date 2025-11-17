@@ -1,15 +1,7 @@
 import { existsSync, readFileSync } from 'node:fs';
-/**
- * AngularParser - Core TypeScript AST parsing using ts-morph
- * Implements FR-01: ts-morph project loading with comprehensive error handling
- * Implements FR-02: Decorated class collection
- * Implements FR-03: Constructor token resolution
- */
-import { Project, SyntaxKind } from 'ts-morph';
 import type {
   CallExpression,
   ClassDeclaration,
-  ConstructorDeclaration,
   Decorator,
   Node,
   ObjectLiteralExpression,
@@ -20,6 +12,7 @@ import type {
   Type,
   TypeNode,
 } from 'ts-morph';
+import { Project, SyntaxKind } from 'ts-morph';
 import type {
   CliOptions,
   EdgeFlags,
@@ -27,7 +20,6 @@ import type {
   ParameterAnalysisResult,
   ParsedClass,
   ParsedDependency,
-  ParserError,
   StructuredWarnings,
   VerboseStats,
   Warning,
@@ -35,13 +27,18 @@ import type {
 import { CliError, ErrorHandler } from './error-handler';
 import { LogCategory, type Logger } from './logger';
 
+/**
+ * AngularParser - Core TypeScript AST parsing using ts-morph
+ * Implements FR-01: ts-morph project loading with comprehensive error handling
+ * Implements FR-02: Decorated class collection
+ * Implements FR-03: Constructor token resolution
+ */
+const GLOBAL_WARNING_KEYS = new Set<string>();
+
 export class AngularParser {
   private _project?: Project;
-  private static _globalWarnedTypes = new Set<string>(); // Global tracking across all parser instances
   private _typeResolutionCache = new Map<string, string | null>();
   private _circularTypeRefs = new Set<string>();
-  private _cacheHits = 0;
-  private _cacheMisses = 0;
   private _structuredWarnings: StructuredWarnings = {
     categories: {
       typeResolution: [],
@@ -62,7 +59,7 @@ export class AngularParser {
    * Reset global warning deduplication state (useful for testing)
    */
   static resetWarningState(): void {
-    AngularParser._globalWarnedTypes.clear();
+    GLOBAL_WARNING_KEYS.clear();
   }
 
   /**
@@ -95,7 +92,7 @@ export class AngularParser {
   ): void {
     // Deduplicate using global warning tracking for both structured warnings and console output
     const warnKey = `${category}_${warning.type}_${warning.file}_${warning.message}`;
-    if (!AngularParser._globalWarnedTypes.has(warnKey)) {
+    if (!GLOBAL_WARNING_KEYS.has(warnKey)) {
       // Add to structured warnings array (deduplicated)
       this._structuredWarnings.categories[category].push(warning);
       this._structuredWarnings.totalCount++;
@@ -110,7 +107,7 @@ export class AngularParser {
         console.warn(`  Suggestion: ${warning.suggestion}`);
       }
 
-      AngularParser._globalWarnedTypes.add(warnKey);
+      GLOBAL_WARNING_KEYS.add(warnKey);
     }
   }
 
@@ -1055,7 +1052,6 @@ export class AngularParser {
 
       // Check cache first
       if (this._typeResolutionCache.has(cacheKey)) {
-        this._cacheHits++;
         const cachedResult = this._typeResolutionCache.get(cacheKey);
 
         if (this._options.verbose) {
@@ -1064,9 +1060,6 @@ export class AngularParser {
 
         return cachedResult ? { token: cachedResult, flags, parameterName } : null;
       }
-
-      // Cache miss
-      this._cacheMisses++;
 
       if (this._options.verbose) {
         console.log(`Cache miss for parameter '${parameterName}': ${typeText}`);
@@ -1129,25 +1122,6 @@ export class AngularParser {
 
     const firstArg = args[0];
     return firstArg.getText().replace(/['"]/g, ''); // Remove quotes if string literal
-  }
-
-  /**
-   * Extract token from type annotation
-   * @param typeNode TypeScript type node
-   * @returns Token string or null if should be skipped
-   */
-  private extractTypeToken(typeNode: TypeNode): string | null {
-    const typeText = typeNode.getText();
-
-    if (this.shouldSkipType(typeText)) {
-      return null;
-    }
-
-    if (this.isPrimitiveType(typeText)) {
-      return null;
-    }
-
-    return typeText;
   }
 
   /**

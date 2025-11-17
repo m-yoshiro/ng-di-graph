@@ -18,7 +18,7 @@
     "test:watch": "bun test --watch",
     "test:coverage": "bun test --coverage",
     "lint": "biome check src",
-    "lint:fix": "biome check --apply src",
+    "lint:fix": "biome check --write src",
     "format": "biome format src --write",
     "check": "biome check src && npm run typecheck",
     "typecheck": "tsc --noEmit",
@@ -37,7 +37,7 @@
   "author": "",
   "license": "MIT",
   "devDependencies": {
-    "@biomejs/biome": "^1.8.0",
+    "@biomejs/biome": "^2.3.6",
     "@types/node": "^24.10.1",
     "rimraf": "^6.0.0",
     "ts-node": "^10.9.0",
