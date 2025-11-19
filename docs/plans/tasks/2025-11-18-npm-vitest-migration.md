@@ -30,7 +30,7 @@ Standardize the project on an npm-first workflow by removing Bun-specific toolin
 
 ### Architecture Decisions
 
-**Design Pattern**: Tooling modernization in three passes—(1) replace package manager bindings, (2) swap the test runner to Vitest with incremental spec conversion, (3) polish docs/CI and validate the npm-only toolchain end-to-end.
+**Design Pattern**: Tooling modernization in three passes—(1) adopt Vitest first so tests move gradually away from Bun, (2) replace package manager bindings and build steps with npm-first equivalents, (3) polish docs/CI and validate the npm-only toolchain end-to-end.
 
 **Technology Stack**: 
 - Node.js ≥20 LTS (baseline runtime for tooling and CI)
@@ -89,48 +89,48 @@ docs/
 
 ## 3. Implementation Tasks
 
-### Phase 1: Foundation
-**Priority**: High  
-**Estimated Duration**: 1 day
-
-- [ ] **Task 1.0**: Enforce Node.js ≥20 baseline across dev, docs, and CI.
-  - **TDD Approach**: Extend `tests/cli/npm-toolchain.test.ts` (or add a new spec) to assert `process.versions.node` satisfies the supported range; run `npm run test:watch` to see the failure on older runtimes.
-  - **Implementation**: Update `.nvmrc`/`.node-version`, `package.json.engines`, CI workflow matrices, and contributor docs (README, AGENTS, CLAUDE) to call out Node 20 LTS. Ensure local envs upgrade before running scripts.
-  - **Acceptance Criteria**: `npm install` emits no `EBADENGINE` warnings; CI nodes use ≥20; plan/docs clearly reflect the requirement.
-
-- [ ] **Task 1.1**: Establish npm-only dependency tree and remove Bun artifacts.
-  - **TDD Approach**: Add `tests/cli/npm-toolchain.test.ts` that asserts `packageManager` metadata resolves to npm and that `bun.lock`/`bunfig.toml` absence is intentional; run via `npm run test:watch` expecting failure until scripts/dependencies align.
-  - **Implementation**: Delete `bun.lock` and `bunfig.toml`, ensure `.gitignore` excludes Bun caches, set `"packageManager": "npm@X.Y.Z"` (optional), rewrite scripts to use `npm run` + Node-based CLIs, keep `package-lock.json` as the sole lock.
-  - **Acceptance Criteria**: npm install succeeds on a clean clone, Bun-specific files removed, regression test passes confirming npm ownership.
-
-- [ ] **Task 1.2**: Replace `bun build` with a Node-native bundler pipeline.
-  - **TDD Approach**: Create failing integration spec `tests/cli/build-output.test.ts` that runs `npm run build` then executes `node dist/cli/index.js --help`; run in `npm run test:watch` expecting failure until build pipeline works.
-  - **Implementation**: Add `tsup` (or `esbuild`) devDependency, create `tsup.config.ts`, update `npm run build` to call tsup, adjust `prepublishOnly`, ensure `dist/cli/index.js` + `.map` produced and matched by `package.json` fields.
-  - **Acceptance Criteria**: `npm run build` succeeds without Bun, CLI entry script executes, tests verifying build output pass.
-
-- [ ] **Task 1.3**: Align development scripts (`dev`, `check`, `typecheck`, `clean`) with npm.
-  - **TDD Approach**: Extend `tests/cli/npm-toolchain.test.ts` to spawn each command via `execa` (mocked) ensuring they exist and exit success; start with failing tests referencing new commands.
-  - **Implementation**: Replace `bun src/cli/index.ts` with `tsx src/cli/index.ts` (or `node --loader ts-node/esm`), ensure `typecheck` uses locally installed `tsc`, `clean` uses `rimraf` via npm, update `check` to `npm run lint && npm run typecheck`.
-  - **Acceptance Criteria**: All scripts exist and pass locally; integration test verifies commands respond as expected.
-
-### Phase 2: Core Implementation
+### Phase 1: Vitest Migration
 **Priority**: High  
 **Estimated Duration**: 1.5 days
 
-- [ ] **Task 2.1**: Introduce Vitest configuration and port unit/integration specs.
+- [ ] **Task 1.0**: Introduce Vitest configuration and port unit/integration specs.
   - **TDD Approach**: Rename one representative Bun test to `.test.ts` using Vitest APIs, execute `npm run test:watch` expecting failure until `vitest.config.ts` + dependencies exist; gradually port remaining specs, ensuring fixtures from `src/tests/fixtures` load via `tsconfig.test.json`.
   - **Implementation**: Install `vitest`, `@vitest/coverage-v8`, configure `vitest.config.ts` (Node environment, alias to `src`, coverage thresholds ≥95% lines, 90% functions), create `tsconfig.test.json` referencing `tests/**` + fixtures, update scripts (`test`, `test:watch`, `test:coverage`) to call Vitest. Replace Bun-specific globals/`require` usage with TypeScript/ESM imports (`import { CliError } from '@src/core/error-handler'`) so Vitest transpiles the sources directly.
   - **Acceptance Criteria**: All tests run through Vitest, watchers behave, coverage written to `coverage/`, no reliance on Bun. Tests compile without runtime `undefined` errors stemming from CommonJS `require` shims.
 
-- [ ] **Task 2.2**: Enforce coverage and test quality gates.
+- [ ] **Task 1.1**: Enforce coverage and test quality gates.
   - **TDD Approach**: Write failing Vitest coverage assertion (e.g., `expect.hasAssertions()` for CLI flows) and configure thresholds; run `npm run test:coverage` to watch failure until instrumentation configured.
   - **Implementation**: Enable `@vitest/coverage-v8` plugin, configure `coverage` block (reporter: `text`, `lcov`), ensure `coverage/` path matches docs, update `docs/testing/test-structure.md` to describe categories. Update Biome/tsconfig to include tests where beneficial.
   - **Acceptance Criteria**: `npm run test:coverage` passes with thresholds, coverage artifacts align with docs, CI gating updated.
 
-- [ ] **Task 2.3**: Ensure TDD workflow automation.
+- [ ] **Task 1.2**: Ensure TDD workflow automation.
   - **TDD Approach**: Document new workflow steps, add `docs/testing` snippet referencing `npm run test:watch`; failing doc tests (if any) resolved after updates.
   - **Implementation**: Provide script alias `npm run dev:test` if required, ensure watchers respond to file changes, confirm `src/tests/fixtures` typed across watchers.
   - **Acceptance Criteria**: Contributors can follow @docs/rules/tdd-development-workflow.md using npm commands exclusively; README snippet demonstrates watch cycle.
+
+### Phase 2: Toolchain Foundation
+**Priority**: High  
+**Estimated Duration**: 1 day
+
+- [ ] **Task 2.0**: Enforce Node.js ≥20 baseline across dev, docs, and CI.
+  - **TDD Approach**: Extend `tests/cli/npm-toolchain.test.ts` (or add a new spec) to assert `process.versions.node` satisfies the supported range; run `npm run test:watch` to see the failure on older runtimes.
+  - **Implementation**: Update `.nvmrc`/`.node-version`, `package.json.engines`, CI workflow matrices, and contributor docs (README, AGENTS, CLAUDE) to call out Node 20 LTS. Ensure local envs upgrade before running scripts.
+  - **Acceptance Criteria**: `npm install` emits no `EBADENGINE` warnings; CI nodes use ≥20; plan/docs clearly reflect the requirement.
+
+- [ ] **Task 2.1**: Establish npm-only dependency tree and remove Bun artifacts.
+  - **TDD Approach**: Add `tests/cli/npm-toolchain.test.ts` that asserts `packageManager` metadata resolves to npm and that `bun.lock`/`bunfig.toml` absence is intentional; run via `npm run test:watch` expecting failure until scripts/dependencies align.
+  - **Implementation**: Delete `bun.lock` and `bunfig.toml`, ensure `.gitignore` excludes Bun caches, set `"packageManager": "npm@X.Y.Z"` (optional), rewrite scripts to use `npm run` + Node-based CLIs, keep `package-lock.json` as the sole lock.
+  - **Acceptance Criteria**: npm install succeeds on a clean clone, Bun-specific files removed, regression test passes confirming npm ownership.
+
+- [ ] **Task 2.2**: Replace `bun build` with a Node-native bundler pipeline.
+  - **TDD Approach**: Create failing integration spec `tests/cli/build-output.test.ts` that runs `npm run build` then executes `node dist/cli/index.js --help`; run in `npm run test:watch` expecting failure until build pipeline works.
+  - **Implementation**: Add `tsup` (or `esbuild`) devDependency, create `tsup.config.ts`, update `npm run build` to call tsup, adjust `prepublishOnly`, ensure `dist/cli/index.js` + `.map` produced and matched by `package.json` fields.
+  - **Acceptance Criteria**: `npm run build` succeeds without Bun, CLI entry script executes, tests verifying build output pass.
+
+- [ ] **Task 2.3**: Align development scripts (`dev`, `check`, `typecheck`, `clean`) with npm.
+  - **TDD Approach**: Extend `tests/cli/npm-toolchain.test.ts` to spawn each command via `execa` (mocked) ensuring they exist and exit success; start with failing tests referencing new commands.
+  - **Implementation**: Replace `bun src/cli/index.ts` with `tsx src/cli/index.ts` (or `node --loader ts-node/esm`), ensure `typecheck` uses locally installed `tsc`, `clean` uses `rimraf` via npm, update `check` to `npm run lint && npm run typecheck`.
+  - **Acceptance Criteria**: All scripts exist and pass locally; integration test verifies commands respond as expected.
 
 ### Phase 3: Integration & Polish
 **Priority**: Medium  
@@ -214,7 +214,7 @@ export const npmScripts: NpmScriptDefinition[] = [
 ### Configuration Parameters
 - `vitest.config.ts`: Node environment, `test.include` pointing to `tests/**/*.test.ts`, `resolve.alias` for `@src` → `./src`, `coverage.thresholds` lines≥95, functions≥90, `reporter: ['text', 'lcov']`.
 - `tsconfig.test.json`: Extends root `tsconfig.json`, includes `tests/**/*`, `src/tests/fixtures/**/*`, enables `types: ['vitest/globals']`, ensures `noEmit`, `moduleResolution: 'node'`.
-- `tsup.config.ts`: Entry `src/cli/index.ts`, format `cjs`, target `node18`, minify false (configurable), sourcemap true, output `dist/cli/index.js`.
+- `tsup.config.ts`: Entry `src/cli/index.ts`, format `cjs`, target `node20`, minify false (configurable), sourcemap true, output `dist/cli/index.js`.
 - `package.json`: Scripts enumerated above, `devDependencies` includes `vitest`, `@vitest/coverage-v8`, `tsup`, `tsx`, `@types/node`, `rimraf`, `typescript`.
 
 ### Build Steps
@@ -240,7 +240,7 @@ export const npmScripts: NpmScriptDefinition[] = [
 ## 6. Error Handling & Edge Cases
 
 ### Error Scenarios
-- **Missing Node ≥18**: Document requirement and fail early with helpful message in `npm run dev/test/build`.
+- **Missing Node ≥20**: Document requirement and fail early with helpful message in `npm run dev/test/build`.
 - **Vitest path resolution failure**: Add alias + `tsconfig.test.json` to include fixtures; tests should assert fixture availability.
 - **Global install mismatch**: `npm pack` may omit `dist/cli`; integration test ensures `files` field includes compiled output.
 
@@ -277,13 +277,12 @@ export const npmScripts: NpmScriptDefinition[] = [
 ## 8. Progress Tracking
 
 ### Milestones
-- [ ] **Milestone 1**: npm Toolchain Foundation – Target: 2025-11-20
-  - [ ] Bun artifacts removed
-  - [ ] npm scripts operational (`dev`, `build`, `lint`, `typecheck`)
-
-- [ ] **Milestone 2**: Vitest Adoption – Target: 2025-11-22
+- [ ] **Milestone 1**: Vitest Migration – Target: 2025-11-20
   - [ ] All tests ported to Vitest
   - [ ] Coverage thresholds enforced
+- [ ] **Milestone 2**: npm Toolchain Foundation – Target: 2025-11-22
+  - [ ] Bun artifacts removed
+  - [ ] npm scripts operational (`dev`, `build`, `lint`, `typecheck`)
 
 - [ ] **Milestone 3**: Documentation & Release Readiness – Target: 2025-11-24
   - [ ] Docs/CI updated
@@ -330,10 +329,10 @@ export const npmScripts: NpmScriptDefinition[] = [
 - **Risk 2**: Vitest may require DOM/polyfill differences vs Bun.
   - *Mitigation*: Stick to Node environment; create `vitest.setup.ts` to polyfill as needed.
 - **Risk 3**: Attempting to run the npm workflow on Node <20 triggers `EBADENGINE` warnings and potential runtime failures.
-  - *Mitigation*: Task 1.0 enforces Node 20+, `package.json.engines.node` reflects the requirement, and CI fails fast if `process.versions.node` is outdated.
+  - *Mitigation*: Task 2.0 enforces Node 20+, `package.json.engines.node` reflects the requirement, and CI fails fast if `process.versions.node` is outdated.
 
 ### Dependencies & Blockers
-- **External Dependencies**: tsup/Vitest stability; ensure their versions compatible with Node 18.
+- **External Dependencies**: tsup/Vitest stability; ensure their versions compatible with Node 20.
 - **Internal Dependencies**: Coordination with documentation owners and CI pipeline maintainers.
 
 ### Contingency Plans
