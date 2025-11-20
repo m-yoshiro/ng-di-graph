@@ -1,4 +1,4 @@
-import { describe, expect, it, beforeEach, afterEach } from 'bun:test';
+import { describe, expect, it, beforeEach, afterEach } from 'vitest';
 import { LogCategory, createLogger, type Logger, type LoggingStats } from '../core/logger';
 
 describe('Logger - Core Interface', () => {

@@ -1,4 +1,4 @@
-import { describe, it, expect, mock, beforeEach, afterEach } from 'bun:test';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { AngularParser } from '../core/parser';
 import { buildGraph } from '../core/graph-builder';
 import { filterGraph } from '../core/graph-filter';
@@ -19,8 +19,8 @@ describe('CLI Integration - Core Features', () => {
     // Mock console methods to capture CLI output
     originalConsoleLog = console.log;
     originalConsoleError = console.error;
-    mockConsoleLog = mock(() => {});
-    mockConsoleError = mock(() => {});
+    mockConsoleLog = vi.fn(() => {});
+    mockConsoleError = vi.fn(() => {});
     console.log = mockConsoleLog;
     console.error = mockConsoleError;
   });

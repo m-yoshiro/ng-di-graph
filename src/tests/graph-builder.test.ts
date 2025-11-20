@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { buildGraph } from '../core/graph-builder';
 import { createLogger, type Logger } from '../core/logger';
 import type { ParsedClass, Graph, NodeKind } from '../types';

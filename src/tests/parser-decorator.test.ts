@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'bun:test';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { AngularParser } from '../core/parser';
 import type { CliOptions } from '../types';
 
