@@ -34,11 +34,11 @@ ng-di-graph --help
 **Selected Approach: Node.js-Compatible Bundle**
 
 The tool compiles TypeScript to Node.js-compatible JavaScript:
-- **Runtime**: Requires Node.js ≥18.0.0 (specified in `engines` field)
+- **Runtime**: Requires Node.js ≥20.0.0 (documented via `.node-version` for mise users)
 - **Build Output**: Single bundled JavaScript file with dependencies
 - **Package Size**: Small (~100KB estimated)
 - **Compatibility**: Works on any system with Node.js installed
-- **Development Tool**: Built with Bun for fast development, runs on Node.js for distribution
+- **Development Tool**: Currently migrating from Bun helpers to an npm-first workflow while continuing to run on Node.js for distribution
 
 **Rejected Alternative: Bun Standalone Executable**
 - Would require `bun build --compile` creating platform-specific binaries

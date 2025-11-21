@@ -1,5 +1,9 @@
 # Repository Guidelines
 
+## Environment Requirements
+- Node.js 20.x LTS (use `mise use` / `mise x node@$(cat .node-version) -- <command>` to match `.node-version`)
+- npm 10+ (bundled with Node 20) for running scripts until the npm-first migration completes
+
 ## Project Structure & Module Organization
 The CLI lives in `src/` with `cli/` for entry points, `core/` for graph analysis, `formatters/` for JSON/Mermaid emitters, and `tests/` for shared fixtures used in unit specs. Top-level `tests/` hosts integration-like Bun suites (`*.test.ts`) while build output lands in `dist/`. Documentation relevant to workflows sits under `docs/` (see `docs/instructions/tdd-development-workflow.md` for process) and coverage artifacts are written to `coverage/` after `bun test --coverage`.
 
