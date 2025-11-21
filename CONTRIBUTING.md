@@ -49,8 +49,8 @@ See [TDD Development Workflow](docs/instructions/tdd-development-workflow.md) fo
 ### Available Scripts
 
 **Development:**
-- `npm run dev` - Run CLI with Bun (fast startup)
-- `npm run dev:node` - Run CLI with Node.js & ts-node
+- `npm run dev` - Run CLI via tsx (Node-based dev entrypoint)
+- `npm run dev:node` - Alternate tsx alias for CLI debugging
 - `npm run test` - Run full test suite (395 tests)
 - `npm run test:watch` - Watch mode for TDD development
 - `npm run test:coverage` - Generate coverage report
@@ -61,11 +61,9 @@ See [TDD Development Workflow](docs/instructions/tdd-development-workflow.md) fo
 - `npm run format` - Format code with Biome v2
 - `npm run check` - Combined lint & typecheck
 - `npm run typecheck` - TypeScript type checking
-- `npm run typecheck:bun` - TypeScript via Bun
 
 **Build:**
-- `npm run build` - Build with Bun bundler (sub-second builds)
-- `npm run build:node` - Build with TypeScript compiler
+- `npm run build` - Build with TypeScript compiler (tsc clean build)
 - `npm run clean` - Remove dist directory
 
 ## Test Coverage

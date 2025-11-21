@@ -71,7 +71,7 @@ This project uses Bun as the primary runtime environment for optimal performance
 
 ### Development Commands
 - `npm run dev` - Run CLI with Bun (fast startup and execution)
-- `npm run dev:node` - Run CLI with Node.js and ts-node (legacy fallback)
+- `npm run dev:node` - Run CLI with Node.js and tsx (legacy fallback)
 - `npm run test` - Run tests with Bun test runner (native execution)
 - `npm run test:watch` - Run tests in watch mode with Bun for TDD development
 - `npm run test:coverage` - Run tests with built-in coverage reporting
@@ -85,7 +85,7 @@ This project uses Bun as the primary runtime environment for optimal performance
 - `npm run typecheck:bun` - TypeScript type checking via Bun
 
 ### Performance Benefits
-- **CLI Startup**: Bun provides 2-3x faster startup than Node.js with ts-node (measured: 0.589s vs 1.314s)
+- **CLI Startup**: Bun provides 2-3x faster startup than Node.js with tsx loaders (measured: 0.589s vs ~1.3s)
 - **Test Execution**: Bun native test runner provides fast execution (~15s for 39 tests)
 - **Build Speed**: Bun provides sub-second builds (measured: 268ms vs traditional compilation)
 - **Development Experience**: Bun eliminates TypeScript compilation step during development
@@ -120,7 +120,7 @@ The project is optimized for Bun runtime with Node.js fallback options:
 - Primary development environment for best experience
 
 **Node.js (Legacy Fallback)**:
-- Traditional ts-node development workflow
+- Traditional tsx-based development workflow
 - Standard TypeScript compilation pipeline
 - Compatible with existing Node.js tooling
 - Available for environments where Bun is not available

@@ -278,29 +278,27 @@ export const npmScripts: NpmScriptDefinition[] = [
   - [x] Coverage thresholds enforced (temporary ≥79% lines/statements, ≥90% functions, ≥67% branches)
 - [ ] **Milestone 2**: npm Toolchain Foundation – Target: 2025-11-22
   - [x] Node ≥20 baseline enforced (engines + runtime guard) *(Completed 2025-11-20 by GPT-5/Codex executor)*
-  - [ ] Bun artifacts removed
-  - [ ] npm scripts operational (`dev`, `build`, `lint`, `typecheck`)
+  - [x] Bun artifacts removed *(Completed 2025-11-21 by GPT-5/Codex executor)*
+  - [x] npm scripts operational (`dev`, `build`, `lint`, `typecheck`)
 
 - [ ] **Milestone 3**: Documentation & Release Readiness – Target: 2025-11-24
   - [ ] Docs/CI updated
   - [ ] npm gate commands captured for PR
 
 ### Progress Updates
-**Last Updated**: 2025-11-20  
-**Current Status**: Task 2.0 completed – engines bumped to Node ≥20, `.node-version` pinned to 20.19.0, README/AGENTS/docs updated, CI now includes a Node 20 job, and the CLI now exits early when executed under Node <20. Moving to Task 2.1 (npm-only dependency tree and script rewrites).  
-**Blockers**: `mise` still requires manual trust for `.node-version`; continue using `mise x node@20.19.0 -- <command>` until sandbox permissions are resolved.  
-**Next Steps**: Remove Bun-specific files/scripts (Task 2.1), regenerate `package-lock.json`, and introduce Node-based dev/build tooling (Tasks 2.2–2.3). See handoff notes below.
+**Last Updated**: 2025-11-21  
+**Current Status**: Task 2.1 completed – `bun.lock`/`bunfig.toml` removed, `package.json` now exposes Node-only scripts (`dev` via `tsx`, `build` via `tsc`), and `tests/cli/npm-toolchain.test.ts` enforces the npm-first metadata. `package-lock.json` regenerated to drop `@types/bun`. Actively working on Task 2.2 (tsup bundler + `tsx` dev workflow) with the `tsx` entrypoint now in place.  
+**Blockers**: Sandbox runtime still reports Node 19.x, so `npm install` emits `EBADENGINE` warnings when verifying ≥20-only packages (commander, rimraf 6, etc.). Continue using `mise x node@20.19.0 -- <command>` or upgrade the shell before wiring tsup.  
+**Next Steps**: Finish the Node-based bundler swap (tsup) to conclude Task 2.2, then capture npm command outputs for release prep (Task 2.3). Updated handoff below.
 
 ### Next Executor Handoff (Phase 2 Owner)
-1. **Task 2.1 – npm-only dependency tree**  
-   - Remove Bun-specific files/scripts (`bun.lockb`, `bunfig.toml`, `bun` scripts).  
-   - Add `tests/cli/npm-toolchain.test.ts` to assert npm metadata once scripts exist.  
-   - Regenerate `package-lock.json` after dependency pruning.
-2. **Task 2.2/2.3 – Build + dev scripts**  
-   - Introduce `tsup` (or chosen Node bundler) and wire `npm run build` to it.  
-   - Replace `bun src/cli/index.ts` dev command with `tsx` (or native Node loader).  
-   - Ensure `npm run check` executes `npm run lint && npm run typecheck`.  
-   - Capture command outputs for documentation/PR template.
+1. **Task 2.2 – Build + dev scripts**  
+   - Introduce `tsup` (or equivalent) and wire `npm run build` to produce `dist/cli/index.js` via Node tooling.  
+   - Validate the new `tsx src/cli/index.ts` dev workflow (watch ergonomics, DX docs) now that ts-node has been removed.  
+   - Keep `npm run check` as the aggregate of lint + typecheck for CI parity.
+2. **Task 2.3 – Validation & release prep**  
+   - Run `npm run lint`, `npm run typecheck`, `npm run test`, `npm run test:coverage`, and `npm run build` on Node 20, capturing logs for the PR template.  
+   - Verify `npm pack` contents once tsup output exists and list any remaining doc/CI deltas for Phase 3.
 
 Document progress in this plan after each sub-task so Phase 3 (docs/CI polish) can start with a clear baseline.
 

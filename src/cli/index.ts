@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * ng-di-graph CLI entry point
- * Supports both Node.js (via ts-node) and Bun native execution
+ * Supports Node.js (via tsx) execution
  */
 import { Command } from 'commander';
 import { CliError, ErrorHandler } from '../core/error-handler';
