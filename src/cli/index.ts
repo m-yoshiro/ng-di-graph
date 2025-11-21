@@ -14,6 +14,36 @@ import { JsonFormatter } from '../formatters/json-formatter';
 import { MermaidFormatter } from '../formatters/mermaid-formatter';
 import type { CliOptions } from '../types';
 
+const MIN_NODE_MAJOR_VERSION = 20;
+
+function enforceMinimumNodeVersion(): void {
+  const nodeVersion = process.versions.node;
+  if (!nodeVersion) {
+    return;
+  }
+
+  const [majorSegment] = nodeVersion.split('.');
+  const major = Number(majorSegment);
+  if (Number.isNaN(major) || major >= MIN_NODE_MAJOR_VERSION) {
+    return;
+  }
+
+  const runtimeLabel = process.versions.bun
+    ? `Bun (Node compatibility ${nodeVersion})`
+    : `Node.js ${nodeVersion}`;
+
+  console.error(
+    [
+      `ng-di-graph requires Node.js >= ${MIN_NODE_MAJOR_VERSION}.0.0.`,
+      `Detected runtime: ${runtimeLabel}.`,
+      'Upgrade to Node.js 20.x LTS (match `.node-version` / mise config) before running ng-di-graph.',
+    ].join('\n')
+  );
+  process.exit(1);
+}
+
+enforceMinimumNodeVersion();
+
 const program = new Command();
 
 program.name('ng-di-graph').description('Angular DI dependency graph CLI tool').version('0.1.0');
