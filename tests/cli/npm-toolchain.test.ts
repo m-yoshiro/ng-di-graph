@@ -47,8 +47,8 @@ describe('npm toolchain metadata', () => {
     expect(packageJson.engines?.node).toMatch(/^>=\d+/);
     expect(packageJson.engines).not.toHaveProperty('bun');
 
-    expect(packageJson.bin?.['ng-di-graph']).toBe('dist/cli/index.js');
-    expect(packageJson.main).toBe('dist/cli/index.js');
+    expect(packageJson.bin?.['ng-di-graph']).toBe('dist/cli/index.cjs');
+    expect(packageJson.main).toBe('dist/cli/index.cjs');
     expect(packageJson.files).toContain('dist');
   });
 

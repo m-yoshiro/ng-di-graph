@@ -1,15 +1,14 @@
-import { defineConfig } from 'tsup';
+import { defineConfig } from 'tsdown';
 
 export default defineConfig({
   entry: ['src/cli/index.ts'],
   outDir: 'dist/cli',
-  target: 'node20',
   format: ['cjs'],
   platform: 'node',
+  target: 'node20',
   sourcemap: true,
-  splitting: false,
-  clean: false,
   minify: false,
+  clean: true,
   skipNodeModulesBundle: true,
   shims: false,
   tsconfig: 'tsconfig.json',

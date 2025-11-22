@@ -80,7 +80,7 @@ This project standardizes on Node.js 20.x LTS and npm 10+. Use `mise use node@$(
 - `npm run format` / `npm run format:check` - Apply or verify formatting
 - `npm run typecheck` - Invoke `tsc --noEmit`
 - `npm run check` - Combined lint + typecheck gate
-- `npm run build` - Clean + bundle via tsup into `dist/cli/index.js`
+- `npm run build` - Bundle via tsdown and emit declarations into `dist/cli/index.cjs`
 - `npm run clean` - Remove `dist/`
 - `npm pack --pack-destination tmp-toolchain/` - Produce the distributable tarball for review/CI validation
 
