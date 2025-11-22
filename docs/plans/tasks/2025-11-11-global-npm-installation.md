@@ -58,7 +58,7 @@ Enable ng-di-graph to be installed and executed globally via npm as a standard N
 **Design Pattern**: Standard npm CLI package distribution model
 
 **Technology Stack**:
-- **Runtime**: Node.js ≥18.0.0 (already specified in `engines` field)
+- **Runtime**: Node.js ≥20.0.0 (already specified in `engines` field)
 - **Build Tool**: Bun bundler (fast, produces Node.js-compatible output)
 - **Package Manager**: npm (for distribution and global installation)
 - **CLI Framework**: Commander.js (already in use)
@@ -604,7 +604,7 @@ ng-di-graph-0.1.0.tgz
 ### Dependencies & Blockers
 
 - **External Dependencies**:
-  - Node.js ≥18.0.0 installed on user's system
+  - Node.js ≥20.0.0 installed on user's system
   - npm package manager available globally
   - Network access to npm registry (for future actual publishing)
 

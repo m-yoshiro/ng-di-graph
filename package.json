@@ -2,7 +2,7 @@
   "name": "ng-di-graph",
   "version": "0.1.0",
   "description": "Angular DI dependency graph CLI tool",
-  "main": "dist/index.js",
+  "main": "dist/cli/index.js",
   "bin": {
     "ng-di-graph": "dist/cli/index.js"
   },
@@ -10,21 +10,19 @@
     "dist"
   ],
   "scripts": {
-    "dev": "bun src/cli/index.ts",
-    "dev:node": "ts-node src/cli/index.ts",
-    "build": "bun build src/cli/index.ts --outdir dist --target node --minify --sourcemap && mkdir -p dist/cli && mv dist/index.js dist/cli/index.js && mv dist/index.js.map dist/cli/index.js.map 2>/dev/null || true",
-    "build:node": "tsc",
-    "test": "bun test",
-    "test:watch": "bun test --watch",
-    "test:coverage": "bun test --coverage",
+    "dev": "tsx src/cli/index.ts",
+    "dev:node": "tsx src/cli/index.ts",
+    "build": "npm run clean && tsup --config tsup.config.ts",
+    "test": "vitest run",
+    "test:watch": "vitest watch",
+    "test:coverage": "vitest run --coverage",
     "lint": "biome check src",
     "lint:fix": "biome check --write src",
     "format": "biome format src --write",
-    "check": "biome check src && npm run typecheck",
+    "format:check": "biome format src",
+    "check": "npm run lint && npm run typecheck",
     "typecheck": "tsc --noEmit",
-    "typecheck:bun": "bun x tsc --noEmit",
     "clean": "rimraf dist",
-    "install:bun": "bun install",
     "prepublishOnly": "npm run build"
   },
   "keywords": [
@@ -39,19 +37,18 @@
   "devDependencies": {
     "@biomejs/biome": "^2.3.6",
     "@types/node": "^24.10.1",
+    "@vitest/coverage-v8": "^4.0.10",
     "rimraf": "^6.0.0",
-    "ts-node": "^10.9.0",
-    "typescript": "^5.0.0"
+    "tsup": "^8.5.1",
+    "tsx": "^4.8.1",
+    "typescript": "^5.0.0",
+    "vitest": "^4.0.10"
   },
   "dependencies": {
     "commander": "^14.0.0",
     "ts-morph": "^27.0.2"
   },
   "engines": {
-    "node": ">=18.0.0",
-    "bun": ">=1.2.0"
-  },
-  "optionalDependencies": {
-    "@types/bun": "^1.0.0"
+    "node": ">=20.0.0"
   }
 }

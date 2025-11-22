@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, beforeAll, afterAll, vi } from 'bun:test';
+import { describe, it, expect, beforeEach, beforeAll, afterAll, vi } from 'vitest';
 import { existsSync, readFileSync, mkdirSync, rmSync } from 'fs';
 import type { Graph } from '../types';
 import { JsonFormatter } from '../formatters/json-formatter';

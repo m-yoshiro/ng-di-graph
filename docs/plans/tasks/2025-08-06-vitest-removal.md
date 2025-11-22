@@ -18,7 +18,7 @@ Complete removal of Vitest testing framework from the ng-di-graph project while 
 **Scope**: 
 - Remove Vitest dependency from package.json
 - Update test file imports from Vitest to Bun APIs
-- Remove vitest.config.ts configuration file
+- Remove vitest.config.mts configuration file
 - Update all Node.js fallback test scripts in package.json
 - Update documentation references to Node.js testing commands
 - Validate all 39 existing tests continue to pass with Bun only
@@ -36,7 +36,7 @@ Complete removal of Vitest testing framework from the ng-di-graph project while 
 **Current State Analysis**:
 - Single test file: `/tests/parser.test.ts` (39 tests)
 - Uses Vitest imports: `describe`, `it`, `expect`, `beforeEach`, `afterEach`
-- Vitest configuration: `vitest.config.ts` with coverage settings
+- Vitest configuration: `vitest.config.mts` with coverage settings
 - Package.json has dual scripts: `test` (Bun) vs `test:node` (Vitest)
 - All tests currently pass with both runners (39/39)
 - Bun provides full API compatibility for existing test patterns
@@ -63,7 +63,7 @@ Complete removal of Vitest testing framework from the ng-di-graph project while 
 ```
 Current State:
 ├── tests/parser.test.ts (imports from 'vitest')
-├── vitest.config.ts (Vitest configuration)
+├── vitest.config.mts (Vitest configuration)
 ├── package.json (dual runtime scripts)
 └── docs/ (Node.js fallback references)
 
@@ -103,7 +103,7 @@ Target State:
 
 - [x] **Task 2.1**: Remove Vitest configuration ✅ COMPLETED
   - **TDD Approach**: Ensured removal doesn't break any test execution
-  - **Implementation**: Deleted `vitest.config.ts` file completely
+  - **Implementation**: Deleted `vitest.config.mts` file completely
   - **Acceptance Criteria**: Tests run without looking for Vitest config ✅
 
 - [x] **Task 2.2**: Remove Vitest dependency ✅ COMPLETED
@@ -328,7 +328,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
 ### Rollback Steps
 1. **Immediate**: Restore test file imports to Vitest
 2. **Package**: Add Vitest dependency back to package.json
-3. **Config**: Restore vitest.config.ts file
+3. **Config**: Restore vitest.config.mts file
 4. **Scripts**: Restore Node.js fallback scripts
 5. **Validation**: Verify all tests pass with original setup
 
@@ -428,7 +428,7 @@ npm list vitest        # Should show "not found"
 
 ### 🔧 Files Modified
 - **Updated**: `/tests/parser.test.ts` - Changed imports from `'vitest'` to `'bun:test'`
-- **Removed**: `vitest.config.ts` - Configuration file deleted
+- **Removed**: `vitest.config.mts` - Configuration file deleted
 - **Updated**: `package.json` - Removed Vitest dependency and Node.js fallback scripts
 - **Updated**: `CLAUDE.md` - Documentation updated to reflect Bun-first approach
 

@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'bun:test';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { buildGraph } from '../core/graph-builder';
 import { filterGraph } from '../core/graph-filter';
 import type { Graph, CliOptions, ParsedClass } from '../types';

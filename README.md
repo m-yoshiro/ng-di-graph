@@ -8,6 +8,11 @@ A command-line tool that analyzes Angular TypeScript codebases to extract depend
 
 **Target Angular Versions:** 17-20
 
+## Requirements
+
+- Node.js 20.x LTS (see `.node-version`; e.g., `mise use node@$(cat .node-version)`)
+- npm 10+ (ships with Node 20). Use your preferred version manager (mise recommended) to match the pinned runtime before installing dependencies.
+
 ## Features
 
 ✨ **Complete Feature Set** - Production-ready dependency graph analysis for Angular applications

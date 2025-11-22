@@ -74,7 +74,7 @@ project-root/
 ├── bun.lockb              # Bun lockfile (new)
 ├── bunfig.toml           # Bun configuration (new)
 ├── tsconfig.json         # Updated TypeScript config
-├── vitest.config.ts      # Maintained for compatibility
+├── vitest.config.mts      # Maintained for compatibility
 └── bun.test.config.ts    # New Bun test config (optional)
 ```
 
@@ -121,7 +121,7 @@ project-root/
   - **TDD Approach**: Run comprehensive test suite with both Vitest and Bun test runner
   - **Implementation**: Maintain Vitest config, add optional Bun test configuration
   - **Acceptance Criteria**: Tests pass with both runners, watch mode works correctly
-  - **Status**: COMPLETED - Both Bun test and Vitest work, created vitest.config.ts
+  - **Status**: COMPLETED - Both Bun test and Vitest work, created vitest.config.mts
 
 - [x] **Task 2.3**: Update CLI entry point for Bun compatibility
   - **TDD Approach**: Execute CLI with various argument combinations using Bun runtime

@@ -6,7 +6,8 @@ Thank you for your interest in contributing to ng-di-graph! This document provid
 
 ### Prerequisites
 
-- **Bun 1.2+** (recommended) or **Node.js 18+**
+- **Node.js 20.x LTS** (match `.node-version` via `mise use node@$(cat .node-version)` or prefix commands with `mise x node@$(cat .node-version) -- npm <command>`)
+- **npm 10+** (bundled with Node 20)
 - **TypeScript 5.0+**
 - Angular project with TypeScript (versions 17-20 supported)
 
@@ -17,10 +18,7 @@ Thank you for your interest in contributing to ng-di-graph! This document provid
 git clone <repository-url>
 cd ng-di-graph
 
-# Install dependencies (Bun)
-bun install
-
-# Or with npm
+# Install dependencies
 npm install
 
 # Run tests in watch mode (TDD workflow)
@@ -49,8 +47,8 @@ See [TDD Development Workflow](docs/instructions/tdd-development-workflow.md) fo
 ### Available Scripts
 
 **Development:**
-- `npm run dev` - Run CLI with Bun (fast startup)
-- `npm run dev:node` - Run CLI with Node.js & ts-node
+- `npm run dev` - Run CLI via tsx (Node-based dev entrypoint)
+- `npm run dev:node` - Alternate tsx alias for CLI debugging
 - `npm run test` - Run full test suite (395 tests)
 - `npm run test:watch` - Watch mode for TDD development
 - `npm run test:coverage` - Generate coverage report
@@ -61,11 +59,9 @@ See [TDD Development Workflow](docs/instructions/tdd-development-workflow.md) fo
 - `npm run format` - Format code with Biome v2
 - `npm run check` - Combined lint & typecheck
 - `npm run typecheck` - TypeScript type checking
-- `npm run typecheck:bun` - TypeScript via Bun
 
 **Build:**
-- `npm run build` - Build with Bun bundler (sub-second builds)
-- `npm run build:node` - Build with TypeScript compiler
+- `npm run build` - Build with TypeScript compiler (tsc clean build)
 - `npm run clean` - Remove dist directory
 
 ## Test Coverage
@@ -196,6 +192,7 @@ test(parser): add edge case tests for anonymous classes
 - Test results showing coverage maintained/improved
 - Screenshots or examples (if applicable)
 - Documentation updates (if needed)
+- `tmp-toolchain/` artefacts demonstrating reproducible npm runs (`npm run lint`, `npm run typecheck`, `npm run test`, `npm run test:coverage`, `npm run build`, `npm run check`) plus `tmp-toolchain/ng-di-graph-0.1.0.tgz` produced via `npm pack --pack-destination tmp-toolchain/`
 
 ### What We Look For
 
@@ -212,7 +209,7 @@ test(parser): add edge case tests for anonymous classes
 ### Test Structure
 
 ```typescript
-import { describe, it, expect, beforeEach } from 'bun:test'
+import { describe, it, expect, beforeEach } from 'vitest'
 
 describe('ComponentName', () => {
   describe('methodName', () => {
