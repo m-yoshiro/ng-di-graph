@@ -722,7 +722,7 @@ describe('File-Based Tests', () => {
 - Line coverage: **≥80%**
 - Branch coverage: **≥67%**
 
-> Vitest v4’s V8 instrumentation reports more uncovered TypeScript lines than the previous Bun runner. Targets reflect the current measurement and should be revisited after additional parser/CLI specs are ported.
+> Vitest v4’s V8 instrumentation reports more uncovered TypeScript lines than the legacy Bun-based runner. Targets reflect the current measurement and should be revisited after additional parser/CLI specs are ported.
 
 **Exceptions**:
 - Error handling paths that are difficult to trigger
@@ -867,7 +867,7 @@ The ng-di-graph test suite is comprehensively organized to validate all function
 - **TDD methodology** mandatory for all new development
 - **Helper libraries** for consistent test setup
 - **Realistic fixtures** representing Angular code patterns
-- **Fast execution** with Bun test runner (~15-20 seconds for full suite)
+- **Fast execution** with Vitest in the Node runtime (~15-20 seconds for full suite)
 
 **Always follow TDD workflow**: Write tests first, implement minimal code, refactor, repeat.
 

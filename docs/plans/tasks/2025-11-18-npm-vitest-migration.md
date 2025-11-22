@@ -281,23 +281,22 @@ export const npmScripts: NpmScriptDefinition[] = [
   - [x] Bun artifacts removed *(Completed 2025-11-21 by GPT-5/Codex executor)*
   - [x] npm scripts operational (`dev`, `build`, `lint`, `typecheck`)
 
-- [ ] **Milestone 3**: Documentation & Release Readiness – Target: 2025-11-24
-  - [ ] Docs/CI updated
-  - [ ] npm gate commands captured for PR
+- [x] **Milestone 3**: Documentation & Release Readiness – Target: 2025-11-24
+  - [x] Docs/CI updated *(Completed 2025-11-22 by GPT-5/Codex executor)*
+  - [x] npm gate commands captured for PR *(Lint/typecheck/test/test:coverage/build/check + npm pack logs updated 2025-11-22)*
 
 ### Progress Updates
-**Last Updated**: 2025-11-21  
-**Current Status**: Task 2.3 completed – Node 20 executions of `npm run lint`, `npm run format:check`, `npm run typecheck`, `npm run test`, `npm run test:coverage`, `npm run build`, `npm run check`, and `npm pack --pack-destination tmp-toolchain/` all succeeded with logs archived under `tmp-toolchain/`. Coverage runs now rely on `vitest.config.mts` `testTimeout`/`hookTimeout` (15s) to keep long-running integration specs stable, and the published tarball `tmp-toolchain/ng-di-graph-0.1.0.tgz` contains the tsup-built CLI.  
-**Blockers**: Sandbox runtime still reports Node 19.x, so all npm/Vitest/tsup commands must run through `mise x node@20.19.0 -- <command>` until the base shell upgrades.  
-**Next Steps**: Begin Phase 3 by sweeping documentation/CI for Bun references, update AGENT briefs + README + docs/testing, and script CI workflows against the npm commands above. Capture screenshots or CLI snippets demonstrating the npm flow for the PR once docs are refreshed.
+**Last Updated**: 2025-11-22  
+**Current Status**: Task 3.2 gates executed – `mise x node@20.19.0 -- npm run lint`, `typecheck`, `test`, `test:coverage`, `build`, `check`, and `npm pack --pack-destination tmp-toolchain/` all captured under `tmp-toolchain/npm-run-*.log` / `tmp-toolchain/npm-pack.log` along with a fresh `tmp-toolchain/ng-di-graph-0.1.0.tgz`. `npm pack` requires overriding `HOME` (`mise x node@20.19.0 -- env HOME=$PWD/tmp-home npm pack ...`) because the sandbox disallows writes to `~/.npm/_logs`.  
+**Blockers**: Sandbox runtime still reports Node 19.x, so all npm/Vitest/tsup commands must run through `mise x node@20.19.0 -- <command>` until the base shell upgrades; keep using the `HOME=$PWD/tmp-home` override for `npm pack`.  
+**Next Steps**: Attach the refreshed logs + tarball in the eventual PR description, and (if reviewers request) capture screenshots/CLI snippets demonstrating the npm flow. No further engineering changes needed before PR other than rerunning the same gates right before submission to ensure timestamps stay current.
 
 ### Next Executor Handoff (Phase 2 Owner)
-1. **Task 3.1 – Documentation & CI refresh**  
-   - Replace Bun references across README, AGENTS/CLAUDE, CONTRIBUTING, docs/testing, and any CI workflows with npm/Vitest equivalents. Highlight the new `tmp-toolchain/` log bundle plus `tmp-toolchain/ng-di-graph-0.1.0.tgz` in the PR notes to prove reproducibility.  
-   - Prepare notes/screenshots (Mermaid snippets, CLI output) for PR reviewers demonstrating the npm-first toolchain.
-2. **Task 3.2 – Final release checklist**  
-   - Summarize lint/typecheck/test/test:coverage/build/check results (with timestamps) inside the PR template, confirm coverage thresholds, and keep `tmp-toolchain/` artifacts up to date until merge.  
-   - Run `npm pack` once more right before PR submission to ensure tarball contents reflect any doc edits.
+1. **Task 3.1 – Documentation & CI refresh** ✅  
+   - Completed 2025-11-22: Docs, CLAUDE/AGENT briefs, CONTRIBUTING guide, and CI workflow now reflect the npm/Vitest standard and reference `tmp-toolchain/` artefacts.
+2. **Task 3.2 – Final release checklist** ✅  
+   - Completed 2025-11-22: Logs for lint/typecheck/test/test:coverage/build/check + npm pack stored in `tmp-toolchain/`, coverage verified via Vitest V8, and `tmp-toolchain/ng-di-graph-0.1.0.tgz` regenerated after `npm run build`.  
+   - Reminder before PR submission: rerun the same commands (using `HOME=$PWD/tmp-home` for `npm pack`) to refresh timestamps if new commits land.
 
 Document progress in this plan after each sub-task so Phase 3 (docs/CI polish) can start with a clear baseline.
 

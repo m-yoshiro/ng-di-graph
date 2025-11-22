@@ -16,22 +16,23 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          bun-version: latest
+          node-version: 20.x
+          cache: npm
 
       - name: Install dependencies
-        run: bun install --frozen-lockfile
+        run: npm ci
 
       - name: Run linter
-        run: bun run lint
+        run: npm run lint
 
       - name: Run type checker
-        run: bun run typecheck
+        run: npm run typecheck
 
-  test-bun:
-    name: Test
+  tests:
+    name: Test (Vitest)
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
@@ -39,24 +40,17 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          bun-version: latest
-
-      - name: Cache Bun dependencies
-        uses: actions/cache@v4
-        with:
-          path: ~/.bun/install/cache
-          key: bun-${{ hashFiles('**/bun.lock') }}
-          restore-keys: |
-            bun-
+          node-version: 20.x
+          cache: npm
 
       - name: Install dependencies
-        run: bun install --frozen-lockfile
+        run: npm ci
 
       - name: Run tests
-        run: bun run test
+        run: npm run test
 
   coverage:
     name: Coverage Check
@@ -67,26 +61,44 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          bun-version: latest
+          node-version: 20.x
+          cache: npm
 
       - name: Install dependencies
-        run: bun install --frozen-lockfile
+        run: npm ci
 
       - name: Run tests with coverage
-        run: bun run test:coverage
+        run: npm run test:coverage
 
       - name: Check coverage threshold
         run: |
-          COVERAGE=$(bun run test:coverage 2>&1 | grep "All files" | awk '{print $4}')
-          echo "Coverage: $COVERAGE%"
-          if (( $(echo "$COVERAGE < 70" | bc -l) )); then
-            echo "❌ Coverage $COVERAGE% is below threshold of 70%"
-            exit 1
-          fi
-          echo "✅ Coverage $COVERAGE% meets threshold of 70%"
+          node <<'NODE'
+          const fs = require('node:fs');
+          const path = 'coverage/lcov.info';
+          const threshold = 70;
+          if (!fs.existsSync(path)) {
+            console.error(`❌ Coverage file not found at ${path}`);
+            process.exit(1);
+          }
+          const lines = fs.readFileSync(path, 'utf8').split('\n');
+          let linesHit = 0;
+          let linesFound = 0;
+          for (const line of lines) {
+            if (line.startsWith('LH:')) linesHit += Number(line.slice(3));
+            if (line.startsWith('LF:')) linesFound += Number(line.slice(3));
+          }
+          const coverage = linesFound === 0 ? 0 : (linesHit / linesFound) * 100;
+          const formatted = coverage.toFixed(2);
+          console.log(`Line coverage: ${formatted}%`);
+          if (coverage < threshold) {
+            console.error(`❌ Coverage ${formatted}% is below threshold of ${threshold}%`);
+            process.exit(1);
+          }
+          console.log(`✅ Coverage ${formatted}% meets threshold of ${threshold}%`);
+          NODE
 
   build:
     name: Build Validation
@@ -97,16 +109,17 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          bun-version: latest
+          node-version: 20.x
+          cache: npm
 
       - name: Install dependencies
-        run: bun install --frozen-lockfile
+        run: npm ci
 
       - name: Build project
-        run: bun run build
+        run: npm run build
 
       - name: Verify build output
         run: |
@@ -116,11 +129,19 @@ jobs:
           fi
           echo "✅ Build output verified"
 
+      - name: Generate npm pack artifact
+        run: |
+          mkdir -p tmp-toolchain
+          rm -f tmp-toolchain/*.tgz
+          npm pack --pack-destination tmp-toolchain/
+
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
           name: dist-artifact
-          path: dist/
+          path: |
+            dist/
+            tmp-toolchain/*.tgz
 
   test-cli-installation:
     name: Test CLI Installation (Node.js ${{ matrix.node-version }})
@@ -145,13 +166,14 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: dist-artifact
-          path: dist/
+          path: artifacts
 
-      - name: Link library globally
+      - name: Install CLI globally from tarball
         run: |
-          cd dist
-          npm install  # Node.js 用に依存解決（型定義など）
-          npm link
+          set -eo pipefail
+          TAR=$(ls artifacts/tmp-toolchain/ng-di-graph-*.tgz | head -n 1)
+          echo "Installing $TAR"
+          npm install -g "$TAR"
 
       - name: Test CLI version command
         run: ng-di-graph --version | grep "0.1.0"
