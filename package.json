@@ -12,13 +12,14 @@
   "scripts": {
     "dev": "tsx src/cli/index.ts",
     "dev:node": "tsx src/cli/index.ts",
-    "build": "npm run clean && tsc -p tsconfig.json",
+    "build": "npm run clean && tsup --config tsup.config.ts",
     "test": "vitest run",
     "test:watch": "vitest watch",
     "test:coverage": "vitest run --coverage",
     "lint": "biome check src",
     "lint:fix": "biome check --write src",
     "format": "biome format src --write",
+    "format:check": "biome format src",
     "check": "npm run lint && npm run typecheck",
     "typecheck": "tsc --noEmit",
     "clean": "rimraf dist",
@@ -38,6 +39,7 @@
     "@types/node": "^24.10.1",
     "@vitest/coverage-v8": "^4.0.10",
     "rimraf": "^6.0.0",
+    "tsup": "^8.5.1",
     "tsx": "^4.8.1",
     "typescript": "^5.0.0",
     "vitest": "^4.0.10"
