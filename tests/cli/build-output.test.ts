@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -15,9 +15,11 @@ describe.sequential('npm build output', () => {
     });
   };
 
-  it('bundles the CLI via npm run build and exposes --help', () => {
+  beforeAll(() => {
     runNpmScript('build');
+  });
 
+  it('bundles the CLI via npm run build and exposes --help', () => {
     expect(existsSync(cliEntry)).toBe(true);
 
     const bundledContents = readFileSync(cliEntry, 'utf-8');
@@ -30,5 +32,15 @@ describe.sequential('npm build output', () => {
 
     expect(helpOutput).toContain('Usage: ng-di-graph');
     expect(helpOutput).toContain('Angular DI dependency graph CLI tool');
+  });
+
+  it('shows help output when run with no arguments', () => {
+    const defaultOutput = execFileSync('node', [cliEntry], {
+      cwd: projectRoot,
+      encoding: 'utf-8',
+    });
+
+    expect(defaultOutput).toContain('Usage: ng-di-graph');
+    expect(defaultOutput).toContain('Angular DI dependency graph CLI tool');
   });
 });
