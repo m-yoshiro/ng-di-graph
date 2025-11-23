@@ -123,8 +123,8 @@ jobs:
 
       - name: Verify build output
         run: |
-          if [ ! -f "dist/cli/index.js" ]; then
-            echo "❌ Build output not found at dist/cli/index.js"
+          if [ ! -f "dist/cli/index.cjs" ]; then
+            echo "❌ Build output not found at dist/cli/index.cjs"
             exit 1
           fi
           echo "✅ Build output verified"

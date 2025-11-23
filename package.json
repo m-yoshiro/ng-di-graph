@@ -2,9 +2,9 @@
   "name": "ng-di-graph",
   "version": "0.1.0",
   "description": "Angular DI dependency graph CLI tool",
-  "main": "dist/cli/index.js",
+  "main": "dist/cli/index.cjs",
   "bin": {
-    "ng-di-graph": "dist/cli/index.js"
+    "ng-di-graph": "dist/cli/index.cjs"
   },
   "files": [
     "dist"
@@ -12,7 +12,9 @@
   "scripts": {
     "dev": "tsx src/cli/index.ts",
     "dev:node": "tsx src/cli/index.ts",
-    "build": "npm run clean && tsup --config tsup.config.ts",
+    "build:bundle": "tsdown --config tsdown.config.ts",
+    "build:types": "tsc --emitDeclarationOnly --outDir dist",
+    "build": "npm run build:bundle && npm run build:types",
     "test": "vitest run",
     "test:watch": "vitest watch",
     "test:coverage": "vitest run --coverage",
@@ -39,7 +41,7 @@
     "@types/node": "^24.10.1",
     "@vitest/coverage-v8": "^4.0.10",
     "rimraf": "^6.0.0",
-    "tsup": "^8.5.1",
+    "tsdown": "^0.16.6",
     "tsx": "^4.8.1",
     "typescript": "^5.0.0",
     "vitest": "^4.0.10"
@@ -49,6 +51,6 @@
     "ts-morph": "^27.0.2"
   },
   "engines": {
-    "node": ">=20.0.0"
+    "node": ">=20.19.0 <21.0.0 || >=22.12.0"
   }
 }

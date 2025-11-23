@@ -4,7 +4,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 const projectRoot = resolve(__dirname, '..', '..');
-const cliEntry = resolve(projectRoot, 'dist', 'cli', 'index.js');
+const cliEntry = resolve(projectRoot, 'dist', 'cli', 'index.cjs');
 
 describe.sequential('npm build output', () => {
   const runNpmScript = (script: string): void => {
