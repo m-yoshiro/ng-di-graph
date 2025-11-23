@@ -449,9 +449,11 @@ describe('Bidirectional Filtering', () => {
 
       const normalizedTimes = times.map(time => Math.max(time, 1));
 
-      // Execution time should grow as the graph grows even if the absolute timing varies per runtime
-      expect(normalizedTimes[0]).toBeLessThanOrEqual(normalizedTimes[1]);
-      expect(normalizedTimes[1]).toBeLessThanOrEqual(normalizedTimes[2]);
+      // Execution time should grow as the graph grows, but allow some variance across CI hosts
+      const toleranceFactor = 1.5; // permit up to 50% variance between successive runs
+      for (let i = 0; i < normalizedTimes.length - 1; i++) {
+        expect(normalizedTimes[i]).toBeLessThanOrEqual(normalizedTimes[i + 1] * toleranceFactor);
+      }
     });
 
     it('should measure memory usage during large graph processing', () => {

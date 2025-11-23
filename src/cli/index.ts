@@ -233,4 +233,5 @@ process.on('uncaughtException', (error) => {
 });
 
 // Parse command line arguments
-program.parse();
+const argv = process.argv.length <= 2 ? [...process.argv, '--help'] : process.argv;
+program.parse(argv);
