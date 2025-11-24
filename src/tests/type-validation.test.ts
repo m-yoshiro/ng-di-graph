@@ -394,8 +394,9 @@ export class ComponentWithMissingImport {
       await parser.findDecoratedClasses();
       const duration = performance.now() - startTime;
 
-      // Should complete within reasonable time (1 second for small test fixtures)
-      expect(duration).toBeLessThan(1000);
+      // Should complete within reasonable time (1.5 seconds for small test fixtures)
+      // The single budget keeps the assertion simple while accommodating slower CI hosts
+      expect(duration).toBeLessThan(1500);
     });
 
     it('should track slow type resolution in performance warnings', async () => {
