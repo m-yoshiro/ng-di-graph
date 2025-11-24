@@ -34,6 +34,9 @@ npm install -g ng-di-graph
 ## Usage
 
 ```bash
+# Quick run using a project directory (tsconfig.json auto-detected)
+ng-di-graph ./src/tests/fixtures --format json
+
 # Analyze an Angular project and output JSON
 ng-di-graph --project ./my-angular-app/tsconfig.json --format json
 
@@ -56,7 +59,10 @@ ng-di-graph --project ./tsconfig.json --entry UserService --direction upstream
 ## CLI Reference
 
 ```
-ng-di-graph [options]
+ng-di-graph [projectPath] [options]
+
+Arguments:
+  projectPath               Optional tsconfig.json path or directory (default: ./tsconfig.json)
 
 Options:
   -p, --project <path>       Path to tsconfig.json (default: ./tsconfig.json)
@@ -71,6 +77,8 @@ Options:
 
 ### Option Details
 
+- **`projectPath` (positional)**: Optional first argument that can point to a `tsconfig.json` file or a
+  directory containing one; defaults to `./tsconfig.json` when omitted
 - **`--project`**: Specifies the TypeScript configuration file to use for project analysis
 - **`--format`**: Choose between JSON (structured data) or Mermaid (visual diagram)
 - **`--entry`**: Filter the graph to show only dependencies related to specified symbols (supports multiple entries)
