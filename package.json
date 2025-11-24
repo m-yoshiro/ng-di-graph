@@ -43,7 +43,7 @@
     "rimraf": "^6.1.2",
     "tsdown": "^0.16.6",
     "tsx": "^4.8.1",
-    "typescript": "^5.0.0",
+    "typescript": "^5.9.3",
     "vitest": "^4.0.10"
   },
   "dependencies": {
