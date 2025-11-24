@@ -43,4 +43,17 @@ describe.sequential('npm build output', () => {
     expect(defaultOutput).toContain('Usage: ng-di-graph');
     expect(defaultOutput).toContain('Angular DI dependency graph CLI tool');
   });
+
+  it('accepts a project path as positional argument and resolves tsconfig.json from a directory', () => {
+    const output = execFileSync('node', [cliEntry, './src/tests/fixtures', '--format', 'json'], {
+      cwd: projectRoot,
+      encoding: 'utf-8',
+    });
+
+    const parsed = JSON.parse(output) as { nodes: Array<{ id: string }>; edges: unknown[] };
+
+    expect(parsed.nodes.length).toBeGreaterThan(0);
+    expect(parsed.edges.length).toBeGreaterThan(0);
+    expect(parsed.nodes.some((node) => node.id === 'TestComponent')).toBe(true);
+  });
 });

@@ -3,6 +3,8 @@
  * ng-di-graph CLI entry point
  * Supports Node.js (via tsx) execution
  */
+import { existsSync, statSync } from 'node:fs';
+import { join } from 'node:path';
 import { Command } from 'commander';
 import { CliError, ErrorHandler } from '../core/error-handler';
 import { buildGraph } from '../core/graph-builder';
@@ -44,11 +46,30 @@ function enforceMinimumNodeVersion(): void {
 
 enforceMinimumNodeVersion();
 
+function resolveProjectPath(projectPath: string | undefined, projectOption: string): string {
+  const candidatePath = projectPath ?? projectOption;
+
+  try {
+    const stats = statSync(candidatePath);
+    if (stats.isDirectory()) {
+      const tsconfigPath = join(candidatePath, 'tsconfig.json');
+      if (existsSync(tsconfigPath)) {
+        return tsconfigPath;
+      }
+    }
+  } catch {
+    // Let downstream validation surface file-not-found errors
+  }
+
+  return candidatePath;
+}
+
 const program = new Command();
 
 program.name('ng-di-graph').description('Angular DI dependency graph CLI tool').version('0.1.0');
 
 program
+  .argument('[projectPath]', 'tsconfig.json path or project directory containing tsconfig.json')
   .option('-p, --project <path>', 'tsconfig.json path', './tsconfig.json')
   .option('-f, --format <format>', 'output format: json | mermaid', 'json')
   .option('-e, --entry <symbol...>', 'starting nodes for sub-graph')
@@ -57,8 +78,10 @@ program
   .option('--out <file>', 'output file (stdout if omitted)')
   .option('-v, --verbose', 'show detailed parsing information', false);
 
-program.action(async (options) => {
+program.action(async (projectPath: string | undefined, options) => {
   try {
+    const project = resolveProjectPath(projectPath, options.project);
+
     // Validate direction option
     const validDirections = ['upstream', 'downstream', 'both'];
     if (options.direction && !validDirections.includes(options.direction)) {
@@ -78,7 +101,7 @@ program.action(async (options) => {
     }
 
     const cliOptions: CliOptions = {
-      project: options.project,
+      project,
       format: options.format as 'json' | 'mermaid',
       entry: options.entry,
       direction: options.direction as 'upstream' | 'downstream' | 'both',
