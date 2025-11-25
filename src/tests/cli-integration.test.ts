@@ -31,6 +31,26 @@ describe('CLI Integration - Core Features', () => {
     console.error = originalConsoleError;
   });
 
+  describe('tsconfig project handling', () => {
+    it('should accept --project that points to a tsconfig with JSON comments', async () => {
+      const cliCommand = [
+        'ng-di-graph',
+        '--project', './src/tests/fixtures/tsconfig-with-comment.json',
+        '--format', 'json'
+      ];
+
+      const result = await executeCLICommand(cliCommand);
+
+      expect(result.exitCode).toBe(0);
+      const output = result.stdout.trim();
+      expect(output).toMatch(/^\{.*\}$/s);
+
+      const graph = JSON.parse(output);
+      expect(graph.nodes.length).toBeGreaterThan(0);
+      expect(graph.edges.length).toBeGreaterThan(0);
+    });
+  });
+
   describe('RED PHASE - CLI Flag Parsing Tests (Should Fail)', () => {
     it('should parse --include-decorators flag correctly from CLI arguments', async () => {
       // Arrange - Simulate CLI parsing (this test will fail until we verify CLI parsing works)

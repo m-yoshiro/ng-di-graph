@@ -1,4 +1,6 @@
 import { existsSync, readFileSync } from 'node:fs';
+import path from 'node:path';
+import * as ts from 'typescript';
 import type {
   CallExpression,
   ClassDeclaration,
@@ -34,6 +36,20 @@ import { LogCategory, type Logger } from './logger';
  * Implements FR-03: Constructor token resolution
  */
 const GLOBAL_WARNING_KEYS = new Set<string>();
+
+const formatTsDiagnostics = (diagnostics: readonly ts.Diagnostic[]): string =>
+  diagnostics
+    .map(diagnostic => {
+      const message = ts.flattenDiagnosticMessageText(diagnostic.messageText, '\n');
+      if (diagnostic.file && diagnostic.start !== undefined) {
+        const { line, character } = diagnostic.file.getLineAndCharacterOfPosition(
+          diagnostic.start
+        );
+        return `${diagnostic.file.fileName} (${line + 1},${character + 1}): ${message}`;
+      }
+      return message;
+    })
+    .join('\n');
 
 export class AngularParser {
   private _project?: Project;
@@ -116,8 +132,10 @@ export class AngularParser {
    * Implements FR-01 with error handling from PRD Section 13
    */
   loadProject(): void {
+    const tsConfigPath = path.resolve(this._options.project);
+
     // Validate tsconfig path exists
-    if (!existsSync(this._options.project)) {
+    if (!existsSync(tsConfigPath)) {
       throw ErrorHandler.createError(
         `tsconfig.json not found at: ${this._options.project}`,
         'TSCONFIG_NOT_FOUND',
@@ -126,22 +144,42 @@ export class AngularParser {
     }
 
     try {
-      // First, try to validate the JSON syntax by reading and parsing it
-      try {
-        const configContent = readFileSync(this._options.project, 'utf8');
-        JSON.parse(configContent);
-      } catch (jsonError) {
-        const errorMessage = jsonError instanceof Error ? jsonError.message : String(jsonError);
+      // Validate tsconfig using TypeScript's tolerant parser (supports JSONC)
+      const configFile = ts.readConfigFile(
+        tsConfigPath,
+        filePath => readFileSync(filePath, 'utf8')
+      );
+
+      if (configFile.error) {
+        const message = formatTsDiagnostics([configFile.error]);
         throw ErrorHandler.createError(
-          `Invalid tsconfig.json: ${errorMessage}`,
+          `Invalid tsconfig.json: ${message}`,
           'TSCONFIG_INVALID',
           this._options.project
         );
       }
 
+      const parsedConfig = ts.parseJsonConfigFileContent(
+        configFile.config,
+        ts.sys,
+        path.dirname(tsConfigPath),
+        undefined,
+        tsConfigPath
+      );
+
+      if (parsedConfig.errors?.length) {
+        const message = formatTsDiagnostics(parsedConfig.errors);
+        throw ErrorHandler.createError(
+          `TypeScript configuration error: ${message}`,
+          'PROJECT_LOAD_FAILED',
+          this._options.project,
+          { diagnosticCount: parsedConfig.errors.length }
+        );
+      }
+
       // Load Project with ts-morph
       this._project = new Project({
-        tsConfigFilePath: this._options.project,
+        tsConfigFilePath: tsConfigPath,
       });
 
       // Validate project loaded successfully

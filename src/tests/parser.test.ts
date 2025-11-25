@@ -13,6 +13,7 @@ describe('AngularParser - Project Loading', () => {
   const testInvalidTsConfig = join(testTmpDir, 'invalid-tsconfig.json');
   const testMalformedTsConfig = join(testTmpDir, 'malformed-tsconfig.json');
   const testMissingTsConfig = join(testTmpDir, 'missing-tsconfig.json');
+  const tsConfigWithComment = './src/tests/fixtures/tsconfig-with-comment.json';
 
   beforeEach(() => {
     // Create test fixtures directory
@@ -108,6 +109,20 @@ describe('AngularParser - Project Loading', () => {
         expect((error as ParserError).code).toBe('TSCONFIG_INVALID');
         expect(error.message).toContain('Invalid tsconfig.json');
       }
+    });
+
+    it('should load tsconfig.json that includes JSON comments', () => {
+      const options: CliOptions = {
+        project: tsConfigWithComment,
+        format: 'json',
+        direction: 'downstream',
+        includeDecorators: false,
+        verbose: false,
+      };
+
+      const parser = new AngularParser(options);
+
+      expect(() => parser.loadProject()).not.toThrow();
     });
 
     it('should handle TypeScript compilation errors gracefully', () => {
