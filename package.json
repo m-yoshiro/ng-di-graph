@@ -1,6 +1,6 @@
 {
   "name": "ng-di-graph",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Angular DI dependency graph CLI tool",
   "main": "dist/cli/index.cjs",
   "bin": {
