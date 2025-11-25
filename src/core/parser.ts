@@ -1,6 +1,5 @@
 import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
-import * as ts from 'typescript';
 import type {
   CallExpression,
   ClassDeclaration,
@@ -15,6 +14,7 @@ import type {
   TypeNode,
 } from 'ts-morph';
 import { Project, SyntaxKind } from 'ts-morph';
+import * as ts from 'typescript';
 import type {
   CliOptions,
   EdgeFlags,
@@ -39,12 +39,10 @@ const GLOBAL_WARNING_KEYS = new Set<string>();
 
 const formatTsDiagnostics = (diagnostics: readonly ts.Diagnostic[]): string =>
   diagnostics
-    .map(diagnostic => {
+    .map((diagnostic) => {
       const message = ts.flattenDiagnosticMessageText(diagnostic.messageText, '\n');
       if (diagnostic.file && diagnostic.start !== undefined) {
-        const { line, character } = diagnostic.file.getLineAndCharacterOfPosition(
-          diagnostic.start
-        );
+        const { line, character } = diagnostic.file.getLineAndCharacterOfPosition(diagnostic.start);
         return `${diagnostic.file.fileName} (${line + 1},${character + 1}): ${message}`;
       }
       return message;
@@ -145,9 +143,8 @@ export class AngularParser {
 
     try {
       // Validate tsconfig using TypeScript's tolerant parser (supports JSONC)
-      const configFile = ts.readConfigFile(
-        tsConfigPath,
-        filePath => readFileSync(filePath, 'utf8')
+      const configFile = ts.readConfigFile(tsConfigPath, (filePath) =>
+        readFileSync(filePath, 'utf8')
       );
 
       if (configFile.error) {
