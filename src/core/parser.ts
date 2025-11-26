@@ -279,6 +279,62 @@ export class AngularParser {
   }
 
   /**
+   * Retrieve source files, optionally filtering by user-provided file paths
+   */
+  private getTargetSourceFiles(): SourceFile[] {
+    if (!this._project) {
+      throw ErrorHandler.createError(
+        'Failed to load TypeScript project',
+        'PROJECT_LOAD_FAILED',
+        this._options.project
+      );
+    }
+
+    if (!this._options.files || this._options.files.length === 0) {
+      return this._project.getSourceFiles();
+    }
+
+    const targetPaths = this._options.files.map((filePath) => ({
+      raw: filePath,
+      normalized: path.normalize(path.resolve(filePath)),
+    }));
+
+    const sourceFiles = this._project.getSourceFiles();
+    const matchedFiles = sourceFiles.filter((sourceFile) => {
+      const filePath = path.normalize(sourceFile.getFilePath());
+      return targetPaths.some((target) => target.normalized === filePath);
+    });
+
+    const missingTargets = targetPaths.filter(
+      (target) =>
+        !matchedFiles.some((file) => path.normalize(file.getFilePath()) === target.normalized)
+    );
+
+    if (missingTargets.length > 0) {
+      const missingList = missingTargets.map((target) => target.raw).join(', ');
+      throw ErrorHandler.createError(
+        `Target file(s) not found in project: ${missingList}`,
+        'FILE_NOT_FOUND',
+        missingTargets[0]?.raw
+      );
+    }
+
+    this._logger?.info(LogCategory.FILE_PROCESSING, 'Applied file filter', {
+      targetCount: targetPaths.length,
+      matchedCount: matchedFiles.length,
+    });
+
+    if (this._options.verbose) {
+      console.log(`🎯 Filtering to specific file(s): ${matchedFiles.length}`);
+      for (const file of matchedFiles) {
+        console.log(`   - ${file.getFilePath()}`);
+      }
+    }
+
+    return matchedFiles;
+  }
+
+  /**
    * Find all classes decorated with @Injectable, @Component, or @Directive
    * Implements FR-02: Decorated Class Collection
    * @returns Promise<ParsedClass[]> List of decorated classes
@@ -297,7 +353,7 @@ export class AngularParser {
     }
 
     const decoratedClasses: ParsedClass[] = [];
-    const sourceFiles = this._project.getSourceFiles();
+    const sourceFiles = this.getTargetSourceFiles();
     let processedFiles = 0;
     let skippedFiles = 0;
 

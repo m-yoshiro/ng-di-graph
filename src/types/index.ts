@@ -32,6 +32,11 @@ export interface Graph {
 
 export interface CliOptions {
   project: string;
+  /**
+   * Optional list of file paths to restrict analysis to
+   * When provided, only these files are parsed
+   */
+  files?: string[];
   format: 'json' | 'mermaid';
   entry?: string[];
   direction: 'upstream' | 'downstream' | 'both';
