@@ -294,10 +294,24 @@ export class AngularParser {
       return this._project.getSourceFiles();
     }
 
-    const targetPaths = this._options.files.map((filePath) => ({
-      raw: filePath,
-      normalized: path.normalize(path.resolve(filePath)),
-    }));
+    const projectDir = path.dirname(path.resolve(this._options.project));
+    const targetPaths = this._options.files.map((filePath) => {
+      if (path.isAbsolute(filePath)) {
+        return { raw: filePath, normalized: path.normalize(filePath) };
+      }
+
+      const projectResolved = path.normalize(path.resolve(projectDir, filePath));
+      const cwdResolved = path.normalize(path.resolve(filePath));
+
+      // Prefer project-relative resolution but fall back to cwd-based resolution
+      // for backward compatibility with paths provided from the current working directory.
+      const normalizedPath = existsSync(projectResolved) ? projectResolved : cwdResolved;
+
+      return {
+        raw: filePath,
+        normalized: normalizedPath,
+      };
+    });
 
     const sourceFiles = this._project.getSourceFiles();
     const matchedFiles = sourceFiles.filter((sourceFile) => {

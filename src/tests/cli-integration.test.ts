@@ -54,6 +54,7 @@ describe('CLI Integration - Core Features', () => {
   describe('file targeting option', () => {
     const fixtureTsConfig = './src/tests/fixtures/tsconfig.json';
     const directivesPath = './src/tests/fixtures/src/directives.ts';
+    const directivesPathRelativeToProject = 'src/directives.ts';
 
     it('should parse --files flag correctly from CLI arguments', () => {
       const cliArgs = ['--project', fixtureTsConfig, '--files', directivesPath];
@@ -66,6 +67,28 @@ describe('CLI Integration - Core Features', () => {
       const options: CliOptions = {
         project: fixtureTsConfig,
         files: [directivesPath],
+        format: 'json',
+        direction: 'downstream',
+        includeDecorators: false,
+        verbose: false
+      };
+
+      const graph = await generateGraphWithCLIOptions(options);
+      const nodeIds = graph.nodes.map(node => node.id).sort();
+
+      expect(nodeIds).toEqual([
+        'AdvancedDirective',
+        'AliasedDirective',
+        'BasicDirective',
+        'MultiLineDirective'
+      ].sort());
+      expect(graph.edges).toHaveLength(0);
+    });
+
+    it('should resolve file paths relative to the tsconfig directory', async () => {
+      const options: CliOptions = {
+        project: fixtureTsConfig,
+        files: [directivesPathRelativeToProject],
         format: 'json',
         direction: 'downstream',
         includeDecorators: false,
