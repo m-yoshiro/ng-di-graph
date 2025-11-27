@@ -71,6 +71,7 @@ program.name('ng-di-graph').description('Angular DI dependency graph CLI tool').
 program
   .argument('[projectPath]', 'tsconfig.json path or project directory containing tsconfig.json')
   .option('-p, --project <path>', 'tsconfig.json path', './tsconfig.json')
+  .option('--files <paths...>', 'specific file paths to analyze (similar to eslint targets)')
   .option('-f, --format <format>', 'output format: json | mermaid', 'json')
   .option('-e, --entry <symbol...>', 'starting nodes for sub-graph')
   .option('-d, --direction <dir>', 'filtering direction: upstream|downstream|both', 'downstream')
@@ -102,6 +103,7 @@ program.action(async (projectPath: string | undefined, options) => {
 
     const cliOptions: CliOptions = {
       project,
+      files: options.files,
       format: options.format as 'json' | 'mermaid',
       entry: options.entry,
       direction: options.direction as 'upstream' | 'downstream' | 'both',

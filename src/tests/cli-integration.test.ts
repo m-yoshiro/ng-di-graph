@@ -51,6 +51,78 @@ describe('CLI Integration - Core Features', () => {
     });
   });
 
+  describe('file targeting option', () => {
+    const fixtureTsConfig = './src/tests/fixtures/tsconfig.json';
+    const directivesPath = './src/tests/fixtures/src/directives.ts';
+    const directivesPathRelativeToProject = 'src/directives.ts';
+
+    it('should parse --files flag correctly from CLI arguments', () => {
+      const cliArgs = ['--project', fixtureTsConfig, '--files', directivesPath];
+      const parsedArgs = parseCLIArguments(cliArgs);
+
+      expect(parsedArgs.files).toEqual([directivesPath]);
+    });
+
+    it('should limit graph construction to the specified files', async () => {
+      const options: CliOptions = {
+        project: fixtureTsConfig,
+        files: [directivesPath],
+        format: 'json',
+        direction: 'downstream',
+        includeDecorators: false,
+        verbose: false
+      };
+
+      const graph = await generateGraphWithCLIOptions(options);
+      const nodeIds = graph.nodes.map(node => node.id).sort();
+
+      expect(nodeIds).toEqual([
+        'AdvancedDirective',
+        'AliasedDirective',
+        'BasicDirective',
+        'MultiLineDirective'
+      ].sort());
+      expect(graph.edges).toHaveLength(0);
+    });
+
+    it('should resolve file paths relative to the tsconfig directory', async () => {
+      const options: CliOptions = {
+        project: fixtureTsConfig,
+        files: [directivesPathRelativeToProject],
+        format: 'json',
+        direction: 'downstream',
+        includeDecorators: false,
+        verbose: false
+      };
+
+      const graph = await generateGraphWithCLIOptions(options);
+      const nodeIds = graph.nodes.map(node => node.id).sort();
+
+      expect(nodeIds).toEqual([
+        'AdvancedDirective',
+        'AliasedDirective',
+        'BasicDirective',
+        'MultiLineDirective'
+      ].sort());
+      expect(graph.edges).toHaveLength(0);
+    });
+
+    it('should surface a FILE_NOT_FOUND error when targeted files are missing', async () => {
+      const options: CliOptions = {
+        project: fixtureTsConfig,
+        files: ['./src/tests/fixtures/src/non-existent-file.ts'],
+        format: 'json',
+        direction: 'downstream',
+        includeDecorators: false,
+        verbose: false
+      };
+
+      await expect(generateGraphWithCLIOptions(options)).rejects.toMatchObject({
+        code: 'FILE_NOT_FOUND'
+      });
+    });
+  });
+
   describe('RED PHASE - CLI Flag Parsing Tests (Should Fail)', () => {
     it('should parse --include-decorators flag correctly from CLI arguments', async () => {
       // Arrange - Simulate CLI parsing (this test will fail until we verify CLI parsing works)
@@ -743,6 +815,7 @@ function parseCLIArguments(args: string[]): CliOptions {
   // This mimics the behavior of our actual CLI
   const defaultOptions: CliOptions = {
     project: './tsconfig.json',
+    files: undefined,
     format: 'json',
     direction: 'downstream',
     includeDecorators: false,
@@ -774,6 +847,12 @@ function parseCLIArguments(args: string[]): CliOptions {
       case '-d':
         options.direction = args[++i] as 'upstream' | 'downstream' | 'both';
         break;
+      case '--files':
+        options.files = [];
+        while (i + 1 < args.length && !args[i + 1].startsWith('-')) {
+          options.files.push(args[++i]);
+        }
+        break;
       case '--include-decorators':
         options.includeDecorators = true;
         break;
@@ -802,6 +881,7 @@ Angular DI dependency graph CLI tool
 Options:
   -V, --version              display version number
   -p, --project <path>       tsconfig.json path (default: "./tsconfig.json")
+  --files <paths...>         specific file paths to analyze (similar to eslint targets)
   -f, --format <format>      output format: json | mermaid (default: "json")
   -e, --entry <symbol...>    starting nodes for sub-graph
   -d, --direction <dir>      filtering direction: upstream|downstream|both (default: "downstream")

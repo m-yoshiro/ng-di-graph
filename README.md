@@ -46,6 +46,9 @@ ng-di-graph --project ./tsconfig.json --format mermaid --out graph.mmd
 # Analyze dependencies of a specific component
 ng-di-graph --project ./tsconfig.json --entry AppComponent --format mermaid
 
+# Focus on a specific file (similar to eslint targets)
+ng-di-graph --project ./tsconfig.json --files src/app/app.component.ts
+
 # Show verbose logging with detailed type resolution
 ng-di-graph --project ./tsconfig.json --verbose
 
@@ -66,6 +69,7 @@ Arguments:
 
 Options:
   -p, --project <path>       Path to tsconfig.json (default: ./tsconfig.json)
+  --files <paths...>         Specific file paths to analyze (similar to eslint targets)
   -f, --format <format>      Output format: json | mermaid (default: json)
   -e, --entry <symbol...>    Starting nodes for sub-graph filtering
   -d, --direction <dir>      Filter direction: upstream | downstream | both (default: downstream)
@@ -80,6 +84,8 @@ Options:
 - **`projectPath` (positional)**: Optional first argument that can point to a `tsconfig.json` file or a
   directory containing one; defaults to `./tsconfig.json` when omitted
 - **`--project`**: Specifies the TypeScript configuration file to use for project analysis
+- **`--files`**: Restrict analysis to one or more specific TypeScript files (relative paths supported),
+  useful when targeting a subset of your project similar to ESLint CLI usage
 - **`--format`**: Choose between JSON (structured data) or Mermaid (visual diagram)
 - **`--entry`**: Filter the graph to show only dependencies related to specified symbols (supports multiple entries)
 - **`--direction`**:
