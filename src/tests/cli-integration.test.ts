@@ -126,6 +126,24 @@ describe('CLI Integration - Core Features', () => {
       expect(nodeIds).toContain('BasicService');
     });
 
+    it('should include files excluded by tsconfig when targeting a directory', async () => {
+      const options: CliOptions = {
+        project: excludedComponentsTsConfig,
+        files: ['./src/tests/fixtures/src'],
+        format: 'json',
+        direction: 'downstream',
+        includeDecorators: false,
+        verbose: false
+      };
+
+      const graph = await generateGraphWithCLIOptions(options);
+      const nodeIds = graph.nodes.map((node) => node.id);
+
+      expect(nodeIds).toContain('BasicComponent');
+      expect(nodeIds).toContain('ComplexComponent');
+      expect(nodeIds).toContain('MultiLineComponent');
+    });
+
     it('should include explicitly targeted files even when excluded from the tsconfig', async () => {
       const options: CliOptions = {
         project: excludedComponentsTsConfig,
