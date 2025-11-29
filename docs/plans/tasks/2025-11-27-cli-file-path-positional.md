@@ -4,7 +4,7 @@
 **Executed by**: task-executor  
 **Date**: 2025-11-27  
 **Version**: v0.1  
-**Status**: Planning
+**Status**: In Review
 
 ---
 
@@ -199,23 +199,23 @@ program
 ## 8. Progress Tracking
 
 ### Milestones
-- [ ] **Milestone 1**: Red tests captured - 2025-11-28
-  - [ ] CLI integration tests updated to new positional behavior
-  - [ ] README draft prepared
+- [x] **Milestone 1**: Red tests captured - 2025-11-28
+  - [x] CLI integration tests updated to new positional behavior
+  - [x] README draft prepared
   
-- [ ] **Milestone 2**: Core CLI change complete - 2025-11-29
-  - [ ] Commander argument updated and merged file handling implemented
-  - [ ] Parser compatibility validated
+- [x] **Milestone 2**: Core CLI change complete - 2025-11-29
+  - [x] Commander argument updated and merged file handling implemented
+  - [x] Parser compatibility validated
   
 - [ ] **Milestone 3**: Docs & quality gates - 2025-11-30
   - [ ] Help/README refreshed
   - [ ] Lint/typecheck/test passing
 
 ### Progress Updates
-**Last Updated**: 2025-11-27  
-**Current Status**: Plan drafted; awaiting execution.  
+**Last Updated**: 2025-11-29  
+**Current Status**: Implementation landed and PR opened (includes directory target support and updated CLI tests).  
 **Blockers**: None identified.  
-**Next Steps**: Implement Phase 1 tests and documentation updates.
+**Next Steps**: Finalize docs/help refresh and run full lint/typecheck/test to close Milestone 3.
 
 ---
 
