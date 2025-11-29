@@ -10,7 +10,7 @@ updates:
       vitest:
         patterns:
           - "vitest"
-          - "vitest/coverage-v8"
+          - "@vitest/coverage-v8"
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
