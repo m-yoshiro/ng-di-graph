@@ -46,8 +46,8 @@ function enforceMinimumNodeVersion(): void {
 
 enforceMinimumNodeVersion();
 
-function resolveProjectPath(projectPath: string | undefined, projectOption: string): string {
-  const candidatePath = projectPath ?? projectOption;
+function resolveProjectPath(projectOption: string): string {
+  const candidatePath = projectOption;
 
   try {
     const stats = statSync(candidatePath);
@@ -69,7 +69,7 @@ const program = new Command();
 program.name('ng-di-graph').description('Angular DI dependency graph CLI tool').version('0.1.0');
 
 program
-  .argument('[projectPath]', 'tsconfig.json path or project directory containing tsconfig.json')
+  .argument('[filePaths...]', 'TypeScript files to analyze (alias for --files)')
   .option('-p, --project <path>', 'tsconfig.json path', './tsconfig.json')
   .option('--files <paths...>', 'specific file paths to analyze (similar to eslint targets)')
   .option('-f, --format <format>', 'output format: json | mermaid', 'json')
@@ -79,9 +79,9 @@ program
   .option('--out <file>', 'output file (stdout if omitted)')
   .option('-v, --verbose', 'show detailed parsing information', false);
 
-program.action(async (projectPath: string | undefined, options) => {
+program.action(async (filePaths: string[] = [], options) => {
   try {
-    const project = resolveProjectPath(projectPath, options.project);
+    const project = resolveProjectPath(options.project);
 
     // Validate direction option
     const validDirections = ['upstream', 'downstream', 'both'];
@@ -101,9 +101,21 @@ program.action(async (projectPath: string | undefined, options) => {
       );
     }
 
+    const tsconfigLikePositional = filePaths.find((filePath) =>
+      /(?:^|[\\/])tsconfig(?:\.[^/\\]+)?\.json$/.test(filePath)
+    );
+    if (tsconfigLikePositional) {
+      throw ErrorHandler.createError(
+        `Positional argument "${tsconfigLikePositional}" looks like a tsconfig. Use --project "${tsconfigLikePositional}" instead.`,
+        'INVALID_ARGUMENTS'
+      );
+    }
+
+    const mergedFiles = mergeFileTargets(filePaths, options.files);
+
     const cliOptions: CliOptions = {
       project,
-      files: options.files,
+      files: mergedFiles.length > 0 ? mergedFiles : undefined,
       format: options.format as 'json' | 'mermaid',
       entry: options.entry,
       direction: options.direction as 'upstream' | 'downstream' | 'both',
@@ -234,6 +246,16 @@ program.action(async (projectPath: string | undefined, options) => {
     }
   }
 });
+
+function mergeFileTargets(positionalFiles: string[], flagFiles: string[] | undefined): string[] {
+  const merged: string[] = [];
+  for (const filePath of [...positionalFiles, ...(flagFiles ?? [])]) {
+    if (!merged.includes(filePath)) {
+      merged.push(filePath);
+    }
+  }
+  return merged;
+}
 
 // Enhanced unhandled rejection handling
 process.on('unhandledRejection', (reason, promise) => {
