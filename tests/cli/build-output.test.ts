@@ -44,11 +44,24 @@ describe.sequential('npm build output', () => {
     expect(defaultOutput).toContain('Angular DI dependency graph CLI tool');
   });
 
-  it('accepts a project path as positional argument and resolves tsconfig.json from a directory', () => {
-    const output = execFileSync('node', [cliEntry, './src/tests/fixtures', '--format', 'json'], {
-      cwd: projectRoot,
-      encoding: 'utf-8',
-    });
+  it('accepts positional file targets while resolving tsconfig via --project', () => {
+    const output = execFileSync(
+      'node',
+      [
+        cliEntry,
+        './src/tests/fixtures/src/services.ts',
+        './src/tests/fixtures/src/directives.ts',
+        './src/tests/fixtures/src/components.ts',
+        '--project',
+        './src/tests/fixtures/tsconfig.json',
+        '--format',
+        'json',
+      ],
+      {
+        cwd: projectRoot,
+        encoding: 'utf-8',
+      }
+    );
 
     const parsed = JSON.parse(output) as { nodes: Array<{ id: string }>; edges: unknown[] };
 

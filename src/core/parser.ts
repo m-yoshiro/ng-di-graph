@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, statSync } from 'node:fs';
 import path from 'node:path';
 import type {
   CallExpression,
@@ -297,7 +297,9 @@ export class AngularParser {
     const projectDir = path.dirname(path.resolve(this._options.project));
     const targetPaths = this._options.files.map((filePath) => {
       if (path.isAbsolute(filePath)) {
-        return { raw: filePath, normalized: path.normalize(filePath) };
+        const normalized = path.normalize(filePath);
+        const isDirectory = existsSync(normalized) && statSync(normalized).isDirectory();
+        return { raw: filePath, normalized, isDirectory };
       }
 
       const projectResolved = path.normalize(path.resolve(projectDir, filePath));
@@ -306,25 +308,101 @@ export class AngularParser {
       // Prefer project-relative resolution but fall back to cwd-based resolution
       // for backward compatibility with paths provided from the current working directory.
       const normalizedPath = existsSync(projectResolved) ? projectResolved : cwdResolved;
+      const isDirectory = existsSync(normalizedPath) && statSync(normalizedPath).isDirectory();
 
       return {
         raw: filePath,
         normalized: normalizedPath,
+        isDirectory,
       };
     });
 
-    const sourceFiles = this._project.getSourceFiles();
-    const matchedFiles = sourceFiles.filter((sourceFile) => {
+    const isFileMatch = (filePath: string, target: (typeof targetPaths)[number]): boolean => {
+      if (target.isDirectory) {
+        const relative = path.relative(target.normalized, filePath);
+        return relative !== '' && !relative.startsWith('..') && !path.isAbsolute(relative);
+      }
+      return filePath === target.normalized;
+    };
+
+    const directoryTargets = targetPaths.filter((target) => target.isDirectory);
+    const fileTargets = targetPaths.filter((target) => !target.isDirectory);
+
+    const directoryAdds: Array<{ target: (typeof targetPaths)[number]; addedCount: number }> = [];
+    for (const target of directoryTargets) {
+      if (!existsSync(target.normalized) || !statSync(target.normalized).isDirectory()) {
+        continue;
+      }
+
+      const directoryGlob = `${target.normalized.replace(/\\/g, '/')}/**/*.{ts,tsx}`;
+      const added = this._project.addSourceFilesAtPaths(directoryGlob);
+      if (added.length > 0) {
+        directoryAdds.push({ target, addedCount: added.length });
+        this._logger?.warn(LogCategory.FILE_PROCESSING, 'Added directory outside tsconfig scope', {
+          directory: target.raw,
+          addedCount: added.length,
+        });
+      }
+    }
+
+    let sourceFiles = this._project.getSourceFiles();
+    let matchedFiles = sourceFiles.filter((sourceFile) => {
       const filePath = path.normalize(sourceFile.getFilePath());
-      return targetPaths.some((target) => target.normalized === filePath);
+      return targetPaths.some((target) => isFileMatch(filePath, target));
     });
 
-    const missingTargets = targetPaths.filter(
-      (target) =>
-        !matchedFiles.some((file) => path.normalize(file.getFilePath()) === target.normalized)
+    const missingFileTargets = fileTargets.filter((target) =>
+      matchedFiles.every((file) => !isFileMatch(path.normalize(file.getFilePath()), target))
+    );
+
+    if (missingFileTargets.length > 0) {
+      const addedFiles: SourceFile[] = [];
+
+      for (const target of missingFileTargets) {
+        if (!existsSync(target.normalized)) {
+          continue;
+        }
+
+        const added = this._project.addSourceFileAtPathIfExists(target.normalized);
+
+        if (added) {
+          addedFiles.push(added);
+          this._logger?.warn(LogCategory.FILE_PROCESSING, 'Added file outside tsconfig scope', {
+            filePath: target.raw,
+          });
+        }
+      }
+
+      if (addedFiles.length > 0 || directoryAdds.length > 0) {
+        sourceFiles = this._project.getSourceFiles();
+        matchedFiles = sourceFiles.filter((sourceFile) => {
+          const filePath = path.normalize(sourceFile.getFilePath());
+          return targetPaths.some((target) => isFileMatch(filePath, target));
+        });
+      }
+    }
+
+    const missingTargets = targetPaths.filter((target) =>
+      matchedFiles.every((file) => !isFileMatch(path.normalize(file.getFilePath()), target))
     );
 
     if (missingTargets.length > 0) {
+      const emptyDirectories = missingTargets.filter(
+        (target) =>
+          target.isDirectory &&
+          existsSync(target.normalized) &&
+          statSync(target.normalized).isDirectory()
+      );
+
+      if (emptyDirectories.length > 0) {
+        const firstEmpty = emptyDirectories[0];
+        throw ErrorHandler.createError(
+          `Directory "${firstEmpty.raw}" contained no TypeScript files`,
+          'FILE_NOT_FOUND',
+          firstEmpty.raw
+        );
+      }
+
       const missingList = missingTargets.map((target) => target.raw).join(', ');
       throw ErrorHandler.createError(
         `Target file(s) not found in project: ${missingList}`,

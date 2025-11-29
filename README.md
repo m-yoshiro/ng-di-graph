@@ -34,8 +34,8 @@ npm install -g ng-di-graph
 ## Usage
 
 ```bash
-# Quick run using a project directory (tsconfig.json auto-detected)
-ng-di-graph ./src/tests/fixtures --format json
+# Target specific files without the --files flag (positional shortcut)
+ng-di-graph src/app/app.component.ts --project ./tsconfig.json --format json
 
 # Analyze an Angular project and output JSON
 ng-di-graph --project ./my-angular-app/tsconfig.json --format json
@@ -62,10 +62,10 @@ ng-di-graph --project ./tsconfig.json --entry UserService --direction upstream
 ## CLI Reference
 
 ```
-ng-di-graph [projectPath] [options]
+ng-di-graph [filePaths...] [options]
 
 Arguments:
-  projectPath               Optional tsconfig.json path or directory (default: ./tsconfig.json)
+  filePaths                 Optional list of files/directories to analyze (alias for --files)
 
 Options:
   -p, --project <path>       Path to tsconfig.json (default: ./tsconfig.json)
@@ -81,11 +81,13 @@ Options:
 
 ### Option Details
 
-- **`projectPath` (positional)**: Optional first argument that can point to a `tsconfig.json` file or a
-  directory containing one; defaults to `./tsconfig.json` when omitted
-- **`--project`**: Specifies the TypeScript configuration file to use for project analysis
-- **`--files`**: Restrict analysis to one or more specific TypeScript files (relative paths supported),
-  useful when targeting a subset of your project similar to ESLint CLI usage
+- **`filePaths` (positional)**: Optional positional arguments that act as a shortcut for `--files`,
+  allowing you to target specific files or directories without the flag; omit to scan the full project
+- **`--project`**: Specifies the TypeScript configuration file to use for project analysis (required
+  when your tsconfig lives outside `./tsconfig.json`)
+- **`--files`**: Restrict analysis to one or more specific TypeScript files (relative paths supported)
+  and merges with positional `filePaths` when both are provided; useful when targeting a subset of your
+  project similar to ESLint CLI usage
 - **`--format`**: Choose between JSON (structured data) or Mermaid (visual diagram)
 - **`--entry`**: Filter the graph to show only dependencies related to specified symbols (supports multiple entries)
 - **`--direction`**:
