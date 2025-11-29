@@ -55,6 +55,7 @@ describe('CLI Integration - Core Features', () => {
     const fixtureTsConfig = './src/tests/fixtures/tsconfig.json';
     const directivesPath = './src/tests/fixtures/src/directives.ts';
     const directivesPathRelativeToProject = 'src/directives.ts';
+    const excludedComponentsTsConfig = './src/tests/fixtures/tsconfig-excludes-components.json';
 
     it('should parse --files flag correctly from CLI arguments', () => {
       const cliArgs = ['--project', fixtureTsConfig, '--files', directivesPath];
@@ -107,6 +108,40 @@ describe('CLI Integration - Core Features', () => {
       expect(graph.edges).toHaveLength(0);
     });
 
+    it('should accept directory targets and include contained files', async () => {
+      const options: CliOptions = {
+        project: fixtureTsConfig,
+        files: ['./src/tests/fixtures/src'],
+        format: 'json',
+        direction: 'downstream',
+        includeDecorators: false,
+        verbose: false
+      };
+
+      const graph = await generateGraphWithCLIOptions(options);
+      const nodeIds = graph.nodes.map((node) => node.id);
+
+      expect(nodeIds).toContain('BasicComponent');
+      expect(nodeIds).toContain('BasicDirective');
+      expect(nodeIds).toContain('BasicService');
+    });
+
+    it('should include explicitly targeted files even when excluded from the tsconfig', async () => {
+      const options: CliOptions = {
+        project: excludedComponentsTsConfig,
+        files: ['./src/tests/fixtures/src/components.ts'],
+        format: 'json',
+        direction: 'downstream',
+        includeDecorators: false,
+        verbose: false
+      };
+
+      const graph = await generateGraphWithCLIOptions(options);
+
+      expect(graph.nodes.some((node) => node.id === 'BasicComponent')).toBe(true);
+      expect(graph.nodes.some((node) => node.id === 'ComplexComponent')).toBe(true);
+    });
+
     it('should surface a FILE_NOT_FOUND error when targeted files are missing', async () => {
       const options: CliOptions = {
         project: fixtureTsConfig,
@@ -120,6 +155,56 @@ describe('CLI Integration - Core Features', () => {
       await expect(generateGraphWithCLIOptions(options)).rejects.toMatchObject({
         code: 'FILE_NOT_FOUND'
       });
+    });
+  });
+
+  describe('RED PHASE - Positional file arguments (Should Fail)', () => {
+    const fixtureTsConfig = './src/tests/fixtures/tsconfig.json';
+    const servicesPath = './src/tests/fixtures/src/services.ts';
+    const componentsPath = './src/tests/fixtures/src/components.ts';
+
+    it('should map positional file arguments into the files option', () => {
+      const cliArgs = [servicesPath, componentsPath, '--project', fixtureTsConfig];
+
+      const parsedArgs = parseCLIArguments(cliArgs);
+
+      expect(parsedArgs.files).toEqual([servicesPath, componentsPath]);
+    });
+
+    it('should reject positional tsconfig-like inputs and prompt using --project', async () => {
+      const cliCommand = ['ng-di-graph', './src/tests/fixtures/tsconfig.json', '--format', 'json'];
+
+      const result = await executeCLICommand(cliCommand);
+
+      expect(result.exitCode).toBe(1);
+      expect(result.stderr).toContain('tsconfig');
+      expect(result.stderr).toContain('--project');
+    });
+
+    it('should merge positional files with --files while preserving order and deduping', () => {
+      const cliArgs = [
+        servicesPath,
+        componentsPath,
+        '--files',
+        servicesPath,
+        './src/tests/fixtures/src/directives.ts',
+        '--project',
+        fixtureTsConfig
+      ];
+
+      const parsedArgs = parseCLIArguments(cliArgs);
+
+      expect(parsedArgs.files).toEqual([
+        servicesPath,
+        componentsPath,
+        './src/tests/fixtures/src/directives.ts'
+      ]);
+    });
+
+    it('should default to a full project scan when no files are provided', () => {
+      const parsedArgs = parseCLIArguments(['--project', fixtureTsConfig]);
+
+      expect(parsedArgs.files).toBeUndefined();
     });
   });
 
@@ -823,6 +908,8 @@ function parseCLIArguments(args: string[]): CliOptions {
   };
 
   const options = { ...defaultOptions };
+  const positionalFiles: string[] = [];
+  const flagFiles: string[] = [];
 
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
@@ -848,9 +935,8 @@ function parseCLIArguments(args: string[]): CliOptions {
         options.direction = args[++i] as 'upstream' | 'downstream' | 'both';
         break;
       case '--files':
-        options.files = [];
         while (i + 1 < args.length && !args[i + 1].startsWith('-')) {
-          options.files.push(args[++i]);
+          flagFiles.push(args[++i]);
         }
         break;
       case '--include-decorators':
@@ -866,15 +952,23 @@ function parseCLIArguments(args: string[]): CliOptions {
       case 'ng-di-graph':
         // Skip command name
         break;
+      default: {
+        if (!arg.startsWith('-')) {
+          positionalFiles.push(arg);
+        }
+      }
     }
   }
+
+  const mergedFiles = mergeFileTargets(positionalFiles, flagFiles);
+  options.files = mergedFiles.length > 0 ? mergedFiles : undefined;
 
   return options;
 }
 
 function getCLIHelpText(): string {
   // Simulate commander.js help output
-  return `Usage: ng-di-graph [options]
+  return `Usage: ng-di-graph [filePaths...] [options]
 
 Angular DI dependency graph CLI tool
 
@@ -915,6 +1009,14 @@ async function executeCLICommand(args: string[]): Promise<CLIResult> {
   try {
     // Parse CLI arguments
     const options = parseCLIArguments(args);
+
+    const positionalFileArgs = extractPositionalFileArgs(args);
+    const tsconfigLike = positionalFileArgs.find(looksLikeTsconfigPath);
+    if (tsconfigLike) {
+      throw new Error(
+        `Positional argument "${tsconfigLike}" looks like a tsconfig. Use --project "${tsconfigLike}" instead.`
+      );
+    }
 
     // Validate required options - check for default when not provided
     if (!options.project || options.project === './tsconfig.json') {
@@ -1017,4 +1119,45 @@ async function executeCLICommand(args: string[]): Promise<CLIResult> {
   }
 
   return { exitCode, stdout, stderr };
+}
+
+function mergeFileTargets(positionalFiles: string[], flagFiles: string[]): string[] {
+  const merged: string[] = [];
+  for (const filePath of [...positionalFiles, ...flagFiles]) {
+    if (!merged.includes(filePath)) {
+      merged.push(filePath);
+    }
+  }
+  return merged;
+}
+
+function extractPositionalFileArgs(args: string[]): string[] {
+  const positional: string[] = [];
+  for (let i = 0; i < args.length; i++) {
+    const arg = args[i];
+    if (arg === 'ng-di-graph') {
+      continue;
+    }
+
+    if (arg.startsWith('-')) {
+      // Skip flag payloads
+      if (['--project', '-p', '--format', '-f', '--direction', '-d', '--out'].includes(arg)) {
+        i++;
+      } else if (['--entry', '-e', '--files'].includes(arg)) {
+        while (i + 1 < args.length && !args[i + 1].startsWith('-')) {
+          i++;
+        }
+      }
+      continue;
+    }
+
+    positional.push(arg);
+  }
+
+  return positional;
+}
+
+function looksLikeTsconfigPath(filePath: string): boolean {
+  const basename = filePath.split(/[\\/]/).pop() ?? filePath;
+  return /^tsconfig(\.[^/\\]+)?\.json$/.test(basename);
 }
