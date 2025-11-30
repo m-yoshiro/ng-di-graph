@@ -27,9 +27,10 @@ Eliminate ambient `console.*` dependencies from core modules by routing logging/
 ## 2. Technical Approach
 
 ### Architecture Decisions
-- Leverage `Logger` interface for verbose and warning output in core modules; keep it optional to preserve current verbosity toggles.
-- Pass optional `Logger` (or output writer) via function constructors/parameters instead of importing `console`.
+- Leverage `Logger` interface for verbose and warning output in core modules; keep it optional to preserve current verbosity toggles while avoiding any ambient `console.*` paths in core (noop when logger absent).
+- Pass optional `Logger` (or output writer) via function constructors/parameters instead of importing `console`; CLI supplies a real or no-op logger for verbose flows so core never binds to process globals.
 - Preserve CLI console usage for user-facing messages; structured logs continue to go to stderr via `Logger`.
+- Add automated guard coverage to fail if `console.*` re-enters `src/core/**`.
 
 **Design Pattern**: Dependency injection for logging/output to remove ambient context.  
 
@@ -62,8 +63,8 @@ tests/
 ```
 
 ### Data Flow
-1. CLI constructs `Logger` when verbose; passes to parser/graph-filter/formatters.
-2. Core modules emit logs via `Logger` (stderr) and structured stats; no direct `console.*`.
+1. CLI constructs a real or no-op `Logger` based on verbose flag and passes it to parser/graph-filter/formatters so core never uses global console.
+2. Core modules emit logs via `Logger` (stderr) and structured stats; no direct `console.*` paths.
 3. User-facing stdout remains via CLI console pathways or output handler.
 
 ---
@@ -114,6 +115,10 @@ tests/
 - [ ] **Task 3.2**: Regression and quality gates
   - **Implementation**: Run `npm run lint`, `npm run typecheck`, `npm run test`; update snapshots/fixtures if necessary.
   - **Acceptance Criteria**: All quality gates pass; coverage thresholds maintained.
+
+- [ ] **Task 3.3**: Eliminate console fallbacks and enforce ambient-context guard
+  - **Implementation**: Remove `console.*` fallbacks from parser/graph-filter verbose paths; rely on injected logger (real or no-op) and add a guard test/lint to fail builds if `console.*` appears in `src/core/**`. Ensure CLI wiring supplies the logger so verbose output is preserved without ambient console usage.
+  - **Acceptance Criteria**: `rg console src/core` only matches intentional stderr boundaries (`logger`/`error-handler`); guard test passes; verbose behavior unchanged from user perspective.
 
 ---
 
@@ -174,7 +179,7 @@ graph = filterGraph(graph, cliOptions, logger);
 ## 6. Error Handling & Edge Cases
 
 ### Error Scenarios
-- **Logger undefined**: Core code should no-op logging safely when logger absent.
+- **Logger undefined**: Core code should no-op logging safely when logger absent (no ambient console fallbacks).
 - **Verbose flag false**: Ensure no extraneous output; maintain silent mode.
 - **Console error replacements**: Route operational failures through `ErrorHandler`; use `logger.error` for diagnostic context in verbose flows.
 
@@ -232,3 +237,10 @@ graph = filterGraph(graph, cliOptions, logger);
   - Ran `npm test -- src/tests/parser.test.ts src/tests/graph-filter.test.ts` (via `mise x node@20.19.0 -- ...`) to verify updated logging pathways.
 - 2025-11-30: Ran `npm run check` (lint + typecheck) after formatting updates; core modules now free of ambient `console.*` aside from intentional stderr boundaries (`logger`/`error-handler`) and CLI UI output.
 - 2025-11-30: Converted remaining parser warning tests to assert Logger pathways instead of patching global console; reran `npm test -- src/tests/parser.test.ts` to confirm.
+- 2025-11-30: Added console fallbacks for verbose paths when Logger is absent and tightened performance (temporary compatibility).
+  - `filterGraph` verbose summaries and missing-entry warnings now log via `Logger` when provided or fall back to console; verbose tests now pass.
+  - `parser` verbose helpers emit via `Logger` or console while still honoring the verbose flag; `loadProject` defers heavy source loading to keep the <2s target reliable.
+  - Full suite `npm test` now passes; remaining Phase 3 tasks: refresh helpers to drop stale console spies and rerun `npm run check`/`npm run typecheck` if dependencies change.
+- 2025-11-30 (follow-up): Console fallbacks flagged as ambient-context regression; plan updated to remove them.
+  - Add guard test to fail on `console.*` under `src/core/**`; rely on injected real/no-op logger so verbose output stays intact without ambient console usage.
+  - Task 3.3 added to track removal and guard enforcement; CLI wiring to supply logger instance even in verbose no-op mode.

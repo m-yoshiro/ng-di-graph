@@ -26,8 +26,9 @@ function validateAndTraverseEntryPoints(
   for (const entryPoint of entryPoints) {
     if (graph.nodes.some((n) => n.id === entryPoint)) {
       traverseFromEntry(entryPoint, adjacencyList, resultSet);
-    } else if (options.verbose) {
-      logger?.warn(LogCategory.FILTERING, `Entry point '${entryPoint}' not found in graph`, {
+    } else if (options.verbose && logger) {
+      const message = `Entry point '${entryPoint}' not found in graph`;
+      logger.warn(LogCategory.FILTERING, message, {
         entryPoint,
       });
     }
@@ -142,12 +143,12 @@ export function filterGraph(graph: Graph, options: CliOptions, logger?: Logger):
     return true;
   });
 
-  if (options.verbose) {
-    logger?.info(LogCategory.FILTERING, 'Filtered graph summary', {
+  if (options.verbose && logger) {
+    logger.info(LogCategory.FILTERING, 'Filtered graph summary', {
       nodeCount: filteredNodes.length,
       edgeCount: filteredEdges.length,
     });
-    logger?.debug(LogCategory.FILTERING, 'Entry points applied', { entryPoints: options.entry });
+    logger.debug(LogCategory.FILTERING, 'Entry points applied', { entryPoints: options.entry });
   }
 
   return {

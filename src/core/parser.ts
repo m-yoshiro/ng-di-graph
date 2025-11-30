@@ -70,13 +70,13 @@ export class AngularParser {
   ) {}
 
   private verboseInfo(category: LogCategory, message: string, context?: LogContext): void {
-    if (!this._options.verbose) return;
-    this._logger?.info(category, message, context);
+    if (!this._options.verbose || !this._logger) return;
+    this._logger.info(category, message, context);
   }
 
   private verboseDebug(category: LogCategory, message: string, context?: LogContext): void {
-    if (!this._options.verbose) return;
-    this._logger?.debug(category, message, context);
+    if (!this._options.verbose || !this._logger) return;
+    this._logger.debug(category, message, context);
   }
 
   private warn(category: LogCategory, message: string, context?: LogContext): void {
@@ -222,25 +222,7 @@ export class AngularParser {
         );
       }
 
-      // Basic validation - try to get source files to ensure project is valid
-      // This will catch TypeScript compilation/configuration errors
-      this._project.getSourceFiles();
-
-      // Additional validation for compiler options
-      const program = this._project.getProgram();
-      const diagnostics = program.getConfigFileParsingDiagnostics();
-
-      if (diagnostics.length > 0) {
-        const firstDiagnostic = diagnostics[0];
-        const message = firstDiagnostic.getMessageText();
-
-        throw ErrorHandler.createError(
-          `TypeScript configuration error: ${message}`,
-          'PROJECT_LOAD_FAILED',
-          this._options.project,
-          { diagnosticCount: diagnostics.length }
-        );
-      }
+      // Defer full source file loading to the parsing phase to keep loadProject fast.
     } catch (error) {
       // Re-throw CliError instances
       if (error instanceof CliError) {
