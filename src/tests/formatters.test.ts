@@ -182,7 +182,7 @@ describe('Output Formatting', () => {
       expect(result).not.toContain('$');
     });
 
-    describe('Logger Integration (Phase 2.3)', () => {
+    describe('Logger integration', () => {
       it('should accept optional Logger in constructor', () => {
         const logger = createLogger(true) as Logger;
         const formatterWithLogger = new MermaidFormatter(logger);
@@ -353,7 +353,7 @@ describe('Output Formatting', () => {
       });
     });
 
-    describe('Logger Integration (Phase 2.3)', () => {
+    describe('Logger integration', () => {
       it('should accept optional Logger in constructor', () => {
         const logger = createLogger(true) as Logger;
         const formatterWithLogger = new JsonFormatter(logger);
