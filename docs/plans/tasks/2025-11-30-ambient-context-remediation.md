@@ -1,0 +1,219 @@
+# Implementation Plan Template
+
+**Created by**: implementation-planner  
+**Executed by**: implementation-executor  
+**Date**: 2025-11-30  
+**Version**: v0.1  
+**Status**: Planning
+
+---
+
+## 1. Overview
+
+### Feature/Task Description
+Eliminate ambient `console.*` dependencies from core modules by routing logging/output through explicit dependencies (Logger or injected writer), keeping CLI console usage as the only process-bound boundary.
+
+**Goal**: Make logging in core code explicit and injectable to avoid ambient context coupling and improve testability.  
+**Scope**: `src/core/**` and helpers invoked from core paths; align tests accordingly. CLI user-facing console output remains unchanged.  
+**Priority**: High
+
+### Context & Background
+- **Requirements**: @docs/prd/mvp-requirements.md#logging-and-cli-behavior
+- **Related Documentation**: @docs/rules/ai-development-guide.md, @docs/rules/tdd-development-workflow.md, @docs/plans/tasks/2025-10-29-verbose-mode-implementation-plan.md
+- **Dependencies**: Existing `Logger` interface in `src/core/logger.ts`; CLI verbose flag behavior; ErrorHandler patterns.
+
+---
+
+## 2. Technical Approach
+
+### Architecture Decisions
+- Leverage `Logger` interface for verbose and warning output in core modules; keep it optional to preserve current verbosity toggles.
+- Pass optional `Logger` (or output writer) via function constructors/parameters instead of importing `console`.
+- Preserve CLI console usage for user-facing messages; structured logs continue to go to stderr via `Logger`.
+
+**Design Pattern**: Dependency injection for logging/output to remove ambient context.  
+
+**Technology Stack**:
+- TypeScript (Node 20), ts-morph, Vitest, Biome.
+- Existing `Logger` implementation for structured logs.
+
+**Integration Points**:
+- `src/cli/index.ts` constructs `Logger` and passes to core modules.
+- `src/core/graph-filter.ts` and `src/core/parser.ts` consume optional `Logger`.
+- Formatters/output handlers remain unchanged except for logger threading if needed.
+
+**Logging-Level Mapping**:
+- Former `console.log` verbose/diagnostic messages → `logger.debug` (or `logger.info` where user-level verbose info is intended).
+- Former `console.warn` → `logger.warn`.
+- Any `console.error` in core → `ErrorHandler` for operational failures; `logger.error` for diagnostic context in verbose flows.
+
+### File Structure
+```
+src/
+├── core/
+│   ├── graph-filter.ts       # Add optional logger parameter; remove console usage
+│   └── parser.ts             # Replace console.* with logger/ErrorHandler
+└── cli/
+    └── index.ts              # Ensure logger passed into core calls; console only for UI
+
+tests/
+├── helpers/                  # Adjust logger mocks/spies as needed
+└── *.test.ts                 # Update expectations for logging pathways
+```
+
+### Data Flow
+1. CLI constructs `Logger` when verbose; passes to parser/graph-filter/formatters.
+2. Core modules emit logs via `Logger` (stderr) and structured stats; no direct `console.*`.
+3. User-facing stdout remains via CLI console pathways or output handler.
+
+---
+
+## 3. Implementation Tasks
+
+### Phase 1: Foundation
+**Priority**: High  
+**Estimated Duration**: 0.5 day
+
+- [ ] **Task 1.1**: Inventory and classify `console.*` usage in core paths
+  - **TDD Approach**: Add/adjust a unit test that fails when core code logs via global console (e.g., `vi.spyOn(console, 'log')`/`console.warn` and assert no calls when invoking core functions).
+  - **Implementation**: Identify production `console.*` in `src/core/**`; document intended logger mapping.
+  - **Acceptance Criteria**: List of all core `console.*` call sites with planned replacements.
+
+- [ ] **Task 1.2**: Define logger threading contracts
+  - **TDD Approach**: Add/adjust type-level test or compile-time expectation (tsd-style via typecheck) ensuring optional logger is accepted where needed.
+  - **Implementation**: Decide parameter additions (e.g., logger arg for `filterGraph`, propagate through call sites); ensure types updated.
+  - **Acceptance Criteria**: Signatures updated with optional logger; CLI compile check passes.
+
+### Phase 2: Core Implementation
+**Priority**: High  
+**Estimated Duration**: 1 day
+
+- [ ] **Task 2.1**: Refactor parser logging
+  - **TDD Approach**: Write/adjust parser verbose tests to assert logger usage instead of console; ensure warnings still surface appropriately.
+  - **Implementation**: Replace `console.log/warn` in `src/core/parser.ts` with `Logger` or `ErrorHandler` calls; guard on verbose flag with logger present.
+  - **Acceptance Criteria**: No direct `console.*` in parser; verbose output observable via logger mocks; existing behavior preserved.
+
+- [ ] **Task 2.2**: Refactor graph filter logging
+  - **TDD Approach**: Update bidirectional/filtering tests to assert logger calls when verbose; ensure user-facing output unaffected.
+  - **Implementation**: Add optional logger parameter to `filterGraph`; replace console usage; update CLI invocation.
+  - **Acceptance Criteria**: Graph filter emits via logger when provided; CLI still prints verbose info as before; typecheck passes.
+
+- [ ] **Task 2.3**: Sweep other core modules
+  - **TDD Approach**: Add a guard test to fail if `console.*` remains in `src/core/**` (lint rule or targeted test).
+  - **Implementation**: Remove/replace any remaining core `console.*`; ensure formatters/output handler unchanged unless needed for logger threading.
+  - **Acceptance Criteria**: `rg console` in core returns empty; functionality unchanged.
+
+### Phase 3: Integration & Polish
+**Priority**: Medium  
+**Estimated Duration**: 0.5 day
+
+- [ ] **Task 3.1**: Update test helpers and fixtures
+  - **Implementation**: Adjust logger mocks/spies in `tests/helpers` to capture new logger calls; clean up console spies no longer needed.
+  - **Acceptance Criteria**: Tests reflect new logging pathway; no brittle console expectations remain.
+
+- [ ] **Task 3.2**: Regression and quality gates
+  - **Implementation**: Run `npm run lint`, `npm run typecheck`, `npm run test`; update snapshots/fixtures if necessary.
+  - **Acceptance Criteria**: All quality gates pass; coverage thresholds maintained.
+
+---
+
+## 4. Test-Driven Development Plan
+
+### Test Strategy
+**Approach**: Follow mandatory TDD workflow from @docs/rules/tdd-development-workflow.md.
+
+**Test Categories**:
+- **Unit Tests**: Parser logging behavior, graph filter verbose output via logger, logger optionality.
+- **Integration Tests**: CLI verbose flag path ensuring logger wired and console output unchanged.
+- **End-to-End Tests**: CLI invocation with verbose to confirm no regressions in user-facing output.
+
+### Test Implementation Order
+1. **Red Phase**: Add/adjust tests that fail when core hits `console.*` and verify logger receives messages.
+2. **Green Phase**: Implement logger threading and replace console calls to satisfy tests.
+3. **Refactor Phase**: Simplify logger usage, remove duplication, and ensure helpers/mocks are clean.
+
+### Test Files Structure
+```
+tests/
+├── parser-*.test.ts              # Logger-based verbose assertions
+├── bidirectional-filtering.test.ts
+└── cli-integration.test.ts       # Ensure CLI still prints user messages; logger used for verbose
+```
+
+---
+
+## 5. Technical Specifications
+
+### Interfaces & Types
+```typescript
+// Example signature adjustments
+export function filterGraph(graph: Graph, options: CliOptions, logger?: Logger): Graph;
+
+// Logger usage contract in parser
+class AngularParser {
+  constructor(private _options: CliOptions, private _logger?: Logger) {}
+}
+```
+
+### API Design
+```typescript
+// CLI wiring
+const logger = createLogger(cliOptions.verbose);
+const parser = new AngularParser(cliOptions, logger);
+let graph = buildGraph(parsedClasses, logger);
+graph = filterGraph(graph, cliOptions, logger);
+```
+
+### Configuration
+- **Environment Variables**: None new.
+- **Config Files**: No changes expected.
+- **Default Values**: Logger remains optional; verbose flag drives creation.
+
+---
+
+## 6. Error Handling & Edge Cases
+
+### Error Scenarios
+- **Logger undefined**: Core code should no-op logging safely when logger absent.
+- **Verbose flag false**: Ensure no extraneous output; maintain silent mode.
+- **Console error replacements**: Route operational failures through `ErrorHandler`; use `logger.error` for diagnostic context in verbose flows.
+
+### Edge Cases
+- **Entry points missing**: Ensure warnings emitted via logger or ErrorHandler, not console.
+- **Anonymous classes**: Warnings routed through logger without breaking parsing.
+
+### Validation Requirements
+- **Input Validation**: Existing CLI option validation unaffected.
+- **Output Validation**: Logger output formatting preserved; CLI stdout remains clean JSON/Mermaid when not verbose.
+
+---
+
+## 7. Performance Considerations
+
+### Performance Requirements
+- Logging changes must not add measurable overhead when logger is undefined (should remain no-op).
+- Avoid additional allocations in hot paths beyond logger guards.
+
+### Memory Management
+- Logger optional path should not retain large buffers; continue streaming to stderr.
+- Ensure no leaked timers or contexts when logger absent.
+
+---
+
+## 8. Progress Tracking
+
+### Milestones
+- [ ] **Milestone 1**: Core logging refactor planned - 2025-12-01
+  - [ ] Phase 1 tasks completed
+  - [ ] Signatures defined and agreed
+  
+- [ ] **Milestone 2**: Core logging refactor implemented - 2025-12-02
+  - [ ] Phase 2 tasks completed
+  - [ ] Unit/integration tests passing
+  
+- [ ] **Milestone 3**: Validation complete - 2025-12-03
+  - [ ] Phase 3 tasks completed
+  - [ ] All acceptance criteria met
+
+### Progress Updates
+<!-- Updated by task-executor during execution -->
