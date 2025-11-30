@@ -4,6 +4,7 @@
  */
 
 import type { CliOptions, Graph } from '../types';
+import { LogCategory, type Logger } from './logger';
 
 /**
  * Helper function to validate entry points and perform traversal
@@ -12,19 +13,23 @@ import type { CliOptions, Graph } from '../types';
  * @param adjacencyList The adjacency list for traversal
  * @param resultSet The set to collect traversal results
  * @param options CLI options for verbose output
+ * @param logger Optional logger for structured output
  */
 function validateAndTraverseEntryPoints(
   entryPoints: string[],
   graph: Graph,
   adjacencyList: Map<string, string[]>,
   resultSet: Set<string>,
-  options: CliOptions
+  options: CliOptions,
+  logger?: Logger
 ): void {
   for (const entryPoint of entryPoints) {
     if (graph.nodes.some((n) => n.id === entryPoint)) {
       traverseFromEntry(entryPoint, adjacencyList, resultSet);
     } else if (options.verbose) {
-      console.warn(`Entry point '${entryPoint}' not found in graph`);
+      logger?.warn(LogCategory.FILTERING, `Entry point '${entryPoint}' not found in graph`, {
+        entryPoint,
+      });
     }
   }
 }
@@ -33,9 +38,10 @@ function validateAndTraverseEntryPoints(
  * Filters a graph based on entry points and traversal direction
  * @param graph The graph to filter
  * @param options CLI options containing entry points and direction
+ * @param logger Optional logger for structured output
  * @returns Filtered graph containing only nodes reachable from entry points
  */
-export function filterGraph(graph: Graph, options: CliOptions): Graph {
+export function filterGraph(graph: Graph, options: CliOptions, logger?: Logger): Graph {
   // If no entry points specified or empty array, return original graph
   if (!options.entry || options.entry.length === 0) {
     return graph;
@@ -53,7 +59,8 @@ export function filterGraph(graph: Graph, options: CliOptions): Graph {
       graph,
       upstreamAdjacencyList,
       upstreamNodes,
-      options
+      options,
+      logger
     );
 
     // Perform downstream traversal
@@ -64,7 +71,8 @@ export function filterGraph(graph: Graph, options: CliOptions): Graph {
       graph,
       downstreamAdjacencyList,
       downstreamNodes,
-      options
+      options,
+      logger
     );
 
     // Combine upstream and downstream results using Set constructor for optimal performance
@@ -75,7 +83,14 @@ export function filterGraph(graph: Graph, options: CliOptions): Graph {
   } else {
     // Handle single direction (upstream or downstream)
     const adjacencyList = buildAdjacencyList(graph, options.direction);
-    validateAndTraverseEntryPoints(options.entry, graph, adjacencyList, includedNodeIds, options);
+    validateAndTraverseEntryPoints(
+      options.entry,
+      graph,
+      adjacencyList,
+      includedNodeIds,
+      options,
+      logger
+    );
   }
 
   // Filter nodes and edges
@@ -128,8 +143,11 @@ export function filterGraph(graph: Graph, options: CliOptions): Graph {
   });
 
   if (options.verbose) {
-    console.log(`Filtered graph: ${filteredNodes.length} nodes, ${filteredEdges.length} edges`);
-    console.log(`Entry points: ${options.entry.join(', ')}`);
+    logger?.info(LogCategory.FILTERING, 'Filtered graph summary', {
+      nodeCount: filteredNodes.length,
+      edgeCount: filteredEdges.length,
+    });
+    logger?.debug(LogCategory.FILTERING, 'Entry points applied', { entryPoints: options.entry });
   }
 
   return {

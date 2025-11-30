@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { existsSync, writeFileSync, unlinkSync, mkdirSync, rmSync } from 'fs';
 import { join } from 'path';
 import { AngularParser } from '../core/parser';
@@ -52,6 +52,34 @@ describe('AngularParser - Project Loading', () => {
     if (existsSync(testTmpDir)) {
       rmSync(testTmpDir, { recursive: true, force: true });
     }
+  });
+
+  it('routes verbose parser instrumentation through Logger instead of console', async () => {
+    const logger = createStubLogger();
+    const consoleLogSpy = vi.spyOn(console, 'log');
+    const consoleWarnSpy = vi.spyOn(console, 'warn');
+
+    const parser = new AngularParser(
+      {
+        project: './src/tests/fixtures/tsconfig.json',
+        format: 'json',
+        direction: 'downstream',
+        includeDecorators: true,
+        verbose: true,
+      },
+      logger
+    );
+
+    parser.loadProject();
+    await parser.findDecoratedClasses();
+
+    expect(consoleLogSpy).not.toHaveBeenCalled();
+    expect(consoleWarnSpy).not.toHaveBeenCalled();
+    expect(logger.logs.length).toBeGreaterThan(0);
+    expect(logger.logs.some((log) => log.category === LogCategory.FILE_PROCESSING)).toBe(true);
+
+    consoleLogSpy.mockRestore();
+    consoleWarnSpy.mockRestore();
   });
 
   describe('loadProject() method', () => {
@@ -448,35 +476,25 @@ describe('AngularParser - Decorated Class Collection', () => {
         verbose: false
       };
 
-      const parser = new AngularParser(options);
+      const logger = createStubLogger();
+      const parser = new AngularParser(options, logger);
       parser.loadProject();
 
-      // Mock console.warn to capture warnings
-      const originalWarn = console.warn;
-      const warnings: string[] = [];
-      console.warn = (message: string) => warnings.push(message);
+      const classes = await parser.findDecoratedClasses();
 
-      try {
-        const classes = await parser.findDecoratedClasses();
+      // Should not include anonymous classes - only properly named classes
+      const classNames = classes.map(c => c.name);
+      expect(classNames).not.toContain('');
+      expect(classNames).not.toContain(undefined);
 
-        // Should not include anonymous classes - only properly named classes
-        const classNames = classes.map(c => c.name);
-        expect(classNames).not.toContain('');
-        expect(classNames).not.toContain(undefined);
+      // All found classes should have valid names
+      classNames.forEach(name => {
+        expect(name).toBeTruthy();
+        expect(typeof name).toBe('string');
+        expect(name.length).toBeGreaterThan(0);
+      });
 
-        // All found classes should have valid names
-        classNames.forEach(name => {
-          expect(name).toBeTruthy();
-          expect(typeof name).toBe('string');
-          expect(name.length).toBeGreaterThan(0);
-        });
-
-        // Anonymous class detection is a complex edge case that can be enhanced in future versions
-        // For now, we ensure that only properly named classes are returned
-        // The warning functionality exists but requires more sophisticated AST pattern matching
-      } finally {
-        console.warn = originalWarn;
-      }
+      expect(logger.logs.length).toBeGreaterThan(0);
     });
 
     it('should handle files with parsing errors gracefully', async () => {
@@ -626,54 +644,76 @@ describe('AngularParser - Constructor token resolution', () => {
       // Reset warning state to ensure warnings are captured
       AngularParser.resetWarningState();
 
-      const originalWarn = console.warn;
-      const warnings: string[] = [];
-      console.warn = (message: string) => warnings.push(message);
+      const logger = createStubLogger();
+      const warningParser = new AngularParser(
+        {
+          project: testTsConfig,
+          format: 'json',
+          direction: 'downstream',
+          includeDecorators: false,
+          verbose: false,
+        },
+        logger
+      );
+      warningParser.loadProject();
 
-      try {
-        const classes = await parser.findDecoratedClasses();
-        const componentWithAny = classes.find(c => c.name === 'ComponentWithAny');
+      const classes = await warningParser.findDecoratedClasses();
+      const componentWithAny = classes.find(c => c.name === 'ComponentWithAny');
 
-        // Should not include any/unknown dependencies
-        expect(componentWithAny?.dependencies).not.toContainEqual(
-          expect.objectContaining({ token: 'any' })
-        );
-        expect(componentWithAny?.dependencies).not.toContainEqual(
-          expect.objectContaining({ token: 'unknown' })
-        );
+      // Should not include any/unknown dependencies
+      expect(componentWithAny?.dependencies).not.toContainEqual(
+        expect.objectContaining({ token: 'any' })
+      );
+      expect(componentWithAny?.dependencies).not.toContainEqual(
+        expect.objectContaining({ token: 'unknown' })
+      );
 
-        // Should have warned about skipping these types
-        expect(warnings.some(w => w.includes('Skipping parameter') && w.includes('any/unknown type'))).toBe(true);
-      } finally {
-        console.warn = originalWarn;
-      }
+      const warnLogs = logger.logs.filter(log => log.level === 'warn');
+      expect(
+        warnLogs.some(
+          log =>
+            log.message.includes('Skipping parameter') &&
+            log.message.includes('any/unknown type')
+        )
+      ).toBe(true);
     });
 
     it('should skip primitive types with warning', async () => {
       // Reset warning state to ensure warnings are captured
       AngularParser.resetWarningState();
 
-      const originalWarn = console.warn;
-      const warnings: string[] = [];
-      console.warn = (message: string) => warnings.push(message);
+      const logger = createStubLogger();
+      const warningParser = new AngularParser(
+        {
+          project: testTsConfig,
+          format: 'json',
+          direction: 'downstream',
+          includeDecorators: false,
+          verbose: false,
+        },
+        logger
+      );
+      warningParser.loadProject();
 
-      try {
-        const classes = await parser.findDecoratedClasses();
-        const serviceWithPrimitives = classes.find(c => c.name === 'ServiceWithPrimitives');
+      const classes = await warningParser.findDecoratedClasses();
+      const serviceWithPrimitives = classes.find(c => c.name === 'ServiceWithPrimitives');
 
-        // Should not include primitive type dependencies
-        expect(serviceWithPrimitives?.dependencies).not.toContainEqual(
-          expect.objectContaining({ token: 'string' })
-        );
-        expect(serviceWithPrimitives?.dependencies).not.toContainEqual(
-          expect.objectContaining({ token: 'number' })
-        );
+      // Should not include primitive type dependencies
+      expect(serviceWithPrimitives?.dependencies).not.toContainEqual(
+        expect.objectContaining({ token: 'string' })
+      );
+      expect(serviceWithPrimitives?.dependencies).not.toContainEqual(
+        expect.objectContaining({ token: 'number' })
+      );
 
-        // Should have warned about skipping primitive types (check both explicit and inferred messages)
-        expect(warnings.some(w => w.includes('Skipping primitive type') || w.includes('Skipping inferred primitive type parameter'))).toBe(true);
-      } finally {
-        console.warn = originalWarn;
-      }
+      const warnLogs = logger.logs.filter(log => log.level === 'warn');
+      expect(
+        warnLogs.some(
+          log =>
+            log.message.includes('Skipping primitive type') ||
+            log.message.includes('Skipping inferred primitive type parameter')
+        )
+      ).toBe(true);
     });
   });
 

@@ -27,7 +27,7 @@ import type {
   Warning,
 } from '../types';
 import { CliError, ErrorHandler } from './error-handler';
-import { LogCategory, type Logger } from './logger';
+import { LogCategory, type LogContext, type Logger } from './logger';
 
 /**
  * AngularParser - Core TypeScript AST parsing using ts-morph
@@ -68,6 +68,24 @@ export class AngularParser {
     private _options: CliOptions,
     private _logger?: Logger
   ) {}
+
+  private verboseInfo(category: LogCategory, message: string, context?: LogContext): void {
+    if (!this._options.verbose) return;
+    this._logger?.info(category, message, context);
+  }
+
+  private verboseDebug(category: LogCategory, message: string, context?: LogContext): void {
+    if (!this._options.verbose) return;
+    this._logger?.debug(category, message, context);
+  }
+
+  private warn(category: LogCategory, message: string, context?: LogContext): void {
+    if (this._logger) {
+      this._logger.warn(category, message, context);
+      return;
+    }
+    ErrorHandler.warn(message, context?.filePath);
+  }
 
   /**
    * Reset global warning deduplication state (useful for testing)
@@ -111,14 +129,30 @@ export class AngularParser {
       this._structuredWarnings.categories[category].push(warning);
       this._structuredWarnings.totalCount++;
 
-      // Also output to console for immediate feedback
       const location = warning.line
         ? `${warning.file}:${warning.line}:${warning.column}`
         : warning.file;
-      console.warn(`[${warning.severity.toUpperCase()}] ${warning.message} (${location})`);
+      const formattedWarning = `[${warning.severity.toUpperCase()}] ${warning.message} (${location})`;
 
-      if (warning.suggestion && this._options.verbose) {
-        console.warn(`  Suggestion: ${warning.suggestion}`);
+      if (this._logger) {
+        this._logger.warn(LogCategory.ERROR_RECOVERY, formattedWarning, {
+          category,
+          filePath: warning.file,
+          lineNumber: warning.line,
+          suggestion: warning.suggestion,
+        });
+        if (warning.suggestion && this._options.verbose) {
+          this._logger.info(LogCategory.ERROR_RECOVERY, warning.suggestion, {
+            category,
+            filePath: warning.file,
+            lineNumber: warning.line,
+          });
+        }
+      } else {
+        ErrorHandler.warn(formattedWarning, warning.file);
+        if (warning.suggestion && this._options.verbose) {
+          ErrorHandler.warn(warning.suggestion, warning.file);
+        }
       }
 
       GLOBAL_WARNING_KEYS.add(warnKey);
@@ -417,9 +451,15 @@ export class AngularParser {
     });
 
     if (this._options.verbose) {
-      console.log(`🎯 Filtering to specific file(s): ${matchedFiles.length}`);
+      this._logger?.info(
+        LogCategory.FILE_PROCESSING,
+        `Filtering to specific file(s): ${matchedFiles.length}`,
+        { matchedCount: matchedFiles.length, targetCount: targetPaths.length }
+      );
       for (const file of matchedFiles) {
-        console.log(`   - ${file.getFilePath()}`);
+        this._logger?.debug(LogCategory.FILE_PROCESSING, 'Including file', {
+          filePath: file.getFilePath(),
+        });
       }
     }
 
@@ -458,24 +498,16 @@ export class AngularParser {
       fileCount: sourceFiles.length,
     });
 
-    if (this._options.verbose) {
-      console.log(`Processing ${sourceFiles.length} source files`);
-    }
+    this._logger?.info(LogCategory.FILE_PROCESSING, 'Processing source files', {
+      fileCount: sourceFiles.length,
+    });
 
     for (const sourceFile of sourceFiles) {
       const filePath = sourceFile.getFilePath();
       try {
-        if (this._options.verbose) {
-          console.log(`🔍 Parsing file: ${filePath}`);
-        }
-
-        this._logger?.debug(LogCategory.FILE_PROCESSING, 'Processing file', { filePath });
+        this._logger?.debug(LogCategory.FILE_PROCESSING, 'Parsing file', { filePath });
 
         const classes = sourceFile.getClasses();
-
-        if (this._options.verbose) {
-          console.log(`File: ${filePath}, Classes: ${classes.length}`);
-        }
 
         this._logger?.debug(LogCategory.AST_ANALYSIS, 'Analyzing classes in file', {
           filePath,
@@ -487,9 +519,6 @@ export class AngularParser {
           const parsedClass = this.parseClassDeclaration(classDeclaration);
           if (parsedClass) {
             decoratedClasses.push(parsedClass);
-            if (this._options.verbose) {
-              console.log(`Found decorated class: ${parsedClass.name} (${parsedClass.kind})`);
-            }
             this._logger?.info(LogCategory.AST_ANALYSIS, 'Found decorated class', {
               className: parsedClass.name,
               kind: parsedClass.kind,
@@ -523,9 +552,10 @@ export class AngularParser {
       }
     }
 
-    if (this._options.verbose) {
-      console.log(`✅ Processed ${processedFiles} files, skipped ${skippedFiles} files`);
-    }
+    this._logger?.info(LogCategory.FILE_PROCESSING, 'File processing summary', {
+      processedFiles,
+      skippedFiles,
+    });
 
     // Logger: End timing and log completion
     const elapsed = this._logger?.timeEnd('findDecoratedClasses') || 0;
@@ -553,9 +583,13 @@ export class AngularParser {
 
     // Skip anonymous classes with warning
     if (!className) {
-      console.warn(
-        'Warning: Skipping anonymous class - classes must be named for dependency injection analysis'
-      );
+      const message =
+        'Skipping anonymous class - classes must be named for dependency injection analysis';
+      if (this._logger) {
+        this._logger.warn(LogCategory.AST_ANALYSIS, message);
+      } else {
+        ErrorHandler.warn(message);
+      }
       return null;
     }
 
@@ -563,7 +597,11 @@ export class AngularParser {
 
     if (this._options.verbose) {
       const decoratorNames = decorators.map((d) => this.getDecoratorName(d)).join(', ');
-      console.log(`Class: ${className}, Decorators: ${decorators.length} [${decoratorNames}]`);
+      this._logger?.debug(LogCategory.AST_ANALYSIS, 'Decorator metadata', {
+        className,
+        decoratorCount: decorators.length,
+        decoratorNames,
+      });
     }
 
     const angularDecorator = this.findAngularDecorator(decorators);
@@ -571,7 +609,10 @@ export class AngularParser {
     if (!angularDecorator) {
       // Skip undecorated classes silently
       if (this._options.verbose && decorators.length > 0) {
-        console.log(`  No Angular decorator found for ${className}`);
+        this._logger?.debug(LogCategory.AST_ANALYSIS, 'No Angular decorator found', {
+          className,
+          decoratorCount: decorators.length,
+        });
       }
       return null;
     }
@@ -707,23 +748,25 @@ export class AngularParser {
             const grandParent = parent.getParent();
             if (grandParent && grandParent.getKind() === SyntaxKind.CallExpression) {
               // Found pattern like Decorator()(class { ... })
-              console.warn(
-                'Warning: Skipping anonymous class - classes must be named for dependency injection analysis'
+              const message =
+                'Skipping anonymous class - classes must be named for dependency injection analysis';
+              this.warn(LogCategory.AST_ANALYSIS, message, {
+                filePath: sourceFile.getFilePath(),
+              });
+              this.verboseDebug(
+                LogCategory.AST_ANALYSIS,
+                `Anonymous class found in ${sourceFile.getFilePath()}`
               );
-              if (this._options.verbose) {
-                console.log(`    Anonymous class found in ${sourceFile.getFilePath()}`);
-              }
             }
           }
         }
       });
     } catch (error) {
       // Silent fallback - don't break parsing for this edge case
-      if (this._options.verbose) {
-        console.log(
-          `    Could not detect anonymous classes in ${sourceFile.getFilePath()}: ${error}`
-        );
-      }
+      this.verboseDebug(
+        LogCategory.AST_ANALYSIS,
+        `Could not detect anonymous classes in ${sourceFile.getFilePath()}: ${error}`
+      );
     }
   }
 
@@ -750,13 +793,18 @@ export class AngularParser {
     const startTime = performance.now();
 
     if (this._options.verbose && this._options.includeDecorators) {
-      console.log('=== Decorator Analysis ===');
+      this.verboseInfo(LogCategory.AST_ANALYSIS, '=== Decorator Analysis ===');
       const className = classDeclaration.getName() || 'unknown';
-      console.log(`Analyzing decorators for class: ${className}`);
+      this.verboseInfo(LogCategory.AST_ANALYSIS, `Analyzing decorators for class: ${className}`, {
+        className,
+      });
     }
 
     if (this._options.verbose && !this._options.includeDecorators) {
-      console.log('Decorator analysis disabled - --include-decorators flag not set');
+      this.verboseInfo(
+        LogCategory.AST_ANALYSIS,
+        'Decorator analysis disabled - --include-decorators flag not set'
+      );
     }
 
     // Extract constructor parameter dependencies (legacy approach)
@@ -848,9 +896,7 @@ export class AngularParser {
     _lineNumber: number,
     _columnNumber: number
   ): string | null {
-    if (this._options.verbose) {
-      console.log(`Processing generic type: ${typeText}`);
-    }
+    this.verboseDebug(LogCategory.TYPE_RESOLUTION, `Processing generic type: ${typeText}`);
 
     // For now, return the full generic type
     // Future enhancement: could extract base type
@@ -993,11 +1039,11 @@ export class AngularParser {
   ): string | null {
     const typeText = typeNode.getText();
 
-    if (this._options.verbose) {
-      console.log(
-        `Type resolution steps: Processing '${typeText}' at ${filePath}:${lineNumber}:${columnNumber}`
-      );
-    }
+    this.verboseInfo(
+      LogCategory.TYPE_RESOLUTION,
+      `Type resolution steps: Processing '${typeText}' at ${filePath}:${lineNumber}:${columnNumber}`,
+      { filePath, lineNumber }
+    );
 
     // Check for circular references
     if (this.isCircularTypeReference(typeText, typeNode)) {
@@ -1085,9 +1131,14 @@ export class AngularParser {
     lineNumber: number,
     columnNumber: number
   ): string | null {
-    if (this._options.verbose) {
-      console.log(`Attempting to resolve inferred type: ${typeText}`);
-    }
+    this.verboseInfo(
+      LogCategory.TYPE_RESOLUTION,
+      `Attempting to resolve inferred type: ${typeText}`,
+      {
+        filePath,
+        lineNumber,
+      }
+    );
 
     // Try symbol-based resolution
     const symbol = type.getSymbol?.();
@@ -1237,16 +1288,23 @@ export class AngularParser {
       if (this._typeResolutionCache.has(cacheKey)) {
         const cachedResult = this._typeResolutionCache.get(cacheKey);
 
-        if (this._options.verbose) {
-          console.log(`Cache hit for parameter '${parameterName}': ${typeText}`);
-        }
+        this.verboseDebug(
+          LogCategory.TYPE_RESOLUTION,
+          `Cache hit for parameter '${parameterName}': ${typeText}`,
+          {
+            parameterName,
+            cacheKey,
+          }
+        );
 
         return cachedResult ? { token: cachedResult, flags, parameterName } : null;
       }
 
-      if (this._options.verbose) {
-        console.log(`Cache miss for parameter '${parameterName}': ${typeText}`);
-      }
+      this.verboseDebug(
+        LogCategory.TYPE_RESOLUTION,
+        `Cache miss for parameter '${parameterName}': ${typeText}`,
+        { parameterName, cacheKey }
+      );
 
       // Resolve and cache
       const resolvedToken = this.resolveInferredTypeEnhanced(
@@ -1366,10 +1424,10 @@ export class AngularParser {
       if (this._options.verbose) {
         const className = classDeclaration.getName() || 'unknown';
         const filePath = classDeclaration.getSourceFile().getFilePath();
-        console.warn(
-          `Warning: Failed to extract inject() dependencies for class '${className}' in ${filePath}: ${
-            error instanceof Error ? error.message : String(error)
-          }`
+        this.warn(
+          LogCategory.ERROR_RECOVERY,
+          `Failed to extract inject() dependencies for class '${className}' in ${filePath}: ${error instanceof Error ? error.message : String(error)}`,
+          { className, filePath }
         );
       }
     }
@@ -1446,10 +1504,10 @@ export class AngularParser {
       if (this._options.verbose) {
         const propertyName = property.getName() || 'unknown';
         const filePath = property.getSourceFile().getFilePath();
-        console.warn(
-          `Warning: Failed to parse inject() property '${propertyName}' in ${filePath}: ${
-            error instanceof Error ? error.message : String(error)
-          }`
+        this.warn(
+          LogCategory.ERROR_RECOVERY,
+          `Failed to parse inject() property '${propertyName}' in ${filePath}: ${error instanceof Error ? error.message : String(error)}`,
+          { propertyName, filePath }
         );
       }
       return null;
@@ -1487,7 +1545,7 @@ export class AngularParser {
         if (!supportedOptions.has(name)) {
           // Warn about unknown options but continue processing
           if (this._options.verbose) {
-            console.warn(`Unknown inject() option: '${name}' - ignoring`);
+            this.warn(LogCategory.AST_ANALYSIS, `Unknown inject() option: '${name}' - ignoring`);
           }
           continue;
         }
@@ -1515,10 +1573,9 @@ export class AngularParser {
     } catch (error) {
       // Graceful error handling - return empty flags on error
       if (this._options.verbose) {
-        console.warn(
-          `Warning: Failed to parse inject() options: ${
-            error instanceof Error ? error.message : String(error)
-          }`
+        this.warn(
+          LogCategory.ERROR_RECOVERY,
+          `Failed to parse inject() options: ${error instanceof Error ? error.message : String(error)}`
         );
       }
     }
@@ -1590,8 +1647,12 @@ export class AngularParser {
           }
 
           // Warn about unknown decorators to help with debugging
-          console.warn(
-            `Unknown or unsupported decorator: @${decoratorName}() - This decorator is not recognized as an Angular DI decorator and will be ignored.`
+          const className =
+            parameter.getFirstAncestorByKind(SyntaxKind.ClassDeclaration)?.getName() || undefined;
+          this.warn(
+            LogCategory.AST_ANALYSIS,
+            `Unknown or unsupported decorator: @${decoratorName}() - This decorator is not recognized as an Angular DI decorator and will be ignored.`,
+            { filePath: parameter.getSourceFile().getFilePath(), className }
           );
         }
       }
@@ -1600,10 +1661,10 @@ export class AngularParser {
       if (this._options.verbose) {
         const paramName = parameter.getName();
         const filePath = parameter.getSourceFile().getFilePath();
-        console.warn(
-          `Warning: Failed to extract decorators for parameter '${paramName}' in ${filePath}: ${
-            error instanceof Error ? error.message : String(error)
-          }`
+        this.warn(
+          LogCategory.ERROR_RECOVERY,
+          `Failed to extract decorators for parameter '${paramName}' in ${filePath}: ${error instanceof Error ? error.message : String(error)}`,
+          { paramName, filePath }
         );
       }
       // Return empty flags object on error
@@ -1644,10 +1705,10 @@ export class AngularParser {
     } catch (error) {
       // Conservative approach: assume it's valid if we can't determine
       if (this._options.verbose) {
-        console.warn(
-          `Warning: Could not verify inject() import in ${sourceFile.getFilePath()}: ${
-            error instanceof Error ? error.message : String(error)
-          }`
+        this.warn(
+          LogCategory.ERROR_RECOVERY,
+          `Could not verify inject() import in ${sourceFile.getFilePath()}: ${error instanceof Error ? error.message : String(error)}`,
+          { filePath: sourceFile.getFilePath() }
         );
       }
       return true; // Assume valid to avoid false negatives
@@ -1672,6 +1733,12 @@ export class AngularParser {
     }
 
     const callExpression = expression as CallExpression;
+    const sourceFile = expression.getSourceFile();
+    const warnVerbose = (message: string): void => {
+      if (this._options.verbose) {
+        this.warn(LogCategory.AST_ANALYSIS, message, { filePath: sourceFile.getFilePath() });
+      }
+    };
 
     try {
       // Verify it's actually an inject() call
@@ -1694,9 +1761,7 @@ export class AngularParser {
       const args = callExpression.getArguments();
       if (args.length === 0) {
         // inject() called without arguments
-        if (this._options.verbose) {
-          console.warn('inject() called without token parameter - skipping');
-        }
+        warnVerbose('inject() called without token parameter - skipping');
         return null;
       }
 
@@ -1710,9 +1775,7 @@ export class AngularParser {
         token = tokenArg.getText().slice(1, -1); // Remove quotes
         if (!token) {
           // Empty string token
-          if (this._options.verbose) {
-            console.warn('inject() called with empty string token - skipping');
-          }
+          warnVerbose('inject() called with empty string token - skipping');
           return null;
         }
       } else if (tokenArg.getKind() === SyntaxKind.Identifier) {
@@ -1720,24 +1783,18 @@ export class AngularParser {
         token = tokenArg.getText();
         if (token === 'undefined' || token === 'null') {
           // Explicit undefined or null token
-          if (this._options.verbose) {
-            console.warn(`inject() called with ${token} token - skipping`);
-          }
+          warnVerbose(`inject() called with ${token} token - skipping`);
           return null;
         }
       } else if (tokenArg.getKind() === SyntaxKind.NullKeyword) {
         // Direct null literal
-        if (this._options.verbose) {
-          console.warn('inject() called with null token - skipping');
-        }
+        warnVerbose('inject() called with null token - skipping');
         return null;
       } else {
         // Complex expression - use text representation
         token = tokenArg.getText();
         if (!token) {
-          if (this._options.verbose) {
-            console.warn('inject() called with invalid token expression - skipping');
-          }
+          warnVerbose('inject() called with invalid token expression - skipping');
           return null;
         }
       }
@@ -1753,11 +1810,9 @@ export class AngularParser {
           optionsArg.getKind() !== SyntaxKind.UndefinedKeyword
         ) {
           // Warn about invalid options (not null/undefined)
-          if (this._options.verbose) {
-            console.warn(
-              `inject() called with invalid options type: ${optionsArg.getKindName()} - expected object literal`
-            );
-          }
+          warnVerbose(
+            `inject() called with invalid options type: ${optionsArg.getKindName()} - expected object literal`
+          );
         }
       }
 
@@ -1769,9 +1824,8 @@ export class AngularParser {
     } catch (error) {
       // Graceful error handling
       if (this._options.verbose) {
-        const filePath = expression.getSourceFile().getFilePath();
-        console.warn(
-          `Warning: Failed to analyze inject() call in ${filePath}: ${
+        warnVerbose(
+          `Failed to analyze inject() call in ${sourceFile.getFilePath()}: ${
             error instanceof Error ? error.message : String(error)
           }`
         );
@@ -1793,9 +1847,11 @@ export class AngularParser {
   ): void {
     const paramName = param.getName();
 
-    // Log individual parameter analysis
-    console.log(`Parameter: ${paramName}`);
-    console.log(`  Token: ${dependency.token}`);
+    this.verboseDebug(LogCategory.AST_ANALYSIS, 'Parameter analysis', {
+      paramName,
+      token: dependency.token,
+      flags: dependency.flags,
+    });
 
     // Check if has flags
     const flagKeys = Object.keys(dependency.flags || {});
@@ -1820,7 +1876,10 @@ export class AngularParser {
         const decoratorName = this.getDecoratorName(decorator);
         if (['Optional', 'Self', 'SkipSelf', 'Host'].includes(decoratorName)) {
           hasLegacyDecorators = true;
-          console.log(`  Legacy decorator: @${decoratorName}`);
+          this.verboseDebug(LogCategory.AST_ANALYSIS, `Legacy decorator detected`, {
+            decoratorName,
+            paramName,
+          });
         }
       }
 
@@ -1835,7 +1894,10 @@ export class AngularParser {
             hasInjectPattern = true;
             verboseStats.injectPatternsUsed++;
             const flagsStr = JSON.stringify(dependency.flags);
-            console.log(`  inject() options: ${flagsStr}`);
+            this.verboseDebug(LogCategory.AST_ANALYSIS, 'inject() options detected', {
+              paramName,
+              flags: flagsStr,
+            });
           }
         }
       }
@@ -1845,28 +1907,40 @@ export class AngularParser {
 
         // Check for precedence scenarios
         if (hasInjectPattern) {
-          console.log('  Decorator Precedence Analysis');
-          console.log('  Legacy decorators take precedence over inject() options');
+          this.verboseInfo(LogCategory.AST_ANALYSIS, 'Decorator precedence analysis', {
+            paramName,
+            legacyDecorators: true,
+            injectPattern: true,
+          });
           const appliedFlags = Object.keys(dependency.flags || {})
             .filter((key) => dependency.flags?.[key as keyof EdgeFlags] === true)
             .map((key) => `@${key.charAt(0).toUpperCase() + key.slice(1)}`)
             .join(', ');
-          console.log(`  Applied: ${appliedFlags}`);
+          this.verboseDebug(LogCategory.AST_ANALYSIS, 'Applied decorator flags', {
+            paramName,
+            appliedFlags,
+          });
 
           // Try to detect what inject() options were overridden
           const injectResult = this.analyzeInjectCall(initializer);
           if (injectResult && Object.keys(injectResult.flags).length > 0) {
             const overriddenFlags = JSON.stringify(injectResult.flags);
-            console.log(`  Overridden inject() options: ${overriddenFlags}`);
+            this.verboseDebug(LogCategory.AST_ANALYSIS, 'Overridden inject() options', {
+              paramName,
+              overriddenFlags,
+            });
           }
 
           const finalFlags = JSON.stringify(dependency.flags);
-          console.log(`  Final flags: ${finalFlags}`);
+          this.verboseDebug(LogCategory.AST_ANALYSIS, 'Final decorator flags', {
+            paramName,
+            finalFlags,
+          });
         }
       }
     } else {
       verboseStats.parametersWithoutDecorators++;
-      console.log('  No decorators detected');
+      this.verboseDebug(LogCategory.AST_ANALYSIS, 'No decorators detected', { paramName });
     }
   }
 
@@ -1881,115 +1955,27 @@ export class AngularParser {
     verboseStats: VerboseStats,
     classDeclaration: ClassDeclaration
   ): void {
-    if (!this._options.verbose) return;
+    if (!this._options.verbose || !this._logger) return;
 
-    if (this._options.includeDecorators) {
-      // Decorator Statistics
-      console.log('=== Decorator Statistics ===');
-      console.log(
-        `Total decorators detected: ${verboseStats.decoratorCounts.optional + verboseStats.decoratorCounts.self + verboseStats.decoratorCounts.skipSelf + verboseStats.decoratorCounts.host}`
-      );
+    const className = classDeclaration.getName() || 'unknown';
+    this._logger.info(LogCategory.AST_ANALYSIS, 'Decorator analysis summary', {
+      className,
+      decoratorCounts: verboseStats.decoratorCounts,
+      parametersWithDecorators: verboseStats.parametersWithDecorators,
+      parametersWithoutDecorators: verboseStats.parametersWithoutDecorators,
+      injectPatternsUsed: verboseStats.injectPatternsUsed,
+      skippedDecorators: verboseStats.skippedDecorators.length,
+      legacyDecoratorsUsed: verboseStats.legacyDecoratorsUsed,
+      totalProcessingTime: verboseStats.totalProcessingTime,
+      totalParameters: verboseStats.totalParameters,
+      dependencyCount: dependencies.length,
+    });
 
-      if (verboseStats.decoratorCounts.optional > 0) {
-        console.log(`@Optional: ${verboseStats.decoratorCounts.optional}`);
-      }
-      if (verboseStats.decoratorCounts.self > 0) {
-        console.log(`@Self: ${verboseStats.decoratorCounts.self}`);
-      }
-      if (verboseStats.decoratorCounts.skipSelf > 0) {
-        console.log(`@SkipSelf: ${verboseStats.decoratorCounts.skipSelf}`);
-      }
-      if (verboseStats.decoratorCounts.host > 0) {
-        console.log(`@Host: ${verboseStats.decoratorCounts.host}`);
-      }
-
-      console.log(`Parameters with decorators: ${verboseStats.parametersWithDecorators}`);
-      console.log(`Parameters without decorators: ${verboseStats.parametersWithoutDecorators}`);
-
-      // inject() Pattern Analysis
-      if (verboseStats.injectPatternsUsed > 0) {
-        console.log('inject() Pattern Analysis');
-
-        // Analyze inject() patterns in dependencies
-        for (const dep of dependencies) {
-          if (dep.parameterName) {
-            const constructors = classDeclaration.getConstructors();
-            if (constructors.length > 0) {
-              const param = constructors[0]
-                .getParameters()
-                .find((p) => p.getName() === dep.parameterName);
-              if (param) {
-                const initializer = param.getInitializer();
-                if (initializer) {
-                  const injectResult = this.analyzeInjectCall(initializer);
-                  if (injectResult) {
-                    if (injectResult.token.startsWith('"') && injectResult.token.endsWith('"')) {
-                      console.log(`String token: ${injectResult.token}`);
-                    } else {
-                      console.log(`Service token: ${injectResult.token}`);
-                    }
-
-                    if (Object.keys(injectResult.flags).length > 0) {
-                      const flagsStr = JSON.stringify(injectResult.flags);
-                      console.log(`inject() options detected: ${flagsStr}`);
-                    } else {
-                      console.log('inject() with no options');
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-
-      // Skipped Decorators (if any were captured)
-      if (verboseStats.skippedDecorators.length > 0) {
-        console.log('Skipped Decorators');
-        for (const skipped of verboseStats.skippedDecorators) {
-          console.log(`${skipped.name}`);
-          console.log(`Reason: ${skipped.reason}`);
-        }
-        console.log(`Total skipped: ${verboseStats.skippedDecorators.length}`);
-      }
-
-      // Performance Metrics
-      console.log('Performance Metrics');
-      console.log(`Decorator processing time: ${verboseStats.totalProcessingTime.toFixed(2)}ms`);
-      console.log(`Total parameters analyzed: ${verboseStats.totalParameters}`);
-      if (verboseStats.totalParameters > 0) {
-        const avgTime = verboseStats.totalProcessingTime / verboseStats.totalParameters;
-        console.log(`Average time per parameter: ${avgTime.toFixed(3)}ms`);
-      }
-
-      // Analysis Summary
-      console.log('=== Analysis Summary ===');
-      console.log(`Total dependencies: ${dependencies.length}`);
-      console.log(`With decorator flags: ${verboseStats.parametersWithDecorators}`);
-      console.log(`Without decorator flags: ${verboseStats.parametersWithoutDecorators}`);
-      console.log(`Legacy decorators used: ${verboseStats.legacyDecoratorsUsed}`);
-      console.log(`inject() patterns used: ${verboseStats.injectPatternsUsed}`);
-
-      if (verboseStats.skippedDecorators.length > 0) {
-        console.log(`Unknown decorators skipped: ${verboseStats.skippedDecorators.length}`);
-      }
-
-      // Flags distribution
-      if (verboseStats.parametersWithDecorators > 0) {
-        console.log('Flags distribution:');
-        if (verboseStats.decoratorCounts.optional > 0) {
-          console.log(`optional: ${verboseStats.decoratorCounts.optional}`);
-        }
-        if (verboseStats.decoratorCounts.self > 0) {
-          console.log(`self: ${verboseStats.decoratorCounts.self}`);
-        }
-        if (verboseStats.decoratorCounts.skipSelf > 0) {
-          console.log(`skipSelf: ${verboseStats.decoratorCounts.skipSelf}`);
-        }
-        if (verboseStats.decoratorCounts.host > 0) {
-          console.log(`host: ${verboseStats.decoratorCounts.host}`);
-        }
-      }
+    if (verboseStats.skippedDecorators.length > 0) {
+      this._logger.debug(LogCategory.AST_ANALYSIS, 'Skipped decorators', {
+        skippedDecorators: verboseStats.skippedDecorators,
+        className,
+      });
     }
   }
 }

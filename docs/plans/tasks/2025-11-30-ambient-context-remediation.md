@@ -4,7 +4,7 @@
 **Executed by**: implementation-executor  
 **Date**: 2025-11-30  
 **Version**: v0.1  
-**Status**: Planning
+**Status**: In Progress
 
 ---
 
@@ -74,12 +74,12 @@ tests/
 **Priority**: High  
 **Estimated Duration**: 0.5 day
 
-- [ ] **Task 1.1**: Inventory and classify `console.*` usage in core paths
+- [x] **Task 1.1**: Inventory and classify `console.*` usage in core paths
   - **TDD Approach**: Add/adjust a unit test that fails when core code logs via global console (e.g., `vi.spyOn(console, 'log')`/`console.warn` and assert no calls when invoking core functions).
   - **Implementation**: Identify production `console.*` in `src/core/**`; document intended logger mapping.
   - **Acceptance Criteria**: List of all core `console.*` call sites with planned replacements.
 
-- [ ] **Task 1.2**: Define logger threading contracts
+- [x] **Task 1.2**: Define logger threading contracts
   - **TDD Approach**: Add/adjust type-level test or compile-time expectation (tsd-style via typecheck) ensuring optional logger is accepted where needed.
   - **Implementation**: Decide parameter additions (e.g., logger arg for `filterGraph`, propagate through call sites); ensure types updated.
   - **Acceptance Criteria**: Signatures updated with optional logger; CLI compile check passes.
@@ -88,12 +88,12 @@ tests/
 **Priority**: High  
 **Estimated Duration**: 1 day
 
-- [ ] **Task 2.1**: Refactor parser logging
+- [x] **Task 2.1**: Refactor parser logging
   - **TDD Approach**: Write/adjust parser verbose tests to assert logger usage instead of console; ensure warnings still surface appropriately.
   - **Implementation**: Replace `console.log/warn` in `src/core/parser.ts` with `Logger` or `ErrorHandler` calls; guard on verbose flag with logger present.
   - **Acceptance Criteria**: No direct `console.*` in parser; verbose output observable via logger mocks; existing behavior preserved.
 
-- [ ] **Task 2.2**: Refactor graph filter logging
+- [x] **Task 2.2**: Refactor graph filter logging
   - **TDD Approach**: Update bidirectional/filtering tests to assert logger calls when verbose; ensure user-facing output unaffected.
   - **Implementation**: Add optional logger parameter to `filterGraph`; replace console usage; update CLI invocation.
   - **Acceptance Criteria**: Graph filter emits via logger when provided; CLI still prints verbose info as before; typecheck passes.
@@ -203,9 +203,9 @@ graph = filterGraph(graph, cliOptions, logger);
 ## 8. Progress Tracking
 
 ### Milestones
-- [ ] **Milestone 1**: Core logging refactor planned - 2025-12-01
-  - [ ] Phase 1 tasks completed
-  - [ ] Signatures defined and agreed
+- [x] **Milestone 1**: Core logging refactor planned - 2025-12-01
+  - [x] Phase 1 tasks completed
+  - [x] Signatures defined and agreed
   
 - [ ] **Milestone 2**: Core logging refactor implemented - 2025-12-02
   - [ ] Phase 2 tasks completed
@@ -217,3 +217,17 @@ graph = filterGraph(graph, cliOptions, logger);
 
 ### Progress Updates
 <!-- Updated by task-executor during execution -->
+- 2025-11-30: Inventoryed console usage in core modules (Task 1.1) and mapped replacements.
+  - `src/core/graph-filter.ts`: missing-entry warnings → `logger.warn`; verbose summaries → `logger.info`/`logger.debug`.
+  - `src/core/parser.ts`: warning emission and verbose instrumentation (file filtering, per-file processing, decorator analysis, inject()/type-resolution warnings) currently rely on `console.log/warn`; plan to thread optional logger and emit warn/info/debug per category, reserving `ErrorHandler` for operational errors.
+  - `src/core/logger.ts` and `src/core/error-handler.ts` still write to console as the stderr boundary; leave as-is unless we later add an injectable writer.
+  - Next: add guard test to fail on console usage in core paths and finalize logger threading contracts (Task 1.1 TDD hook / Task 1.2).
+- 2025-11-30: Added guard coverage for entry filtering and threaded logger into `filterGraph`.
+  - New verbose-mode test ensures `filterGraph` emits via provided `Logger` (warn/info/debug) without touching global console.
+  - `filterGraph` now accepts optional `Logger` and uses `LogCategory.FILTERING`; CLI passes the logger through when verbose.
+  - Follow-up: extend the guard to parser flows and finish Task 1.2 signature updates across core.
+- 2025-11-30: Threaded logger through parser verbose/warning paths and removed `console.*` from core.
+  - Parser now emits verbose instrumentation and warnings via `Logger`/`ErrorHandler`; added helper methods for verbose info/debug and warn fallback.
+  - Added parser regression test to assert verbose logging uses `Logger` instead of global console; logger remains optional and is passed through in verbose CLI mode.
+  - Ran `npm test -- src/tests/parser.test.ts src/tests/graph-filter.test.ts` (via `mise x node@20.19.0 -- ...`) to verify updated logging pathways.
+- 2025-11-30: Ran `npm run check` (lint + typecheck) after formatting updates; core modules now free of ambient `console.*` aside from intentional stderr boundaries (`logger`/`error-handler`) and CLI UI output.
