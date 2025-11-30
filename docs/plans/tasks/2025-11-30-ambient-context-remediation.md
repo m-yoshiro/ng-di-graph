@@ -98,7 +98,7 @@ tests/
   - **Implementation**: Add optional logger parameter to `filterGraph`; replace console usage; update CLI invocation.
   - **Acceptance Criteria**: Graph filter emits via logger when provided; CLI still prints verbose info as before; typecheck passes.
 
-- [ ] **Task 2.3**: Sweep other core modules
+- [x] **Task 2.3**: Sweep other core modules
   - **TDD Approach**: Add a guard test to fail if `console.*` remains in `src/core/**` (lint rule or targeted test).
   - **Implementation**: Remove/replace any remaining core `console.*`; ensure formatters/output handler unchanged unless needed for logger threading.
   - **Acceptance Criteria**: `rg console` in core returns empty; functionality unchanged.
@@ -207,9 +207,9 @@ graph = filterGraph(graph, cliOptions, logger);
   - [x] Phase 1 tasks completed
   - [x] Signatures defined and agreed
   
-- [ ] **Milestone 2**: Core logging refactor implemented - 2025-12-02
-  - [ ] Phase 2 tasks completed
-  - [ ] Unit/integration tests passing
+- [x] **Milestone 2**: Core logging refactor implemented - 2025-12-02
+  - [x] Phase 2 tasks completed
+  - [x] Unit/integration tests passing
   
 - [ ] **Milestone 3**: Validation complete - 2025-12-03
   - [ ] Phase 3 tasks completed
@@ -231,3 +231,4 @@ graph = filterGraph(graph, cliOptions, logger);
   - Added parser regression test to assert verbose logging uses `Logger` instead of global console; logger remains optional and is passed through in verbose CLI mode.
   - Ran `npm test -- src/tests/parser.test.ts src/tests/graph-filter.test.ts` (via `mise x node@20.19.0 -- ...`) to verify updated logging pathways.
 - 2025-11-30: Ran `npm run check` (lint + typecheck) after formatting updates; core modules now free of ambient `console.*` aside from intentional stderr boundaries (`logger`/`error-handler`) and CLI UI output.
+- 2025-11-30: Converted remaining parser warning tests to assert Logger pathways instead of patching global console; reran `npm test -- src/tests/parser.test.ts` to confirm.
