@@ -2,7 +2,9 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { existsSync, mkdirSync, rmSync, writeFileSync } from 'fs';
 import { join } from 'path';
 import { AngularParser } from '../core/parser';
+import { LogCategory } from '../core/logger';
 import type { CliOptions } from '../types';
+import { createStubLogger, type StubLogger } from './helpers/test-utils';
 
 describe('AngularParser - Enhanced Type Validation', () => {
   const testTmpDir = './tmp/type-validation-test-fixtures';
@@ -13,6 +15,7 @@ describe('AngularParser - Enhanced Type Validation', () => {
   let options: CliOptions;
   let consoleWarnSpy: typeof console.warn;
   let warningOutput: string[];
+  let stubLogger: StubLogger | undefined;
 
   beforeEach(() => {
     // Create test fixtures directory
@@ -429,19 +432,21 @@ export class ComponentWithMissingImport {
   describe('Verbose Mode Diagnostics', () => {
     beforeEach(() => {
       options.verbose = true;
-      parser = new AngularParser(options);
-
-      // Capture both warn and log for verbose mode
-      const consoleLogSpy = console.log;
-      console.log = (message: string) => {
-        warningOutput.push(message);
-      };
+      stubLogger = createStubLogger();
+      parser = new AngularParser(options, stubLogger);
     });
 
     it('should provide detailed type resolution information', async () => {
       await parser.findDecoratedClasses();
 
-      expect(warningOutput.some(w => w.includes('Type resolution steps'))).toBe(true);
+      const resolutionLog = stubLogger?.logs.find(
+        log =>
+          log.level === 'info' &&
+          log.message.includes('Type resolution steps') &&
+          log.category === LogCategory.TYPE_RESOLUTION
+      );
+
+      expect(resolutionLog).toBeDefined();
     });
 
     it('should show import resolution attempts', async () => {
@@ -462,7 +467,15 @@ export class ComponentWithComplexImport {
 
       await parser.findDecoratedClasses();
 
-      expect(warningOutput.some(w => w.includes('resolve') || w.includes('import'))).toBe(true);
+      const resolutionLog = stubLogger?.logs.find((log) => {
+        const message = log.message.toLowerCase();
+        return (
+          (log.level === 'info' || log.level === 'debug') &&
+          (message.includes('resolve') || message.includes('import'))
+        );
+      });
+
+      expect(resolutionLog).toBeDefined();
     });
 
     it('should display cache statistics in verbose mode', async () => {
@@ -470,10 +483,10 @@ export class ComponentWithComplexImport {
       await parser.findDecoratedClasses(); // Parse twice to generate cache hits
 
       // Verbose mode should show cache-related information
-      const cacheRelatedOutput = warningOutput.some(w =>
-        w.toLowerCase().includes('cache') ||
-        w.toLowerCase().includes('cached') ||
-        w.toLowerCase().includes('hit')
+      const cacheRelatedOutput = stubLogger?.logs.some((log) =>
+        log.message.toLowerCase().includes('cache hit') ||
+        log.message.toLowerCase().includes('cache miss') ||
+        log.message.toLowerCase().includes('cache')
       );
 
       // Cache statistics should be visible when verbose is enabled

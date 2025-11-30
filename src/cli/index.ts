@@ -189,7 +189,7 @@ program.action(async (filePaths: string[] = [], options) => {
         console.log(`🔍 Filtering graph by entry points: ${cliOptions.entry.join(', ')}`);
       }
 
-      graph = filterGraph(graph, cliOptions);
+      graph = filterGraph(graph, cliOptions, logger);
 
       if (cliOptions.verbose) {
         console.log(`✅ Filtered graph: ${graph.nodes.length} nodes, ${graph.edges.length} edges`);

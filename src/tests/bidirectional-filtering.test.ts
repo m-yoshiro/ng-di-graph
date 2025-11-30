@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { filterGraph } from '../core/graph-filter';
+import { LogCategory } from '../core/logger';
 import type { Graph, Node, Edge, CliOptions } from '../types';
 import {
   createComplexTestGraph,
@@ -15,6 +16,7 @@ import {
   createDisconnectedComponentsGraph,
   createSelfReferencingGraph
 } from './fixtures/sample-graphs';
+import { createStubLogger } from './helpers/test-utils';
 
 describe('Bidirectional Filtering', () => {
   let complexTestGraph: Graph;
@@ -483,57 +485,52 @@ describe('Bidirectional Filtering', () => {
 
   describe('Verbose Mode Tests', () => {
     it('should provide detailed output in verbose mode for downstream filtering', () => {
-      // Mock console to capture verbose output
-      const consoleLogs: string[] = [];
-      const originalLog = console.log;
-      const originalWarn = console.warn;
+      const logger = createStubLogger();
 
-      console.log = (msg: string) => consoleLogs.push(msg);
-      console.warn = (msg: string) => consoleLogs.push(`WARN: ${msg}`);
+      const options: CliOptions = {
+        project: './test',
+        format: 'json',
+        entry: ['AppComponent'],
+        direction: 'downstream',
+        includeDecorators: false,
+        verbose: true
+      };
 
-      try {
-        const options: CliOptions = {
-          project: './test',
-          format: 'json',
-          entry: ['AppComponent'],
-          direction: 'downstream',
-          includeDecorators: false,
-          verbose: true
-        };
+      filterGraph(complexTestGraph, options, logger);
 
-        filterGraph(complexTestGraph, options);
+      const infoLog = logger.logs.find(
+        log => log.level === 'info' && log.category === LogCategory.FILTERING
+      );
+      expect(infoLog).toBeDefined();
+      expect(infoLog?.message).toContain('Filtered graph summary');
 
-        expect(consoleLogs.length).toBeGreaterThan(0);
-        expect(consoleLogs.some(log => log.includes('Filtered graph:'))).toBe(true);
-        expect(consoleLogs.some(log => log.includes('Entry points:'))).toBe(true);
-      } finally {
-        console.log = originalLog;
-        console.warn = originalWarn;
-      }
+      const debugLog = logger.logs.find(
+        log => log.level === 'debug' && log.category === LogCategory.FILTERING
+      );
+      expect(debugLog?.context?.entryPoints).toEqual(['AppComponent']);
     });
 
     it('should warn about non-existent entry points in verbose mode', () => {
-      const consoleLogs: string[] = [];
-      const originalWarn = console.warn;
+      const logger = createStubLogger();
 
-      console.warn = (msg: string) => consoleLogs.push(msg);
+      const options: CliOptions = {
+        project: './test',
+        format: 'json',
+        entry: ['NonExistentService'],
+        direction: 'downstream',
+        includeDecorators: false,
+        verbose: true
+      };
 
-      try {
-        const options: CliOptions = {
-          project: './test',
-          format: 'json',
-          entry: ['NonExistentService'],
-          direction: 'downstream',
-          includeDecorators: false,
-          verbose: true
-        };
+      filterGraph(complexTestGraph, options, logger);
 
-        filterGraph(complexTestGraph, options);
-
-        expect(consoleLogs.some(log => log.includes("Entry point 'NonExistentService' not found"))).toBe(true);
-      } finally {
-        console.warn = originalWarn;
-      }
+      const warnLog = logger.logs.find(
+        log =>
+          log.level === 'warn' &&
+          log.category === LogCategory.FILTERING &&
+          log.message.includes("Entry point 'NonExistentService' not found")
+      );
+      expect(warnLog).toBeDefined();
     });
   });
 

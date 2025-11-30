@@ -1,6 +1,8 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { buildGraph } from '../core/graph-builder';
 import { filterGraph } from '../core/graph-filter';
+import { LogCategory } from '../core/logger';
+import { createStubLogger } from './helpers/test-utils';
 import type { Graph, CliOptions, ParsedClass } from '../types';
 
 describe('Entry Point Filtering', () => {
@@ -372,9 +374,9 @@ describe('Entry Point Filtering', () => {
         includeDecorators: false,
         verbose: false,
         entry: ['AppComponent']
-      };
+    };
 
-      const filteredGraph = filterGraph(fullGraph, options);
+    const filteredGraph = filterGraph(fullGraph, options);
 
       // Should include: AppComponent, UserService, LogService, HttpClient
       // Should exclude: AdminComponent, AdminService
@@ -383,6 +385,50 @@ describe('Entry Point Filtering', () => {
 
       const nodeIds = filteredGraph.nodes.map(n => n.id).sort();
       expect(nodeIds).toEqual(['AppComponent', 'HttpClient', 'LogService', 'UserService']);
+    });
+  });
+
+  describe('logging', () => {
+    it('uses provided logger for verbose output instead of console', () => {
+      const logger = createStubLogger();
+      const consoleLogSpy = vi.spyOn(console, 'log');
+      const consoleWarnSpy = vi.spyOn(console, 'warn');
+
+      const options: CliOptions = {
+        project: './tsconfig.json',
+        format: 'json',
+        direction: 'downstream',
+        includeDecorators: false,
+        verbose: true,
+        entry: ['MissingEntryPoint'],
+      };
+
+      try {
+        filterGraph(sampleGraph, options, logger);
+
+        expect(consoleLogSpy).not.toHaveBeenCalled();
+        expect(consoleWarnSpy).not.toHaveBeenCalled();
+
+        const warnLogs = logger.logs.filter((log) => log.level === 'warn');
+        expect(warnLogs).toHaveLength(1);
+        expect(warnLogs[0].category).toBe(LogCategory.FILTERING);
+        expect(warnLogs[0].message).toContain("Entry point 'MissingEntryPoint'");
+
+        const infoLogs = logger.logs.filter((log) => log.level === 'info');
+        expect(infoLogs).toHaveLength(1);
+        expect(infoLogs[0].category).toBe(LogCategory.FILTERING);
+        expect(infoLogs[0].message).toContain('Filtered graph summary');
+        expect(infoLogs[0].context?.nodeCount).toBe(0);
+        expect(infoLogs[0].context?.edgeCount).toBe(0);
+
+        const debugLogs = logger.logs.filter((log) => log.level === 'debug');
+        expect(debugLogs).toHaveLength(1);
+        expect(debugLogs[0].category).toBe(LogCategory.FILTERING);
+        expect(debugLogs[0].context?.entryPoints).toEqual(['MissingEntryPoint']);
+      } finally {
+        consoleLogSpy.mockRestore();
+        consoleWarnSpy.mockRestore();
+      }
     });
   });
 });
