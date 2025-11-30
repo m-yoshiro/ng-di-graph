@@ -176,7 +176,7 @@ describe('CLI Integration - Core Features', () => {
     });
   });
 
-  describe('RED PHASE - Positional file arguments (Should Fail)', () => {
+  describe('Positional file arguments', () => {
     const fixtureTsConfig = './src/tests/fixtures/tsconfig.json';
     const servicesPath = './src/tests/fixtures/src/services.ts';
     const componentsPath = './src/tests/fixtures/src/components.ts';
@@ -226,7 +226,7 @@ describe('CLI Integration - Core Features', () => {
     });
   });
 
-  describe('RED PHASE - CLI Flag Parsing Tests (Should Fail)', () => {
+  describe('CLI flag parsing', () => {
     it('should parse --include-decorators flag correctly from CLI arguments', async () => {
       // Arrange - Simulate CLI parsing (this test will fail until we verify CLI parsing works)
       const cliArgs = ['--project', './src/tests/fixtures/tsconfig.json', '--include-decorators'];
@@ -276,7 +276,7 @@ describe('CLI Integration - Core Features', () => {
     });
   });
 
-  describe('RED PHASE - Decorator Inclusion/Exclusion Tests (Should Fail)', () => {
+  describe('Decorator inclusion/exclusion', () => {
     it('should include decorator flags when --include-decorators is true', async () => {
       // Arrange
       const options: CliOptions = {
@@ -379,7 +379,7 @@ describe('CLI Integration - Core Features', () => {
     });
   });
 
-  describe('RED PHASE - End-to-End CLI Validation Tests (Should Fail)', () => {
+  describe('End-to-end CLI validation', () => {
     it('should execute complete CLI workflow with --include-decorators flag', async () => {
       // Arrange - Full CLI command simulation
       const cliCommand = [
@@ -493,7 +493,7 @@ describe('CLI Integration - Core Features', () => {
     });
   });
 
-  describe('RED PHASE - Direction Option CLI Tests (Should Fail)', () => {
+  describe('Direction option CLI tests', () => {
     it('should parse --direction downstream flag correctly', async () => {
       // Arrange - CLI args with downstream direction
       const cliArgs = ['--project', './src/tests/fixtures/tsconfig.json', '--direction', 'downstream'];
@@ -594,7 +594,7 @@ describe('CLI Integration - Core Features', () => {
     });
   });
 
-  describe('RED PHASE - Direction Functionality Tests (Should Fail)', () => {
+  describe('Direction functionality', () => {
     it('should execute downstream filtering correctly via CLI', async () => {
       // Arrange - CLI command with downstream direction and entry point
       const cliCommand = [
@@ -775,7 +775,7 @@ describe('CLI Integration - Core Features', () => {
     });
   });
 
-  describe('RED PHASE - Direction Performance and Edge Cases (Should Fail)', () => {
+  describe('Direction performance and edge cases', () => {
     it('should finish direction filtering in under 10 seconds', async () => {
       // Arrange - Measure performance with direction filtering
       const startTime = performance.now();
@@ -873,7 +873,7 @@ describe('CLI Integration - Core Features', () => {
     });
   });
 
-  describe('RED PHASE - Error Handling and Edge Cases (Should Fail)', () => {
+  describe('CLI error handling and edge cases', () => {
     it('should handle invalid flag combinations gracefully', async () => {
       // Arrange - Invalid flag combinations
       const invalidCommands = [
@@ -911,7 +911,7 @@ describe('CLI Integration - Core Features', () => {
   });
 });
 
-// Helper functions for CLI testing (GREEN PHASE implementations)
+// Helper functions for CLI testing
 
 function parseCLIArguments(args: string[]): CliOptions {
   // Simulate CLI argument parsing using commander.js logic

@@ -362,10 +362,9 @@ describe('AngularParser - Decorated Class Collection', () => {
       expect(basicDirective?.filePath).toContain('directives.ts');
     });
 
-    it('should extract constructor dependencies (FR-03 implemented)', async () => {
+    it('should extract constructor dependencies', async () => {
       const classes = await parser.findDecoratedClasses();
 
-      // With FR-03 implemented, classes with constructor dependencies should have them extracted
       const testComponent = classes.find(c => c.name === 'TestComponent');
       expect(testComponent?.dependencies).toHaveLength(1);
       expect(testComponent?.dependencies[0]).toEqual({
@@ -499,7 +498,7 @@ describe('AngularParser - Decorated Class Collection', () => {
   });
 });
 
-describe('AngularParser - Constructor Token Resolution (FR-03)', () => {
+describe('AngularParser - Constructor token resolution', () => {
   const testTsConfig = './src/tests/fixtures/tsconfig.json';
   let parser: AngularParser;
 
@@ -723,7 +722,7 @@ describe('AngularParser - Constructor Token Resolution (FR-03)', () => {
   });
 });
 
-describe('AngularParser - Parameter Decorator Handling (FR-04)', () => {
+describe('AngularParser - Parameter decorator handling', () => {
   const testTsConfig = './src/tests/fixtures/tsconfig.json';
   let parser: AngularParser;
 
