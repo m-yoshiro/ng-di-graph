@@ -24,8 +24,7 @@
     "format:check": "biome format src",
     "check": "npm run lint && npm run typecheck",
     "typecheck": "tsc --noEmit",
-    "clean": "rimraf dist",
-    "prepublishOnly": "npm run build"
+    "clean": "rimraf dist"
   },
   "keywords": [
     "angular",

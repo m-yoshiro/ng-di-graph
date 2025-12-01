@@ -185,6 +185,12 @@ ng-di-graph --project ./tsconfig.json --verbose
 # Shows detailed type resolution and warnings
 ```
 
+## Release workflow
+
+- PR-driven releases via Release Please; release PR merges tag `vX.Y.Z`.
+- Tag pushes trigger publish workflow: lint → typecheck → test → build → pack → publish with provenance.
+- Maintainer runbook: see docs/release/ci-publish.md.
+
 ## Error Handling
 
 The tool provides graceful error handling:
