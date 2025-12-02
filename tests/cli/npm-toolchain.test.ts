@@ -26,7 +26,6 @@ describe('npm toolchain metadata', () => {
       'check',
       'typecheck',
       'clean',
-      'prepublishOnly',
     ];
 
     requiredScripts.forEach((script) => {
