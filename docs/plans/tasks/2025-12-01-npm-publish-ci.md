@@ -224,10 +224,10 @@ jobs:
   - [ ] Maintainer runbook published
 
 ### Progress Updates
-**Last Updated**: 2025-12-01  
-**Current Status**: Planning drafted  
-**Blockers**: Need npm automation token and environment gate creation rights  
-**Next Steps**: Prepare Release Please config and workflows, request token/environments
+**Last Updated**: 2025-12-02  
+**Current Status**: Release automation implemented and tested locally (tests passing)  
+**Blockers**: Need npm automation token in `npm-publish` environment or move to npm trusted publisher (OIDC)  
+**Next Steps**: Configure env secret/gate, run Release Please dry-run or first PR, verify publish workflow on next tag
 
 ---
 
