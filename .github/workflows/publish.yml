@@ -71,7 +71,7 @@ jobs:
           tar -tvf "$TGZ"
 
       - name: Upload pack artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: npm-package
           path: tmp-toolchain/*.tgz
