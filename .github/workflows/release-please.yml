@@ -18,7 +18,7 @@ jobs:
       - name: Release Please
         uses: googleapis/release-please-action@v4
         with:
-          command: manifest
-          default-branch: main
+          token: ${{ github.token }}
+          target-branch: main
           config-file: .release-please-config.json
           manifest-file: .release-please-manifest.json
