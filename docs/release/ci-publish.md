@@ -9,6 +9,8 @@
 - Node.js version pinned by `.node-version` (20.19.0) in workflows.
 - npm automation token (publish scope, 2FA bypass) stored as `NPM_TOKEN`.
 - GitHub environment `npm-publish` with required reviewers and the `NPM_TOKEN` secret.
+- "Allow GitHub Actions to create and approve pull requests" must be enabled in repository Actions
+  settings so Release Please can open PRs with the default `GITHUB_TOKEN`.
 
 ## Release flow
 1) Release Please workflow (`.github/workflows/release-please.yml`)
