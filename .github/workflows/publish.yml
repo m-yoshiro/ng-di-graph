@@ -77,9 +77,6 @@ jobs:
           path: tmp-toolchain/*.tgz
 
       - name: Publish to npm (OIDC)
-        env:
-          NPM_CONFIG_PROVENANCE: true
-          NPM_CONFIG_REGISTRY: https://registry.npmjs.org/
         run: |
           set -eo pipefail
           TGZ=$(ls tmp-toolchain/*.tgz | head -n 1)
@@ -87,4 +84,4 @@ jobs:
             echo "No package artifact found in tmp-toolchain"
             exit 1
           fi
-          npm publish "$TGZ" --access public --provenance
+          npm publish "$TGZ" --access public
