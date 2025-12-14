@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.4.4](https://github.com/m-yoshiro/ng-di-graph/compare/v0.4.3...v0.4.4) (2025-12-14)
+
+
+### Dependencies
+
+* bump @types/node from 25.0.1 to 25.0.2 ([3fb2d61](https://github.com/m-yoshiro/ng-di-graph/commit/3fb2d61101d71d524b33b65547cb8733eba96b6a))
+
+
+### Chores
+
+* add repository and homepage property in package.json ([764c059](https://github.com/m-yoshiro/ng-di-graph/commit/764c05915d63f115a616b259586b477635a38f3e))
+* add repository and homepage property in package.json ([cc32db6](https://github.com/m-yoshiro/ng-di-graph/commit/cc32db6561a3d9659e751dd85906dcd75cabdc5f))
+* update commit message prefixes in dependabot configuration ([3480309](https://github.com/m-yoshiro/ng-di-graph/commit/348030985ce7f267eca10dfa1fa9391d2bbb4eba))
+* update commit message prefixes in dependabot configuration ([225dedc](https://github.com/m-yoshiro/ng-di-graph/commit/225dedc38e469dfbdbbca6188eb8f84d942129b7))
+
 ## [0.4.3](https://github.com/m-yoshiro/ng-di-graph/compare/v0.4.2...v0.4.3) (2025-12-13)
 
 
