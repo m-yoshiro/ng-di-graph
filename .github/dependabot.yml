@@ -7,9 +7,8 @@ updates:
     labels:
       - "dependencies"
     commit-message:
-      prefix: "chore"
-      prefix-development: "chore"
-      include: "scope"
+      prefix: "deps"
+      prefix-development: "deps"
     groups:
       vitest:
         patterns:
