@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.4.5](https://github.com/m-yoshiro/ng-di-graph/compare/v0.4.4...v0.4.5) (2025-12-14)
+
+
+### Chores
+
+* drop `npm pack` step in publish.yml ([7ed8d36](https://github.com/m-yoshiro/ng-di-graph/commit/7ed8d363bdffc39393b7dd9b1f61253aff5b3667))
+* drop `npm pack` step in publish.yml ([ed70aae](https://github.com/m-yoshiro/ng-di-graph/commit/ed70aae9354b4f594b2564fe08ee2a8ba649771f))
+
 ## [0.4.4](https://github.com/m-yoshiro/ng-di-graph/compare/v0.4.3...v0.4.4) (2025-12-14)
 
 
