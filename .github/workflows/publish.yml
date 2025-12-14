@@ -58,30 +58,6 @@ jobs:
       - name: Ensure build produced no tracked changes
         run: git diff --exit-code
 
-      - name: Pack artifact
-        run: |
-          mkdir -p tmp-toolchain
-          rm -f tmp-toolchain/*.tgz
-          npm pack --pack-destination tmp-toolchain/
-
-      - name: Inspect tarball contents
-        run: |
-          TGZ=$(ls tmp-toolchain/*.tgz | head -n 1)
-          echo "Contents of $TGZ"
-          tar -tvf "$TGZ"
-
-      - name: Upload pack artifact
-        uses: actions/upload-artifact@v6
-        with:
-          name: npm-package
-          path: tmp-toolchain/*.tgz
-
       - name: Publish to npm (OIDC)
         run: |
-          set -eo pipefail
-          TGZ=$(ls tmp-toolchain/*.tgz | head -n 1)
-          if [ -z "$TGZ" ]; then
-            echo "No package artifact found in tmp-toolchain"
-            exit 1
-          fi
-          npm publish "$TGZ" --access public
+          npm publish --access public
