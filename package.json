@@ -2,6 +2,14 @@
   "name": "ng-di-graph",
   "version": "0.4.3",
   "description": "Angular DI dependency graph CLI tool",
+  "homepage": "https://github.com/m-yoshiro/ng-di-graph/",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/m-yoshiro/ng-di-graph.git"
+  },
+  "engines": {
+    "node": ">=20.19.0 <21.0.0 || >=22.12.0"
+  },
   "main": "dist/cli/index.cjs",
   "bin": {
     "ng-di-graph": "dist/cli/index.cjs"
@@ -48,8 +56,5 @@
     "commander": "^14.0.0",
     "ts-morph": "^27.0.2",
     "typescript": "^5.9.3"
-  },
-  "engines": {
-    "node": ">=20.19.0 <21.0.0 || >=22.12.0"
   }
 }
