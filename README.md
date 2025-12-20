@@ -8,11 +8,6 @@ A command-line tool that analyzes Angular TypeScript codebases to extract depend
 
 **Target Angular Versions:** 17-20
 
-## Requirements
-
-- Node.js 20.x LTS (see `.node-version`; e.g., `mise use node@$(cat .node-version)`)
-- npm 10+ (ships with Node 20). Use your preferred version manager (mise recommended) to match the pinned runtime before installing dependencies.
-
 ## Features
 
 ✨ **Complete Feature Set** - Production-ready dependency graph analysis for Angular applications
@@ -33,21 +28,26 @@ npm install -g ng-di-graph
 
 ## Usage
 
+Basic usage:
 ```bash
-# Target specific files without the --files flag (positional shortcut)
-ng-di-graph src/app/app.component.ts --project ./tsconfig.json --format json
+ng-di-graph src/app/app.component.ts
 
+# or with options
+ng-di-graph src/app/app.component.ts --project ./tsconfig.json --format json
+```
+
+Formats:
+```bash
 # Analyze an Angular project and output JSON
 ng-di-graph --project ./my-angular-app/tsconfig.json --format json
-
 # Generate a Mermaid flowchart
-ng-di-graph --project ./tsconfig.json --format mermaid --out graph.mmd
+ng-di-graph --project ./my-angular-app/tsconfig.json --format mermaid
+```
 
+Others:
+```bash
 # Analyze dependencies of a specific component
 ng-di-graph --project ./tsconfig.json --entry AppComponent --format mermaid
-
-# Focus on a specific file (similar to eslint targets)
-ng-di-graph --project ./tsconfig.json --files src/app/app.component.ts
 
 # Show verbose logging with detailed type resolution
 ng-di-graph --project ./tsconfig.json --verbose
@@ -202,10 +202,6 @@ The tool provides graceful error handling:
 - **Circular Dependencies** - Detected and reported without blocking analysis
 - **Memory Constraints** - Suggestions for chunking large codebases
 
-Exit codes:
-- `0` - Success
-- `1` - Fatal error (invalid config, parsing failure, etc.)
-
 ## Contributing
 
 Contributions are welcome! Please see our [Contributing Guide](CONTRIBUTING.md) for development setup, code quality standards, and the pull request process.
@@ -214,8 +210,3 @@ Contributions are welcome! Please see our [Contributing Guide](CONTRIBUTING.md) 
 
 MIT License - See [LICENSE](LICENSE) file for details
 
-## Version
-
-Current version: **0.1.0**
-
-All core features are complete and production-ready.
