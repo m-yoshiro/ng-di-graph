@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.4.6](https://github.com/m-yoshiro/ng-di-graph/compare/v0.4.5...v0.4.6) (2025-12-20)
+
+
+### Dependencies
+
+* bump @biomejs/biome from 2.3.8 to 2.3.9 ([#81](https://github.com/m-yoshiro/ng-di-graph/issues/81)) ([f53ef3f](https://github.com/m-yoshiro/ng-di-graph/commit/f53ef3f76fa872c6746c690d8b5110c134757947))
+* bump @biomejs/biome from 2.3.9 to 2.3.10 ([#84](https://github.com/m-yoshiro/ng-di-graph/issues/84)) ([2f39bed](https://github.com/m-yoshiro/ng-di-graph/commit/2f39bedc3d0b54fb9d3efb8418f242f0443b7cd5))
+* bump @types/node from 25.0.2 to 25.0.3 ([#83](https://github.com/m-yoshiro/ng-di-graph/issues/83)) ([acb652c](https://github.com/m-yoshiro/ng-di-graph/commit/acb652cf155d0fecefc25ce61610b4a433d51959))
+* bump the vitest group with 2 updates ([#82](https://github.com/m-yoshiro/ng-di-graph/issues/82)) ([cc5333b](https://github.com/m-yoshiro/ng-di-graph/commit/cc5333b5a116a05da17d0714bb2b9d74a50e546b))
+* bump tsdown from 0.17.3 to 0.17.4 ([067be7c](https://github.com/m-yoshiro/ng-di-graph/commit/067be7c1227d2435d019b6fbcd2723bfae18b21d))
+* bump tsdown from 0.17.4 to 0.18.0 ([#80](https://github.com/m-yoshiro/ng-di-graph/issues/80)) ([10d6303](https://github.com/m-yoshiro/ng-di-graph/commit/10d6303f0f114d93e715329b379f5227cebfb0eb))
+* bump tsdown from 0.18.0 to 0.18.1 ([#85](https://github.com/m-yoshiro/ng-di-graph/issues/85)) ([908ce2e](https://github.com/m-yoshiro/ng-di-graph/commit/908ce2e9e5fad7099dd614f314a14a83ade717a0))
+
+
+### Chores
+
+* use "push" trigger for release-please ([#78](https://github.com/m-yoshiro/ng-di-graph/issues/78)) ([07ceeed](https://github.com/m-yoshiro/ng-di-graph/commit/07ceeedb7fdcdda7ac76fdd78080e395f7f0babd))
+
 ## [0.4.5](https://github.com/m-yoshiro/ng-di-graph/compare/v0.4.4...v0.4.5) (2025-12-14)
 
 
