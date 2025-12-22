@@ -8,10 +8,32 @@ A command-line tool that analyzes Angular TypeScript codebases to extract depend
 
 **Target Angular Versions:** 17-20
 
-## Requirements
+## Prerequisites
+- Node.js 20.x (npm 10+)
+- Angular project targeting v17-20 with a `tsconfig.json` you can point to
 
-- Node.js 20.x LTS (see `.node-version`; e.g., `mise use node@$(cat .node-version)`)
-- npm 10+ (ships with Node 20). Use your preferred version manager (mise recommended) to match the pinned runtime before installing dependencies.
+## Installation
+```bash
+npm install -g ng-di-graph
+```
+
+## Quick start
+```bash
+# Analyze the whole project and print JSON
+ng-di-graph --project ./tsconfig.json --format json
+
+# Generate a Mermaid diagram and save it
+ng-di-graph --project ./tsconfig.json --format mermaid --out docs/di-graph.mmd
+
+# Target specific files via positional filePaths
+ng-di-graph src/app/app.component.ts src/app/auth.service.ts --project ./tsconfig.json --format json
+
+# Use the default tsconfig at ./tsconfig.json (no --project needed)
+ng-di-graph src/app --format mermaid --out docs/di-graph.mmd
+
+# Focus on a symbol and see who depends on it
+ng-di-graph --project ./tsconfig.json --entry UserService --direction upstream
+```
 
 ## Features
 
@@ -25,78 +47,36 @@ A command-line tool that analyzes Angular TypeScript codebases to extract depend
 - 🔄 **Bidirectional Analysis** - Explore upstream dependencies, downstream consumers, or both
 - 🔁 **Circular Detection** - Automatically detect and report circular dependencies
 
-## Installation
+## Common commands
+- Full project, JSON output:  
+  `ng-di-graph --project ./tsconfig.json --format json`
+- Mermaid diagram to file:  
+  `ng-di-graph --project ./tsconfig.json --format mermaid --out docs/di-graph.mmd`
+- Filter to specific symbols:  
+  `ng-di-graph --project ./tsconfig.json --entry AppComponent`
+- Upstream consumers of a service:  
+  `ng-di-graph --project ./tsconfig.json --entry UserService --direction upstream`
+- Include decorator flags with verbose logging:  
+  `ng-di-graph --project ./tsconfig.json --include-decorators --verbose`
 
-```bash
-npm install -g ng-di-graph
-```
-
-## Usage
-
-```bash
-# Target specific files without the --files flag (positional shortcut)
-ng-di-graph src/app/app.component.ts --project ./tsconfig.json --format json
-
-# Analyze an Angular project and output JSON
-ng-di-graph --project ./my-angular-app/tsconfig.json --format json
-
-# Generate a Mermaid flowchart
-ng-di-graph --project ./tsconfig.json --format mermaid --out graph.mmd
-
-# Analyze dependencies of a specific component
-ng-di-graph --project ./tsconfig.json --entry AppComponent --format mermaid
-
-# Focus on a specific file (similar to eslint targets)
-ng-di-graph --project ./tsconfig.json --files src/app/app.component.ts
-
-# Show verbose logging with detailed type resolution
-ng-di-graph --project ./tsconfig.json --verbose
-
-# Include parameter decorator flags
-ng-di-graph --project ./tsconfig.json --include-decorators
-
-# Analyze upstream dependencies (who depends on this?)
-ng-di-graph --project ./tsconfig.json --entry UserService --direction upstream
-```
-
-## CLI Reference
+## CLI options at a glance
 
 ```
 ng-di-graph [filePaths...] [options]
-
-Arguments:
-  filePaths                 Optional list of files/directories to analyze (alias for --files)
-
-Options:
-  -p, --project <path>       Path to tsconfig.json (default: ./tsconfig.json)
-  --files <paths...>         Specific file paths to analyze (similar to eslint targets)
-  -f, --format <format>      Output format: json | mermaid (default: json)
-  -e, --entry <symbol...>    Starting nodes for sub-graph filtering
-  -d, --direction <dir>      Filter direction: upstream | downstream | both (default: downstream)
-  --include-decorators       Include @Optional, @Self, @SkipSelf, @Host flags in output
-  --out <file>               Output file path (prints to stdout if omitted)
-  -v, --verbose              Show detailed parsing and resolution information
-  -h, --help                 Display help information
 ```
 
-### Option Details
-
-- **`filePaths` (positional)**: Optional positional arguments that act as a shortcut for `--files`,
-  allowing you to target specific files or directories without the flag; omit to scan the full project
-- **`--project`**: Specifies the TypeScript configuration file to use for project analysis (required
-  when your tsconfig lives outside `./tsconfig.json`)
-- **`--files`**: Restrict analysis to one or more specific TypeScript files (relative paths supported)
-  and merges with positional `filePaths` when both are provided; useful when targeting a subset of your
-  project similar to ESLint CLI usage
-- **`--format`**: Choose between JSON (structured data) or Mermaid (visual diagram)
-- **`--entry`**: Filter the graph to show only dependencies related to specified symbols (supports multiple entries)
-- **`--direction`**:
-  - `downstream` (default): Show what the entry depends on
-  - `upstream`: Show what depends on the entry
-  - `both`: Show both upstream and downstream dependencies
-- **`--include-decorators`**: Add parameter decorator information to edge flags
-- **`--out`**: Save output to a file instead of stdout
-- **`--verbose`**: Enable detailed logging including timing metrics, memory usage, and type resolution details
+Option | Default | Description
+-- | -- | --
+`filePaths` | none | Positional alias for `--files`; combines with `--files` when both are set.
+`-p, --project <path>` | `./tsconfig.json` | Path to the TypeScript config file to analyze.
+`--files <paths...>` | none | Limit analysis to specific files or directories.
+`-f, --format <format>` | `json` | Output as `json` or `mermaid`.
+`-e, --entry <symbol...>` | none | Start the graph from one or more symbols.
+`-d, --direction <dir>` | `downstream` | `downstream`, `upstream`, or `both` relative to entries.
+`--include-decorators` | `false` | Add `@Optional`, `@Self`, `@SkipSelf`, `@Host` flags to edges.
+`--out <file>` | stdout | Write output to a file.
+`-v, --verbose` | `false` | Show detailed parsing and resolution logs.
+`-h, --help` | `false` | Display CLI help.
 
 ## Output Formats
 
@@ -107,21 +87,26 @@ Options:
   "nodes": [
     { "id": "AppComponent", "kind": "component" },
     { "id": "UserService", "kind": "service" },
-    { "id": "AuthService", "kind": "service" }
+    { "id": "AuthService", "kind": "service" },
+    { "id": "Logger", "kind": "service" }
   ],
   "edges": [
     {
       "from": "AppComponent",
-      "to": "UserService",
-      "flags": { "optional": false }
+      "to": "UserService"
     },
     {
       "from": "UserService",
       "to": "AuthService",
-      "flags": { "optional": true, "self": false }
+      "flags": { "optional": true, "self": false, "skipSelf": false, "host": false }
+    },
+    {
+      "from": "AuthService",
+      "to": "Logger",
+      "flags": { "optional": false, "self": false, "skipSelf": false, "host": false }
     }
   ],
-  "circularDependencies": []
+  "circularDependencies": [["UserService", "AuthService", "UserService"]]
 }
 ```
 
@@ -145,66 +130,18 @@ flowchart LR
   UserService --> AuthService
 ```
 
-Mermaid diagrams can be:
-- Rendered in GitHub/GitLab markdown
-- Viewed in the [Mermaid Live Editor](https://mermaid.live/)
-- Embedded in documentation sites
-- Converted to images using CLI tools
+Mermaid diagrams can be rendered in GitHub/GitLab markdown, viewed in the [Mermaid Live Editor](https://mermaid.live/), or converted to images with CLI tools.
 
-## Use Cases
-
-### 1. Test Planning
-Quickly identify all dependencies of a component to plan test mocks:
-```bash
-ng-di-graph --project ./tsconfig.json --entry MyComponent --format json
-```
-
-### 2. Impact Analysis
-Find all consumers of a service before making breaking changes:
-```bash
-ng-di-graph --project ./tsconfig.json --entry UserService --direction upstream
-```
-
-### 3. Documentation
-Generate visual dependency diagrams for README or design docs:
-```bash
-ng-di-graph --project ./tsconfig.json --format mermaid --out docs/architecture.mmd
-```
-
-### 4. Circular Dependency Detection
-Identify circular dependencies in your DI graph:
-```bash
-ng-di-graph --project ./tsconfig.json --verbose
-# Check the "circularDependencies" array in output
-```
-
-### 5. Debugging Type Issues
-Investigate type resolution problems with verbose logging:
-```bash
-ng-di-graph --project ./tsconfig.json --verbose
-# Shows detailed type resolution and warnings
-```
+## Use cases
+- Test planning: surface dependencies to decide what to mock.
+- Impact analysis: list consumers before changing a service.
+- Documentation: add Mermaid diagrams to READMEs or architecture docs.
 
 ## Release workflow
+Releases are automated via Release Please; tag pushes run lint → typecheck → test → build → pack → publish. Maintainer runbook: see `docs/release/ci-publish.md`.
 
-- PR-driven releases via Release Please; release PR merges tag `vX.Y.Z`.
-- Tag pushes trigger publish workflow: lint → typecheck → test → build → pack → publish with provenance.
-- Maintainer runbook: see docs/release/ci-publish.md.
-
-## Error Handling
-
-The tool provides graceful error handling:
-
-- **File Parsing Failures** - Skips unparseable files and continues processing
-- **Type Resolution Issues** - Logs warnings for `any`/`unknown` types
-- **Missing tsconfig.json** - Clear error message with suggestion
-- **Invalid CLI Arguments** - Help message with usage examples
-- **Circular Dependencies** - Detected and reported without blocking analysis
-- **Memory Constraints** - Suggestions for chunking large codebases
-
-Exit codes:
-- `0` - Success
-- `1` - Fatal error (invalid config, parsing failure, etc.)
+## Error handling
+The CLI reports clear failures and continues past unparseable files; rerun with `--verbose` for detailed logs.
 
 ## Contributing
 
@@ -213,9 +150,3 @@ Contributions are welcome! Please see our [Contributing Guide](CONTRIBUTING.md) 
 ## License
 
 MIT License - See [LICENSE](LICENSE) file for details
-
-## Version
-
-Current version: **0.1.0**
-
-All core features are complete and production-ready.
