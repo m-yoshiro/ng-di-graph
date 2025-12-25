@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.7](https://github.com/m-yoshiro/ng-di-graph/compare/v0.4.6...v0.4.7) (2025-12-22)
+
+
+### Dependencies
+
+* bump tsdown from 0.18.1 to 0.18.2 ([#86](https://github.com/m-yoshiro/ng-di-graph/issues/86)) ([156cea5](https://github.com/m-yoshiro/ng-di-graph/commit/156cea5bde28ed0ebb33816e2c6b8698d260df5d))
+
 ## [0.4.6](https://github.com/m-yoshiro/ng-di-graph/compare/v0.4.5...v0.4.6) (2025-12-20)
 
 
