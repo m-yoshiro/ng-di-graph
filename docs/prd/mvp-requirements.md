@@ -59,7 +59,7 @@ npm link
 
 # 3. Test from any directory
 ng-di-graph --help
-ng-di-graph -p ./tsconfig.json -f json
+ng-di-graph -f json
 
 # 4. Cleanup when done
 npm unlink -g ng-di-graph
@@ -170,7 +170,7 @@ The goal of this project is to deliver a **command‑line tool** that parses a T
 ---
 
 ## 8. Input Specification
-* **Required**: `--project <tsconfig path>`
+* **Optional**: `--project <tsconfig path>` (auto-discovered if omitted)
 * **Optional**:
   * `--entry <symbol...>`
   * `--format json|mermaid`
@@ -239,10 +239,10 @@ interface Graph {
 ## 11. CLI Interface
 
 ```text
-ng-di-graph [options]
+ng-di-graph [filePaths...] [options]
 
 Options:
-  -p, --project <path>       tsconfig.json path (default: ./tsconfig.json)
+  -p, --project <path>       tsconfig.json path (auto-discovered if omitted)
   -f, --format <format>      json | mermaid (default: json)
   -e, --entry <symbol...>    one or more starting nodes
   -d, --direction <dir>      entry filtering direction: upstream|downstream|both (default: downstream)

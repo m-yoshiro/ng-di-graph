@@ -10,7 +10,7 @@ A command-line tool that analyzes Angular TypeScript codebases to extract depend
 
 ## Prerequisites
 - Node.js 20.x (npm 10+)
-- Angular project targeting v17-20 with a `tsconfig.json` you can point to
+- Angular project targeting v17-20 with a `tsconfig.json` to discover or reference
 
 ## Installation
 ```bash
@@ -19,20 +19,23 @@ npm install -g ng-di-graph
 
 ## Quick start
 ```bash
-# Analyze the whole project and print JSON
-ng-di-graph --project ./tsconfig.json --format json
+# Analyze the whole project and print JSON (auto-discover tsconfig)
+ng-di-graph --format json
 
 # Generate a Mermaid diagram and save it
-ng-di-graph --project ./tsconfig.json --format mermaid --out docs/di-graph.mmd
+ng-di-graph --format mermaid --out docs/di-graph.mmd
 
 # Target specific files via positional filePaths
-ng-di-graph src/app/app.component.ts src/app/auth.service.ts --project ./tsconfig.json --format json
+ng-di-graph src/app/app.component.ts src/app/auth.service.ts --format json
 
-# Use the default tsconfig at ./tsconfig.json (no --project needed)
+# Auto-discover the nearest tsconfig.json (no --project needed)
 ng-di-graph src/app --format mermaid --out docs/di-graph.mmd
 
 # Focus on a symbol and see who depends on it
-ng-di-graph --project ./tsconfig.json --entry UserService --direction upstream
+ng-di-graph --entry UserService --direction upstream
+
+# Override auto-discovery with an explicit tsconfig
+ng-di-graph --project ./tsconfig.json --format json
 ```
 
 ## Features
@@ -49,15 +52,15 @@ ng-di-graph --project ./tsconfig.json --entry UserService --direction upstream
 
 ## Common commands
 - Full project, JSON output:  
-  `ng-di-graph --project ./tsconfig.json --format json`
+  `ng-di-graph --format json`
 - Mermaid diagram to file:  
-  `ng-di-graph --project ./tsconfig.json --format mermaid --out docs/di-graph.mmd`
+  `ng-di-graph --format mermaid --out docs/di-graph.mmd`
 - Filter to specific symbols:  
-  `ng-di-graph --project ./tsconfig.json --entry AppComponent`
+  `ng-di-graph --entry AppComponent`
 - Upstream consumers of a service:  
-  `ng-di-graph --project ./tsconfig.json --entry UserService --direction upstream`
+  `ng-di-graph --entry UserService --direction upstream`
 - Include decorator flags with verbose logging:  
-  `ng-di-graph --project ./tsconfig.json --include-decorators --verbose`
+  `ng-di-graph --include-decorators --verbose`
 
 ## CLI options at a glance
 
@@ -68,7 +71,7 @@ ng-di-graph [filePaths...] [options]
 Option | Default | Description
 -- | -- | --
 `filePaths` | none | Positional alias for `--files`; combines with `--files` when both are set.
-`-p, --project <path>` | `./tsconfig.json` | Path to the TypeScript config file to analyze.
+`-p, --project <path>` | auto-discovered | Path to the TypeScript config file to analyze (omit to auto-discover).
 `--files <paths...>` | none | Limit analysis to specific files or directories.
 `-f, --format <format>` | `json` | Output as `json` or `mermaid`.
 `-e, --entry <symbol...>` | none | Start the graph from one or more symbols.

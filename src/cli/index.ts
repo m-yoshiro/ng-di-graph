@@ -1,10 +1,4 @@
 #!/usr/bin/env node
-/**
- * ng-di-graph CLI entry point
- * Supports Node.js (via tsx) execution
- */
-import { existsSync, statSync } from 'node:fs';
-import { join } from 'node:path';
 import { Command } from 'commander';
 import { CliError, ErrorHandler } from '../core/error-handler';
 import { buildGraph } from '../core/graph-builder';
@@ -15,6 +9,11 @@ import { AngularParser } from '../core/parser';
 import { JsonFormatter } from '../formatters/json-formatter';
 import { MermaidFormatter } from '../formatters/mermaid-formatter';
 import type { CliOptions } from '../types';
+/**
+ * ng-di-graph CLI entry point
+ * Supports Node.js (via tsx) execution
+ */
+import { resolveProjectPath } from './project-resolver';
 
 const MIN_NODE_MAJOR_VERSION = 20;
 
@@ -46,31 +45,13 @@ function enforceMinimumNodeVersion(): void {
 
 enforceMinimumNodeVersion();
 
-function resolveProjectPath(projectOption: string): string {
-  const candidatePath = projectOption;
-
-  try {
-    const stats = statSync(candidatePath);
-    if (stats.isDirectory()) {
-      const tsconfigPath = join(candidatePath, 'tsconfig.json');
-      if (existsSync(tsconfigPath)) {
-        return tsconfigPath;
-      }
-    }
-  } catch {
-    // Let downstream validation surface file-not-found errors
-  }
-
-  return candidatePath;
-}
-
 const program = new Command();
 
 program.name('ng-di-graph').description('Angular DI dependency graph CLI tool').version('0.1.0');
 
 program
   .argument('[filePaths...]', 'TypeScript files to analyze (alias for --files)')
-  .option('-p, --project <path>', 'tsconfig.json path', './tsconfig.json')
+  .option('-p, --project <path>', 'tsconfig.json path (auto-discovered if omitted)')
   .option('--files <paths...>', 'specific file paths to analyze (similar to eslint targets)')
   .option('-f, --format <format>', 'output format: json | mermaid', 'json')
   .option('-e, --entry <symbol...>', 'starting nodes for sub-graph')
@@ -81,7 +62,14 @@ program
 
 program.action(async (filePaths: string[] = [], options) => {
   try {
-    const project = resolveProjectPath(options.project);
+    const mergedFiles = mergeFileTargets(filePaths, options.files);
+    const logger = createLogger(options.verbose);
+    const project = resolveProjectPath({
+      projectOption: options.project,
+      fileTargets: mergedFiles,
+      cwd: process.cwd(),
+      logger,
+    });
 
     // Validate direction option
     const validDirections = ['upstream', 'downstream', 'both'];
@@ -111,8 +99,6 @@ program.action(async (filePaths: string[] = [], options) => {
       );
     }
 
-    const mergedFiles = mergeFileTargets(filePaths, options.files);
-
     const cliOptions: CliOptions = {
       project,
       files: mergedFiles.length > 0 ? mergedFiles : undefined,
@@ -123,9 +109,6 @@ program.action(async (filePaths: string[] = [], options) => {
       out: options.out,
       verbose: options.verbose,
     };
-
-    // Create Logger when verbose mode is enabled
-    const logger = createLogger(cliOptions.verbose);
 
     if (logger) {
       logger.time('total-execution');

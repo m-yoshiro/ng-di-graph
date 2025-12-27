@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { resolveProjectPath } from '../cli/project-resolver';
 import { AngularParser } from '../core/parser';
 import { buildGraph } from '../core/graph-builder';
 import { filterGraph } from '../core/graph-filter';
@@ -877,7 +878,6 @@ describe('CLI Integration - Core Features', () => {
     it('should handle invalid flag combinations gracefully', async () => {
       // Arrange - Invalid flag combinations
       const invalidCommands = [
-        ['ng-di-graph', '--include-decorators'], // Missing --project
         ['ng-di-graph', '--project', './nonexistent/tsconfig.json', '--include-decorators'], // Non-existent file
         ['ng-di-graph', '--project', './src/tests/fixtures/tsconfig.json', '--include-decorators', '--format', 'invalid'] // Invalid format
       ];
@@ -917,7 +917,7 @@ function parseCLIArguments(args: string[]): CliOptions {
   // Simulate CLI argument parsing using commander.js logic
   // This mimics the behavior of our actual CLI
   const defaultOptions: CliOptions = {
-    project: './tsconfig.json',
+    project: '',
     files: undefined,
     format: 'json',
     direction: 'downstream',
@@ -992,7 +992,7 @@ Angular DI dependency graph CLI tool
 
 Options:
   -V, --version              display version number
-  -p, --project <path>       tsconfig.json path (default: "./tsconfig.json")
+  -p, --project <path>       tsconfig.json path (auto-discovered if omitted)
   --files <paths...>         specific file paths to analyze (similar to eslint targets)
   -f, --format <format>      output format: json | mermaid (default: "json")
   -e, --entry <symbol...>    starting nodes for sub-graph
@@ -1036,15 +1036,12 @@ async function executeCLICommand(args: string[]): Promise<CLIResult> {
       );
     }
 
-    // Validate required options - check for default when not provided
-    if (!options.project || options.project === './tsconfig.json') {
-      // Check if --project was explicitly set or using default
-      const hasProjectFlag = args.includes('--project') || args.includes('-p');
-      if (!hasProjectFlag && args.length > 1) {
-        // Command has other flags but no --project
-        throw new Error('Missing required argument: --project');
-      }
-    }
+    const resolvedProject = resolveProjectPath({
+      projectOption: options.project || undefined,
+      fileTargets: options.files ?? [],
+      cwd: process.cwd(),
+    });
+    options.project = resolvedProject;
 
     // Validate format
     if (options.format && !['json', 'mermaid'].includes(options.format)) {
