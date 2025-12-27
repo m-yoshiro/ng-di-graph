@@ -765,6 +765,27 @@ describe('AngularParser - Constructor token resolution', () => {
       expect(totalDependencies).toBeGreaterThan(0);
     });
   });
+
+  describe('Processing stats', () => {
+    it('should expose processed and skipped file counts after parsing', async () => {
+      await parser.findDecoratedClasses();
+
+      const stats = parser.getProcessingStats();
+      const sourceFileCount = parser.getProject().getSourceFiles().length;
+
+      expect(stats.processedFileCount).toBeGreaterThanOrEqual(0);
+      expect(stats.skippedFileCount).toBeGreaterThanOrEqual(0);
+      expect(stats.processedFileCount + stats.skippedFileCount).toBe(sourceFileCount);
+    });
+
+    it('should provide warning count access via structured warnings', async () => {
+      await parser.findDecoratedClasses();
+
+      const warnings = parser.getStructuredWarnings();
+      expect(typeof warnings.totalCount).toBe('number');
+      expect(warnings.totalCount).toBeGreaterThanOrEqual(0);
+    });
+  });
 });
 
 describe('AngularParser - Parameter decorator handling', () => {

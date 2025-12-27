@@ -53,6 +53,10 @@ export class AngularParser {
   private _project?: Project;
   private _typeResolutionCache = new Map<string, string | null>();
   private _circularTypeRefs = new Set<string>();
+  private _processingStats = {
+    processedFileCount: 0,
+    skippedFileCount: 0,
+  };
   private _structuredWarnings: StructuredWarnings = {
     categories: {
       typeResolution: [],
@@ -110,6 +114,13 @@ export class AngularParser {
       },
       totalCount: this._structuredWarnings.totalCount,
     };
+  }
+
+  /**
+   * Get file processing stats from the most recent parse run.
+   */
+  getProcessingStats(): { processedFileCount: number; skippedFileCount: number } {
+    return { ...this._processingStats };
   }
 
   /**
@@ -470,6 +481,7 @@ export class AngularParser {
     const sourceFiles = this.getTargetSourceFiles();
     let processedFiles = 0;
     let skippedFiles = 0;
+    this._processingStats = { processedFileCount: 0, skippedFileCount: 0 };
 
     // Clear circular reference tracking for cross-class detection
     this._circularTypeRefs.clear();
@@ -551,6 +563,11 @@ export class AngularParser {
     if (decoratedClasses.length === 0) {
       ErrorHandler.warn('No decorated classes found in the project');
     }
+
+    this._processingStats = {
+      processedFileCount: processedFiles,
+      skippedFileCount: skippedFiles,
+    };
 
     return decoratedClasses;
   }

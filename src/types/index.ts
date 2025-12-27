@@ -44,7 +44,7 @@ export interface CliOptions {
    * When provided, only these files are parsed
    */
   files?: string[];
-  format: 'json' | 'mermaid';
+  format: 'json' | 'mermaid' | 'text';
   entry?: string[];
   direction: 'upstream' | 'downstream' | 'both';
   includeDecorators: boolean;
@@ -123,6 +123,17 @@ export interface StructuredWarnings {
     performance: Warning[];
   };
   totalCount: number;
+}
+
+export interface TextFormatContext {
+  projectPath?: string;
+  direction?: 'upstream' | 'downstream' | 'both';
+  entry?: string[];
+  processedFileCount?: number;
+  skippedFileCount?: number;
+  warningCount?: number;
+  warnings?: Warning[];
+  circularDependencyCount?: number;
 }
 
 export interface TypeValidationResult {

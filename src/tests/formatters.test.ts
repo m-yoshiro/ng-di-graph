@@ -3,6 +3,7 @@ import { existsSync, readFileSync, mkdirSync, rmSync } from 'fs';
 import type { Graph } from '../types';
 import { JsonFormatter } from '../formatters/json-formatter';
 import { MermaidFormatter } from '../formatters/mermaid-formatter';
+import { TextFormatter } from '../formatters/text-formatter';
 import { OutputHandler } from '../core/output-handler';
 import { createLogger, type Logger } from '../core/logger';
 
@@ -427,6 +428,128 @@ describe('Output Formatting', () => {
           })
         );
       });
+    });
+  });
+
+  describe('TextFormatter', () => {
+    it('should include summary metadata with warnings and cycles', () => {
+      const graph: Graph = {
+        nodes: [
+          { id: 'ServiceA', kind: 'service' },
+          { id: 'ServiceB', kind: 'service' },
+          { id: 'TokenX', kind: 'unknown' }
+        ],
+        edges: [
+          { from: 'ServiceA', to: 'ServiceB', flags: {} },
+          { from: 'TokenX', to: 'ServiceA', flags: {} }
+        ],
+        circularDependencies: [['ServiceA', 'ServiceB']]
+      };
+
+      const formatter = new TextFormatter({
+        projectPath: '/path/to/tsconfig.json',
+        direction: 'downstream',
+        entry: ['TestComponent'],
+        processedFileCount: 2,
+        skippedFileCount: 1,
+        warningCount: 4
+      });
+
+      const result = formatter.format(graph);
+
+      expect(result).toContain('Project: /path/to/tsconfig.json');
+      expect(result).toContain('Scope: direction=downstream, entry=TestComponent');
+      expect(result).toContain('Files: 2 (skipped: 1)');
+      expect(result).toContain('Warnings: 4');
+      expect(result).toContain('Circular dependencies: 1');
+      expect(result.endsWith('\n')).toBe(true);
+    });
+
+    it('should list dependencies in tree format in deterministic order (limit 10)', () => {
+      const graph: Graph = {
+        nodes: [
+          { id: 'Grid', kind: 'service' },
+          { id: 'GridRow', kind: 'service' },
+          { id: 'GridCell', kind: 'service' },
+          { id: 'GridCellWidget', kind: 'service' },
+          { id: 'ElementRef', kind: 'service' },
+          { id: 'GRID_ROW', kind: 'unknown' },
+          { id: 'GRID_CELL', kind: 'unknown' }
+        ],
+        edges: [
+          { from: 'Grid', to: 'ElementRef', flags: {} },
+          { from: 'GridRow', to: 'ElementRef', flags: {} },
+          { from: 'GridRow', to: 'Grid', flags: {} },
+          { from: 'GridCell', to: 'ElementRef', flags: {} },
+          { from: 'GridCell', to: 'GRID_ROW', flags: {} },
+          { from: 'GridCellWidget', to: 'ElementRef', flags: {} },
+          { from: 'GridCellWidget', to: 'GRID_CELL', flags: {} }
+        ],
+        circularDependencies: []
+      };
+
+      const formatter = new TextFormatter({
+        projectPath: '/path/to/tsconfig.json',
+        direction: 'downstream',
+        entry: ['Grid'],
+        processedFileCount: 1,
+        skippedFileCount: 0,
+        warningCount: 0
+      });
+
+      const result = formatter.format(graph);
+
+      const expected = [
+        'Project: /path/to/tsconfig.json',
+        'Scope: direction=downstream, entry=Grid',
+        'Files: 1 (skipped: 0)',
+        '',
+        'Dependencies (A depends on B):',
+        'Grid',
+        '└─ ElementRef',
+        '',
+        'GridCell',
+        '├─ ElementRef',
+        '└─ GRID_ROW',
+        '',
+        'GridCellWidget',
+        '├─ ElementRef',
+        '└─ GRID_CELL',
+        '',
+        'GridRow',
+        '├─ ElementRef',
+        '└─ Grid',
+        ''
+      ].join('\n');
+
+      expect(result).toBe(expected);
+    });
+
+    it('should omit warnings, cycles, and dependencies section for empty graphs', () => {
+      const graph: Graph = {
+        nodes: [],
+        edges: [],
+        circularDependencies: []
+      };
+
+      const formatter = new TextFormatter({
+        projectPath: '/path/to/tsconfig.json',
+        direction: 'downstream',
+        processedFileCount: 0,
+        skippedFileCount: 0,
+        warningCount: 0
+      });
+
+      const result = formatter.format(graph);
+
+      const expected = [
+        'Project: /path/to/tsconfig.json',
+        'Scope: direction=downstream, entry=all',
+        'Files: 0 (skipped: 0)',
+        ''
+      ].join('\n');
+
+      expect(result).toBe(expected);
     });
   });
 });
