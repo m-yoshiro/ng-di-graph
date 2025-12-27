@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.6.0](https://github.com/m-yoshiro/ng-di-graph/compare/v0.5.0...v0.6.0) (2025-12-27)
+
+
+### Features
+
+* **core:** add node source metadata ([#92](https://github.com/m-yoshiro/ng-di-graph/issues/92)) ([ac9c6a3](https://github.com/m-yoshiro/ng-di-graph/commit/ac9c6a3fd348ad6f14bc891f282d0811cf3151e2))
+* **formatter:** text output default ([#94](https://github.com/m-yoshiro/ng-di-graph/issues/94)) ([4bb33dc](https://github.com/m-yoshiro/ng-di-graph/commit/4bb33dcc0904b47a7ca505f0b7a6f506692b69a8))
+
 ## [0.5.0](https://github.com/m-yoshiro/ng-di-graph/compare/v0.4.7...v0.5.0) (2025-12-27)
 
 

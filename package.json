@@ -1,6 +1,6 @@
 {
   "name": "ng-di-graph",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "Angular DI dependency graph CLI tool",
   "homepage": "https://github.com/m-yoshiro/ng-di-graph/",
   "repository": {
