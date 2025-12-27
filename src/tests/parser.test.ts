@@ -382,12 +382,17 @@ describe('AngularParser - Decorated Class Collection', () => {
 
       const basicService = classes.find(c => c.name === 'BasicService');
       expect(basicService?.filePath).toContain('services.ts');
+      expect(basicService?.source.filePath).toBe(basicService?.filePath);
+      expect(basicService?.source.line).toBe(11);
+      expect(basicService?.source.column).toBe(14);
 
       const basicComponent = classes.find(c => c.name === 'BasicComponent');
       expect(basicComponent?.filePath).toContain('components.ts');
+      expect(basicComponent?.source.filePath).toBe(basicComponent?.filePath);
 
       const basicDirective = classes.find(c => c.name === 'BasicDirective');
       expect(basicDirective?.filePath).toContain('directives.ts');
+      expect(basicDirective?.source.filePath).toBe(basicDirective?.filePath);
     });
 
     it('should extract constructor dependencies', async () => {
