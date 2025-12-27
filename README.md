@@ -88,10 +88,26 @@ Option | Default | Description
 ```json
 {
   "nodes": [
-    { "id": "AppComponent", "kind": "component" },
-    { "id": "UserService", "kind": "service" },
-    { "id": "AuthService", "kind": "service" },
-    { "id": "Logger", "kind": "service" }
+    {
+      "id": "AppComponent",
+      "kind": "component",
+      "source": { "filePath": "/path/to/src/app.component.ts", "line": 12, "column": 14 }
+    },
+    {
+      "id": "UserService",
+      "kind": "service",
+      "source": { "filePath": "/path/to/src/user.service.ts", "line": 8, "column": 14 }
+    },
+    {
+      "id": "AuthService",
+      "kind": "service",
+      "source": { "filePath": "/path/to/src/auth.service.ts", "line": 20, "column": 14 }
+    },
+    {
+      "id": "Logger",
+      "kind": "service",
+      "source": { "filePath": "/path/to/src/logger.service.ts", "line": 5, "column": 14 }
+    }
   ],
   "edges": [
     {
@@ -118,6 +134,11 @@ Option | Default | Description
 - `component` - Classes decorated with `@Component()`
 - `directive` - Classes decorated with `@Directive()`
 - `unknown` - Could not determine decorator type
+
+**Node Source** (when available):
+- `source.filePath` - Absolute file path reported by the TypeScript project
+- `source.line` / `source.column` - 1-based position of the class name token
+- `source` is omitted for `unknown` nodes created from unresolved tokens
 
 **Edge Flags** (when `--include-decorators` is used):
 - `optional` - Parameter has `@Optional()` decorator
