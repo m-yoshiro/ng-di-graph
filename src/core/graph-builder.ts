@@ -44,6 +44,23 @@ function validateInput(parsedClasses: ParsedClass[]): void {
       throw new Error('ParsedClass dependencies must be an array');
     }
 
+    if (!parsedClass.source) {
+      throw new Error('ParsedClass must have a valid source property');
+    }
+
+    if (typeof parsedClass.source.filePath !== 'string' || parsedClass.source.filePath === '') {
+      throw new Error('ParsedClass source must have a valid filePath');
+    }
+
+    if (
+      !Number.isFinite(parsedClass.source.line) ||
+      !Number.isFinite(parsedClass.source.column) ||
+      parsedClass.source.line < 1 ||
+      parsedClass.source.column < 1
+    ) {
+      throw new Error('ParsedClass source must include valid line and column values');
+    }
+
     // Validate each dependency
     for (const dependency of parsedClass.dependencies) {
       if (typeof dependency.token !== 'string') {
@@ -158,6 +175,7 @@ export function buildGraph(parsedClasses: ParsedClass[], logger?: Logger): Graph
       nodeMap.set(parsedClass.name, {
         id: parsedClass.name,
         kind: parsedClass.kind,
+        source: parsedClass.source,
       });
     }
   }
