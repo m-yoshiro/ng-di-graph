@@ -90,7 +90,7 @@ The goal of this project is to deliver a **command‑line tool** that parses a T
 | **Decorated classes** | `@Injectable()`, `@Component()`, `@Directive()` |
 | **Dependency source** | Constructor parameter **type annotations** or `@Inject(TOKEN)` |
 | **Parameter decorators** | Detect `@Optional`, `@Self`, `@SkipSelf`, `@Host`; store as edge flags |
-| **Output formats** | **JSON** (machine‑readable) and **Mermaid flowchart** (visual) |
+| **Output formats** | **Text** (default), **JSON** (machine‑readable), and **Mermaid flowchart** (visual) |
 | **CLI options** | `--project`, `--format`, `--entry`, `--out`, `--include-decorators` |
 | **Entry filtering** | Generate a sub‑graph starting from one or more specified symbols |
 
@@ -145,8 +145,8 @@ The goal of this project is to deliver a **command‑line tool** that parses a T
 | **FR‑02** | Collect all classes decorated with `@Injectable`, `@Component`, or `@Directive`. |
 | **FR‑03** | For each constructor parameter, resolve the token from its type or `@Inject`. |
 | **FR‑04** | Record parameter decorators (`Optional`, `Self`, …) as edge flags when `--include-decorators` is set. |
-| **FR‑05** | Build an in‑memory graph; expose it as **JSON** and **Mermaid**. |
-| **FR‑06** | Support `--format json|mermaid` (default `json`). |
+| **FR‑05** | Build an in‑memory graph; expose it as **text**, **JSON**, and **Mermaid**. |
+| **FR‑06** | Support `--format text|json|mermaid` (default `text`). |
 | **FR‑07** | Support `--entry` for sub‑graph extraction via DFS/BFS. |
 | **FR‑08** | Write to stdout or a file path supplied by `--out`. |
 | **FR‑09** | Skip dependencies whose type resolves to `any`/`unknown`; log a warning. |
@@ -173,7 +173,7 @@ The goal of this project is to deliver a **command‑line tool** that parses a T
 * **Optional**: `--project <tsconfig path>` (auto-discovered if omitted)
 * **Optional**:
   * `--entry <symbol...>`
-  * `--format json|mermaid`
+  * `--format text|json|mermaid`
   * `--out <file>`
   * `--include-decorators`
 
@@ -200,6 +200,17 @@ flowchart LR
   AppComponent --> FooService
 ```
 *Node names are used verbatim; escaping may be required for duplicates or special characters.*
+
+### 9.3 Text
+```text
+Project: ./tsconfig.json
+Scope: direction=downstream, entry=all
+Files: 12 (skipped: 0)
+
+Dependencies (A depends on B):
+AppComponent
+└─ FooService
+```
 
 ---
 
@@ -243,7 +254,7 @@ ng-di-graph [filePaths...] [options]
 
 Options:
   -p, --project <path>       tsconfig.json path (auto-discovered if omitted)
-  -f, --format <format>      json | mermaid (default: json)
+  -f, --format <format>      text | json | mermaid (default: text)
   -e, --entry <symbol...>    one or more starting nodes
   -d, --direction <dir>      entry filtering direction: upstream|downstream|both (default: downstream)
   --include-decorators       include Optional/Self/SkipSelf/Host flags

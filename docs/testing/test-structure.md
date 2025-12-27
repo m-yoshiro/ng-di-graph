@@ -33,7 +33,7 @@ Focus on individual components and classes in isolation, testing specific functi
 - `parser-decorator.test.ts` - Decorator detection and analysis
 - `graph-builder.test.ts` - Graph construction logic
 - `graph-filter.test.ts` - Entry point filtering algorithms
-- `formatters.test.ts` - JSON and Mermaid output formatting
+- `formatters.test.ts` - Text, JSON, and Mermaid output formatting
 - `logger.test.ts` - Logger infrastructure
 - `type-validation.test.ts` - Type resolution and validation
 
@@ -113,9 +113,10 @@ Validate error recovery, error messages, and graceful degradation.
 **Coverage**: 90%+ branch coverage
 
 #### `formatters.test.ts` (520+ lines)
-**Purpose**: JSON and Mermaid output formatting
+**Purpose**: Text, JSON, and Mermaid output formatting
 **Functional Requirements**: FR-05, FR-06
 **Key Test Suites**:
+- Text output format validation (FR-06)
 - JSON output format validation (FR-06)
 - Mermaid flowchart generation (FR-06)
 - Node and edge representation
@@ -156,7 +157,7 @@ Validate error recovery, error messages, and graceful degradation.
 **Key Test Suites**:
 - CLI argument parsing and validation
 - Project loading via --project option
-- Output format selection (--format json|mermaid)
+- Output format selection (--format text|json|mermaid)
 - Entry filtering (--entry, --direction)
 - Decorator flag inclusion (--include-decorators)
 - Verbose mode (--verbose)
@@ -701,7 +702,7 @@ describe('File-Based Tests', () => {
    - Test complete workflows end-to-end
    - Validate CLI argument parsing
    - Check exit codes and error messages
-   - Test output formats (JSON and Mermaid)
+   - Test output formats (text, JSON, and Mermaid)
 
 4. **Validate Type Resolution**
    - Test with complex TypeScript types

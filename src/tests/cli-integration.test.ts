@@ -5,6 +5,7 @@ import { buildGraph } from '../core/graph-builder';
 import { filterGraph } from '../core/graph-filter';
 import { JsonFormatter } from '../formatters/json-formatter';
 import { MermaidFormatter } from '../formatters/mermaid-formatter';
+import { TextFormatter } from '../formatters/text-formatter';
 import type { CliOptions, Graph } from '../types';
 
 describe('CLI Integration - Core Features', () => {
@@ -412,6 +413,38 @@ describe('CLI Integration - Core Features', () => {
       expect(result.stderr).toBe('');
     });
 
+    it('should default to text output when --format is omitted', async () => {
+      const cliCommand = [
+        'ng-di-graph',
+        '--project', './src/tests/fixtures/tsconfig.json'
+      ];
+
+      const result = await executeCLICommand(cliCommand);
+
+      expect(result.exitCode).toBe(0);
+      const cleanOutput = result.stdout.trim();
+      expect(cleanOutput.startsWith('Project:')).toBe(true);
+      expect(cleanOutput).toContain('Scope: direction=');
+      expect(cleanOutput).toContain('Files:');
+      expect(cleanOutput.startsWith('{')).toBe(false);
+    });
+
+    it('should output text format when requested', async () => {
+      const cliCommand = [
+        'ng-di-graph',
+        '--project', './src/tests/fixtures/tsconfig.json',
+        '--format', 'text'
+      ];
+
+      const result = await executeCLICommand(cliCommand);
+
+      expect(result.exitCode).toBe(0);
+      const cleanOutput = result.stdout.trim();
+      expect(cleanOutput.startsWith('Project:')).toBe(true);
+      expect(cleanOutput).toContain('Scope: direction=');
+      expect(cleanOutput).toContain('Files:');
+    });
+
     it('should execute CLI workflow without --include-decorators (default behavior)', async () => {
       // Arrange - CLI command without flag
       const cliCommand = [
@@ -813,6 +846,7 @@ describe('CLI Integration - Core Features', () => {
         '--project', './src/tests/fixtures/tsconfig.json',
         '--direction', 'both',
         '--entry', 'NonExistentService',
+        '--format', 'json',
         '--verbose'
       ];
 
@@ -919,7 +953,7 @@ function parseCLIArguments(args: string[]): CliOptions {
   const defaultOptions: CliOptions = {
     project: '',
     files: undefined,
-    format: 'json',
+    format: 'text',
     direction: 'downstream',
     includeDecorators: false,
     verbose: false
@@ -938,7 +972,7 @@ function parseCLIArguments(args: string[]): CliOptions {
         break;
       case '--format':
       case '-f':
-        options.format = args[++i] as 'json' | 'mermaid';
+        options.format = args[++i] as 'json' | 'mermaid' | 'text';
         break;
       case '--entry':
       case '-e':
@@ -994,7 +1028,7 @@ Options:
   -V, --version              display version number
   -p, --project <path>       tsconfig.json path (auto-discovered if omitted)
   --files <paths...>         specific file paths to analyze (similar to eslint targets)
-  -f, --format <format>      output format: json | mermaid (default: "json")
+  -f, --format <format>      output format: text | json | mermaid (default: "text")
   -e, --entry <symbol...>    starting nodes for sub-graph
   -d, --direction <dir>      filtering direction: upstream|downstream|both (default: "downstream")
   --include-decorators       include Optional/Self/SkipSelf/Host flags (default: false)
@@ -1044,8 +1078,8 @@ async function executeCLICommand(args: string[]): Promise<CLIResult> {
     options.project = resolvedProject;
 
     // Validate format
-    if (options.format && !['json', 'mermaid'].includes(options.format)) {
-      throw new Error(`Invalid format: ${options.format}. Must be 'json' or 'mermaid'`);
+    if (options.format && !['json', 'mermaid', 'text'].includes(options.format)) {
+      throw new Error(`Invalid format: ${options.format}. Must be 'text', 'json', or 'mermaid'`);
     }
 
     // Validate direction
@@ -1111,11 +1145,21 @@ async function executeCLICommand(args: string[]): Promise<CLIResult> {
     }
 
     // Format output
-    let formatter: JsonFormatter | MermaidFormatter;
+    let formatter: JsonFormatter | MermaidFormatter | TextFormatter;
     if (options.format === 'mermaid') {
       formatter = new MermaidFormatter();
-    } else {
+    } else if (options.format === 'json') {
       formatter = new JsonFormatter();
+    } else {
+      const processingStats = parser.getProcessingStats();
+      formatter = new TextFormatter({
+        projectPath: options.project,
+        direction: options.direction,
+        entry: options.entry,
+        processedFileCount: processingStats.processedFileCount,
+        skippedFileCount: processingStats.skippedFileCount,
+        warningCount: parser.getStructuredWarnings().totalCount,
+      });
     }
 
     const formattedOutput = formatter.format(graph);

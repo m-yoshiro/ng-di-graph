@@ -8,6 +8,7 @@ import { OutputHandler } from '../core/output-handler';
 import { AngularParser } from '../core/parser';
 import { JsonFormatter } from '../formatters/json-formatter';
 import { MermaidFormatter } from '../formatters/mermaid-formatter';
+import { TextFormatter } from '../formatters/text-formatter';
 import type { CliOptions } from '../types';
 /**
  * ng-di-graph CLI entry point
@@ -53,7 +54,7 @@ program
   .argument('[filePaths...]', 'TypeScript files to analyze (alias for --files)')
   .option('-p, --project <path>', 'tsconfig.json path (auto-discovered if omitted)')
   .option('--files <paths...>', 'specific file paths to analyze (similar to eslint targets)')
-  .option('-f, --format <format>', 'output format: json | mermaid', 'json')
+  .option('-f, --format <format>', 'output format: text | json | mermaid', 'text')
   .option('-e, --entry <symbol...>', 'starting nodes for sub-graph')
   .option('-d, --direction <dir>', 'filtering direction: upstream|downstream|both', 'downstream')
   .option('--include-decorators', 'include Optional/Self/SkipSelf/Host flags', false)
@@ -81,10 +82,10 @@ program.action(async (filePaths: string[] = [], options) => {
     }
 
     // Validate format option
-    const validFormats = ['json', 'mermaid'];
+    const validFormats = ['json', 'mermaid', 'text'];
     if (options.format && !validFormats.includes(options.format)) {
       throw ErrorHandler.createError(
-        `Invalid format: ${options.format}. Must be 'json' or 'mermaid'`,
+        `Invalid format: ${options.format}. Must be 'text', 'json', or 'mermaid'`,
         'INVALID_ARGUMENTS'
       );
     }
@@ -102,7 +103,7 @@ program.action(async (filePaths: string[] = [], options) => {
     const cliOptions: CliOptions = {
       project,
       files: mergedFiles.length > 0 ? mergedFiles : undefined,
-      format: options.format as 'json' | 'mermaid',
+      format: options.format as 'json' | 'mermaid' | 'text',
       entry: options.entry,
       direction: options.direction as 'upstream' | 'downstream' | 'both',
       includeDecorators: options.includeDecorators,
@@ -180,11 +181,24 @@ program.action(async (filePaths: string[] = [], options) => {
     }
 
     // Format output with logger
-    let formatter: JsonFormatter | MermaidFormatter;
+    let formatter: JsonFormatter | MermaidFormatter | TextFormatter;
     if (cliOptions.format === 'mermaid') {
       formatter = new MermaidFormatter(logger);
-    } else {
+    } else if (cliOptions.format === 'json') {
       formatter = new JsonFormatter(logger);
+    } else {
+      const processingStats = parser.getProcessingStats();
+      formatter = new TextFormatter(
+        {
+          projectPath: cliOptions.project,
+          direction: cliOptions.direction,
+          entry: cliOptions.entry,
+          processedFileCount: processingStats.processedFileCount,
+          skippedFileCount: processingStats.skippedFileCount,
+          warningCount: parser.getStructuredWarnings().totalCount,
+        },
+        logger
+      );
     }
 
     const formattedOutput = formatter.format(graph);
