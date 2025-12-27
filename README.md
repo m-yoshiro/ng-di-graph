@@ -19,8 +19,8 @@ npm install -g ng-di-graph
 
 ## Quick start
 ```bash
-# Analyze the whole project and print JSON (auto-discover tsconfig)
-ng-di-graph --format json
+# Analyze the whole project and print text output (default)
+ng-di-graph
 
 # Generate a Mermaid diagram and save it
 ng-di-graph --format mermaid --out docs/di-graph.mmd
@@ -45,13 +45,15 @@ ng-di-graph --project ./tsconfig.json --format json
 - 🔍 **Dependency Analysis** - Extract DI relationships from `@Injectable`, `@Component`, and `@Directive` classes
 - 🎯 **Constructor Injection** - Analyze constructor parameters with type annotations and `@Inject()` tokens
 - 🏷️ **Decorator Flags** - Capture `@Optional`, `@Self`, `@SkipSelf`, and `@Host` parameter decorators
-- 📊 **Multiple Output Formats** - JSON (machine-readable) and Mermaid (visual flowcharts)
+- 📊 **Multiple Output Formats** - Text (default), JSON (machine-readable), Mermaid (visual flowcharts)
 - 🎨 **Entry Point Filtering** - Generate sub-graphs from specific starting nodes
 - 🔄 **Bidirectional Analysis** - Explore upstream dependencies, downstream consumers, or both
 - 🔁 **Circular Detection** - Automatically detect and report circular dependencies
 
 ## Common commands
-- Full project, JSON output:  
+- Full project, text output (default):  
+  `ng-di-graph`
+- JSON output to stdout:  
   `ng-di-graph --format json`
 - Mermaid diagram to file:  
   `ng-di-graph --format mermaid --out docs/di-graph.mmd`
@@ -73,7 +75,7 @@ Option | Default | Description
 `filePaths` | none | Positional alias for `--files`; combines with `--files` when both are set.
 `-p, --project <path>` | auto-discovered | Path to the TypeScript config file to analyze (omit to auto-discover).
 `--files <paths...>` | none | Limit analysis to specific files or directories.
-`-f, --format <format>` | `json` | Output as `json` or `mermaid`.
+`-f, --format <format>` | `text` | Output as `text`, `json`, or `mermaid`.
 `-e, --entry <symbol...>` | none | Start the graph from one or more symbols.
 `-d, --direction <dir>` | `downstream` | `downstream`, `upstream`, or `both` relative to entries.
 `--include-decorators` | `false` | Add `@Optional`, `@Self`, `@SkipSelf`, `@Host` flags to edges.
@@ -82,6 +84,22 @@ Option | Default | Description
 `-h, --help` | `false` | Display CLI help.
 
 ## Output Formats
+
+### Text Format (default)
+
+```text
+Project: ./tsconfig.json
+Scope: direction=downstream, entry=all
+Files: 12 (skipped: 0)
+
+Dependencies (A depends on B):
+AppComponent
+└─ UserService
+
+UserService
+├─ AuthService
+└─ Logger
+```
 
 ### JSON Format
 

@@ -190,7 +190,7 @@ Use the TodoWrite tool to maintain clear task progression:
 When working with AI agents on this project, always provide context about:
 - **Target Angular Versions**: 17-20
 - **Core Technology**: ts-morph for TypeScript AST parsing
-- **Output Formats**: JSON and Mermaid flowcharts
+- **Output Formats**: Text (default), JSON, and Mermaid flowcharts
 - **Performance Requirements**: <10 seconds on medium-sized projects
 - **Key Constraints**: Constructor-only DI analysis, no provider parsing in MVP
 
@@ -204,8 +204,9 @@ src/
 │   ├── parser.ts          # ts-morph AST parsing
 │   └── graph-builder.ts   # Graph construction
 ├── formatters/
-│   ├── json.ts           # JSON output
-│   └── mermaid.ts        # Mermaid output
+│   ├── json-formatter.ts      # JSON output
+│   ├── mermaid-formatter.ts   # Mermaid output
+│   └── text-formatter.ts      # Text output
 ├── cli/
 │   └── index.ts          # Command-line interface
 └── types/
@@ -441,7 +442,7 @@ describe('Performance Tests', () => {
 2. **Leverage ts-morph**: Use AST parsing capabilities effectively
 3. **Handle Errors Gracefully**: Expect and manage parsing failures
 4. **Optimize for Performance**: Target <10 second processing time
-5. **Generate Valid Output**: Ensure JSON and Mermaid formats are correct
+5. **Generate Valid Output**: Ensure text, JSON, and Mermaid formats are correct
 6. **Test with Real Projects**: Validate with actual Angular codebases
 
 ---
