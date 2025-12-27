@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.5.0](https://github.com/m-yoshiro/ng-di-graph/compare/v0.4.7...v0.5.0) (2025-12-27)
+
+
+### Features
+
+* **cli:** auto-discover tsconfig when --project is omitted ([#91](https://github.com/m-yoshiro/ng-di-graph/issues/91)) ([6380c8c](https://github.com/m-yoshiro/ng-di-graph/commit/6380c8c47dac8713f976189424334bf95f590b62))
+
+
+### Dependencies
+
+* bump tsdown from 0.18.2 to 0.18.3 ([#89](https://github.com/m-yoshiro/ng-di-graph/issues/89)) ([ccf467c](https://github.com/m-yoshiro/ng-di-graph/commit/ccf467c3df541d3af2928ae53c1c431f555cdab6))
+
 ## [0.4.7](https://github.com/m-yoshiro/ng-di-graph/compare/v0.4.6...v0.4.7) (2025-12-22)
 
 
