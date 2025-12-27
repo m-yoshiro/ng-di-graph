@@ -7,11 +7,29 @@ import { OutputHandler } from '../core/output-handler';
 import { createLogger, type Logger } from '../core/logger';
 
 describe('Output Formatting', () => {
+  const sourceLocation = (filePath: string, line: number, column: number) => ({
+    filePath,
+    line,
+    column,
+  });
+
   const sampleGraph: Graph = {
     nodes: [
-      { id: 'TestService', kind: 'service' },
-      { id: 'TestComponent', kind: 'component' },
-      { id: 'AnotherService', kind: 'service' }
+      {
+        id: 'TestService',
+        kind: 'service',
+        source: sourceLocation('/src/test.service.ts', 12, 3),
+      },
+      {
+        id: 'TestComponent',
+        kind: 'component',
+        source: sourceLocation('/src/test.component.ts', 5, 10),
+      },
+      {
+        id: 'AnotherService',
+        kind: 'service',
+        source: sourceLocation('/src/another.service.ts', 20, 8),
+      }
     ],
     edges: [
       { from: 'TestComponent', to: 'TestService', flags: {} },

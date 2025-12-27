@@ -6,6 +6,15 @@ import { createStubLogger } from './helpers/test-utils';
 import type { Graph, CliOptions, ParsedClass } from '../types';
 
 describe('Entry Point Filtering', () => {
+  const withSource = (parsedClass: Omit<ParsedClass, 'source'>): ParsedClass => ({
+    ...parsedClass,
+    source: {
+      filePath: parsedClass.filePath,
+      line: 1,
+      column: 1,
+    },
+  });
+
   // Sample graph: Component -> ServiceA -> ServiceB
   //                         -> ServiceC
   const sampleGraph: Graph = {
@@ -358,7 +367,7 @@ describe('Entry Point Filtering', () => {
           filePath: '/src/admin.service.ts',
           dependencies: []
         }
-      ];
+      ].map(withSource);
 
       // Build the full graph
       const fullGraph = buildGraph(sampleParsedClasses);

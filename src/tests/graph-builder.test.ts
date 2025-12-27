@@ -3,6 +3,17 @@ import { buildGraph } from '../core/graph-builder';
 import { createLogger, type Logger } from '../core/logger';
 import type { ParsedClass, Graph, NodeKind } from '../types';
 
+const sourceLocation = (filePath: string, line = 1, column = 1) => ({
+  filePath,
+  line,
+  column,
+});
+
+const withSource = (parsedClass: Omit<ParsedClass, 'source'>): ParsedClass => ({
+  ...parsedClass,
+  source: sourceLocation(parsedClass.filePath),
+});
+
 describe('GraphBuilder', () => {
   describe('buildGraph', () => {
     it('should create an empty graph for empty input', () => {
@@ -21,10 +32,10 @@ describe('GraphBuilder', () => {
           filePath: '/src/user.service.ts',
           dependencies: []
         }
-      ];
+      ].map(withSource);
       const result: Graph = buildGraph(parsedClasses);
       expect(result.nodes).toEqual([
-        { id: 'UserService', kind: 'service' }
+        { id: 'UserService', kind: 'service', source: sourceLocation('/src/user.service.ts') }
       ]);
       expect(result.edges).toEqual([]);
       expect(result.circularDependencies).toEqual([]);
@@ -49,11 +60,11 @@ describe('GraphBuilder', () => {
           filePath: '/src/user.service.ts',
           dependencies: []
         }
-      ];
+      ].map(withSource);
       const result: Graph = buildGraph(parsedClasses);
       expect(result.nodes).toEqual([
-        { id: 'UserComponent', kind: 'component' },
-        { id: 'UserService', kind: 'service' }
+        { id: 'UserComponent', kind: 'component', source: sourceLocation('/src/user.component.ts') },
+        { id: 'UserService', kind: 'service', source: sourceLocation('/src/user.service.ts') }
       ]);
       expect(result.edges).toEqual([
         { from: 'UserComponent', to: 'UserService' }
@@ -74,11 +85,11 @@ describe('GraphBuilder', () => {
             }
           ]
         }
-      ];
+      ].map(withSource);
       const result: Graph = buildGraph(parsedClasses);
       expect(result.nodes).toEqual([
         { id: 'MissingService', kind: 'unknown' },
-        { id: 'UserComponent', kind: 'component' }
+        { id: 'UserComponent', kind: 'component', source: sourceLocation('/src/user.component.ts') }
       ]);
       expect(result.edges).toEqual([
         { from: 'UserComponent', to: 'MissingService' }
@@ -109,7 +120,7 @@ describe('GraphBuilder', () => {
           filePath: '/src/user.service.ts',
           dependencies: []
         }
-      ];
+      ].map(withSource);
       const result: Graph = buildGraph(parsedClasses);
       expect(result.edges).toEqual([
         {
@@ -153,12 +164,13 @@ describe('GraphBuilder', () => {
           filePath: '/src/shared.service.ts',
           dependencies: []
         }
-      ];
+      ].map(withSource);
       const result: Graph = buildGraph(parsedClasses);
       expect(result.nodes).toHaveLength(3);
       expect(result.nodes.find(n => n.id === 'SharedService')).toEqual({
         id: 'SharedService',
-        kind: 'service'
+        kind: 'service',
+        source: sourceLocation('/src/shared.service.ts')
       });
       expect(result.edges).toHaveLength(2);
     });
@@ -182,7 +194,7 @@ describe('GraphBuilder', () => {
             }
           ]
         }
-      ];
+      ].map(withSource);
       const result: Graph = buildGraph(parsedClasses);
       // Nodes should be sorted alphabetically by id
       expect(result.nodes[0].id).toBe('AComponent');
@@ -220,7 +232,7 @@ describe('GraphBuilder', () => {
               }
             ]
           }
-        ];
+        ].map(withSource);
         const result: Graph = buildGraph(parsedClasses);
         expect(result.circularDependencies).toHaveLength(1);
         expect(result.circularDependencies[0]).toEqual(['ServiceA', 'ServiceB', 'ServiceA']);
@@ -267,7 +279,7 @@ describe('GraphBuilder', () => {
               }
             ]
           }
-        ];
+        ].map(withSource);
         const result: Graph = buildGraph(parsedClasses);
         expect(result.circularDependencies).toHaveLength(1);
         expect(result.circularDependencies[0]).toEqual(['ServiceA', 'ServiceB', 'ServiceC', 'ServiceA']);
@@ -327,7 +339,7 @@ describe('GraphBuilder', () => {
               }
             ]
           }
-        ];
+        ].map(withSource);
         const result: Graph = buildGraph(parsedClasses);
         expect(result.circularDependencies).toHaveLength(2);
         
@@ -350,7 +362,7 @@ describe('GraphBuilder', () => {
               }
             ]
           }
-        ];
+        ].map(withSource);
         const result: Graph = buildGraph(parsedClasses);
         expect(result.circularDependencies).toHaveLength(1);
         expect(result.circularDependencies[0]).toEqual(['SelfService', 'SelfService']);
@@ -400,7 +412,7 @@ describe('GraphBuilder', () => {
             filePath: '/src/service-d.ts',
             dependencies: []
           }
-        ];
+        ].map(withSource);
         const result: Graph = buildGraph(parsedClasses);
         expect(result.circularDependencies).toEqual([]);
         
@@ -459,6 +471,7 @@ describe('GraphBuilder', () => {
             name: 'TestService',
             kind: 'service' as NodeKind,
             filePath: '/src/service.ts',
+            source: sourceLocation('/src/service.ts'),
             dependencies: 'invalid' as any
           }
         ];
@@ -471,6 +484,7 @@ describe('GraphBuilder', () => {
             name: 'TestService',
             kind: 'service' as NodeKind,
             filePath: '/src/service.ts',
+            source: sourceLocation('/src/service.ts'),
             dependencies: [
               {
                 parameterName: 'param'
@@ -481,12 +495,25 @@ describe('GraphBuilder', () => {
         expect(() => buildGraph(malformedClasses)).toThrow('ParsedDependency must have a valid token property');
       });
 
+      it('should throw error for malformed ParsedClass - missing source', () => {
+        const malformedClasses = [
+          {
+            name: 'TestService',
+            kind: 'service' as NodeKind,
+            filePath: '/src/service.ts',
+            dependencies: []
+          } as any
+        ];
+        expect(() => buildGraph(malformedClasses)).toThrow('ParsedClass must have a valid source property');
+      });
+
       it('should handle empty string names gracefully', () => {
         const classesWithEmptyName = [
           {
             name: '',
             kind: 'service' as NodeKind,
             filePath: '/src/service.ts',
+            source: sourceLocation('/src/service.ts'),
             dependencies: []
           }
         ];
@@ -499,6 +526,7 @@ describe('GraphBuilder', () => {
             name: '   ',
             kind: 'service' as NodeKind,
             filePath: '/src/service.ts',
+            source: sourceLocation('/src/service.ts'),
             dependencies: []
           }
         ];
@@ -513,12 +541,12 @@ describe('GraphBuilder', () => {
         // Create a tree structure: Node0 -> Node1 -> Node2 -> ... -> Node99
         for (let i = 0; i < 100; i++) {
           const dependencies = i < 99 ? [{ token: `Node${i + 1}`, parameterName: 'dep' }] : [];
-          parsedClasses.push({
+          parsedClasses.push(withSource({
             name: `Node${i}`,
             kind: 'service' as NodeKind,
             filePath: `/src/node${i}.service.ts`,
             dependencies
-          });
+          }));
         }
         const startTime = performance.now();
         const result = buildGraph(parsedClasses);
@@ -541,23 +569,23 @@ describe('GraphBuilder', () => {
         // Cycle 1: A0 -> A1 -> A2 -> A0
         for (let i = 0; i < 3; i++) {
           const nextIndex = (i + 1) % 3;
-          parsedClasses.push({
+          parsedClasses.push(withSource({
             name: `A${i}`,
             kind: 'service' as NodeKind,
             filePath: `/src/a${i}.service.ts`,
             dependencies: [{ token: `A${nextIndex}`, parameterName: 'dep' }]
-          });
+          }));
         }
         
         // Cycle 2: B0 -> B1 -> B2 -> B3 -> B0
         for (let i = 0; i < 4; i++) {
           const nextIndex = (i + 1) % 4;
-          parsedClasses.push({
+          parsedClasses.push(withSource({
             name: `B${i}`,
             kind: 'service' as NodeKind,
             filePath: `/src/b${i}.service.ts`,
             dependencies: [{ token: `B${nextIndex}`, parameterName: 'dep' }]
-          });
+          }));
         }
         const startTime = performance.now();
         const result = buildGraph(parsedClasses);
@@ -593,7 +621,7 @@ describe('GraphBuilder', () => {
             }
           ]
         }
-      ];
+      ].map(withSource);
       const result: Graph = buildGraph(parsedClasses);
       expect(result.edges).toHaveLength(1);
       expect(result.edges[0].flags).toEqual({
@@ -618,7 +646,7 @@ describe('GraphBuilder', () => {
             }
           ]
         }
-      ];
+      ].map(withSource);
       const result: Graph = buildGraph(parsedClasses);
       expect(result.edges).toHaveLength(1);
       expect(result.edges[0].flags).toBeUndefined();
@@ -638,7 +666,7 @@ describe('GraphBuilder', () => {
             }
           ]
         }
-      ];
+      ].map(withSource);
       const result: Graph = buildGraph(parsedClasses);
       expect(result.edges).toHaveLength(1);
       expect(result.edges[0].flags).toEqual({});
@@ -673,7 +701,7 @@ describe('GraphBuilder', () => {
             }
           ]
         }
-      ];
+      ].map(withSource);
       const result: Graph = buildGraph(parsedClasses);
       expect(result.edges).toHaveLength(4);
       
@@ -709,7 +737,7 @@ describe('GraphBuilder', () => {
             }
           ]
         }
-      ];
+      ].map(withSource);
       const result: Graph = buildGraph(parsedClasses);
       expect(result.edges).toHaveLength(1);
       expect(result.edges[0].flags).toEqual({
@@ -746,7 +774,7 @@ describe('GraphBuilder', () => {
             }
           ]
         }
-      ];
+      ].map(withSource);
       const result: Graph = buildGraph(parsedClasses);
       expect(result.circularDependencies).toHaveLength(1);
       expect(result.edges).toHaveLength(2);
@@ -794,7 +822,7 @@ describe('GraphBuilder', () => {
             }
           ]
         }
-      ];
+      ].map(withSource);
       const result: Graph = buildGraph(parsedClasses);
       expect(result.edges).toHaveLength(5);
       
@@ -842,7 +870,7 @@ describe('GraphBuilder', () => {
           filePath: '/src/service-a.ts',
           dependencies: []
         }
-      ];
+      ].map(withSource);
 
       buildGraph(parsedClasses, logger);
 
@@ -860,7 +888,7 @@ describe('GraphBuilder', () => {
           filePath: '/src/service-a.ts',
           dependencies: []
         }
-      ];
+      ].map(withSource);
 
       buildGraph(parsedClasses, logger);
 
@@ -884,7 +912,7 @@ describe('GraphBuilder', () => {
           filePath: '/src/service-b.ts',
           dependencies: []
         }
-      ];
+      ].map(withSource);
 
       buildGraph(parsedClasses, logger);
 
@@ -908,7 +936,7 @@ describe('GraphBuilder', () => {
           filePath: '/src/service-b.ts',
           dependencies: []
         }
-      ];
+      ].map(withSource);
 
       buildGraph(parsedClasses, logger);
 
@@ -932,7 +960,7 @@ describe('GraphBuilder', () => {
           filePath: '/src/service-b.ts',
           dependencies: [{ token: 'ServiceA', parameterName: 'serviceA', flags: {} }]
         }
-      ];
+      ].map(withSource);
 
       buildGraph(parsedClasses, logger);
 
@@ -950,7 +978,7 @@ describe('GraphBuilder', () => {
           filePath: '/src/service-a.ts',
           dependencies: []
         }
-      ];
+      ].map(withSource);
 
       buildGraph(parsedClasses, logger);
 
@@ -968,7 +996,7 @@ describe('GraphBuilder', () => {
           filePath: '/src/service-a.ts',
           dependencies: []
         }
-      ];
+      ].map(withSource);
 
       expect(() => buildGraph(parsedClasses)).not.toThrow();
 
@@ -985,7 +1013,7 @@ describe('GraphBuilder', () => {
           filePath: '/src/service-a.ts',
           dependencies: [{ token: 'UnknownService', parameterName: 'unknownService', flags: {} }]
         }
-      ];
+      ].map(withSource);
 
       buildGraph(parsedClasses, logger);
 

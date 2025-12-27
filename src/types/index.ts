@@ -5,9 +5,16 @@
 
 export type NodeKind = 'service' | 'component' | 'directive' | 'unknown';
 
+export interface NodeSource {
+  filePath: string;
+  line: number;
+  column: number;
+}
+
 export interface Node {
   id: string;
   kind: NodeKind;
+  source?: NodeSource;
 }
 
 export interface EdgeFlags {
@@ -49,6 +56,7 @@ export interface ParsedClass {
   name: string;
   kind: NodeKind;
   filePath: string;
+  source: NodeSource;
   dependencies: ParsedDependency[];
 }
 

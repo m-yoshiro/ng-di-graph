@@ -575,6 +575,18 @@ export class AngularParser {
       return null;
     }
 
+    const nameNode = classDeclaration.getNameNode();
+    if (!nameNode) {
+      const message =
+        'Skipping class without name node - classes must be named for dependency injection analysis';
+      if (this._logger) {
+        this._logger.warn(LogCategory.AST_ANALYSIS, message, { className });
+      } else {
+        ErrorHandler.warn(message);
+      }
+      return null;
+    }
+
     const decorators = classDeclaration.getDecorators();
 
     if (this._options.verbose) {
@@ -600,7 +612,10 @@ export class AngularParser {
     }
 
     const nodeKind = this.determineNodeKind(angularDecorator);
-    const filePath = classDeclaration.getSourceFile().getFilePath();
+    const sourceFile = classDeclaration.getSourceFile();
+    const filePath = sourceFile.getFilePath();
+    const { line, column } = sourceFile.getLineAndColumnAtPos(nameNode.getStart());
+    const source = { filePath, line, column };
 
     // FR-03: Extract constructor dependencies
     const dependencies = this.extractConstructorDependencies(classDeclaration);
@@ -609,6 +624,7 @@ export class AngularParser {
       name: className,
       kind: nodeKind,
       filePath,
+      source,
       dependencies,
     };
   }
