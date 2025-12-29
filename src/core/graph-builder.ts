@@ -190,15 +190,29 @@ export function buildGraph(parsedClasses: ParsedClass[], logger?: Logger): Graph
     for (const dependency of parsedClass.dependencies) {
       // Create unknown node if dependency doesn't exist
       if (!nodeMap.has(dependency.token)) {
-        nodeMap.set(dependency.token, {
+        const unknownNode: Node = {
           id: dependency.token,
           kind: 'unknown',
-        });
+        };
+        if (dependency.origin) {
+          unknownNode.origin = dependency.origin;
+        }
+        nodeMap.set(dependency.token, unknownNode);
         unknownNodeCount++;
         logger?.warn(LogCategory.GRAPH_CONSTRUCTION, `Created unknown node: ${dependency.token}`, {
           nodeId: dependency.token,
           referencedBy: parsedClass.name,
         });
+      } else {
+        const existingNode = nodeMap.get(dependency.token);
+        if (
+          existingNode &&
+          existingNode.kind === 'unknown' &&
+          !existingNode.origin &&
+          dependency.origin
+        ) {
+          existingNode.origin = dependency.origin;
+        }
       }
 
       // Create edge

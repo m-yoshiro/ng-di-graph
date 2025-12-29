@@ -43,9 +43,17 @@ function validateAndTraverseEntryPoints(
  * @returns Filtered graph containing only nodes reachable from entry points
  */
 export function filterGraph(graph: Graph, options: CliOptions, logger?: Logger): Graph {
-  // If no entry points specified or empty array, return original graph
+  const includeAngularCore = options.includeAngularCore ?? false;
+  const baseGraph = filterGraphByOrigin(graph, includeAngularCore);
+
+  // If no entry points specified or empty array, return origin-filtered graph
   if (!options.entry || options.entry.length === 0) {
-    return graph;
+    const includedNodeIds = new Set(baseGraph.nodes.map((node) => node.id));
+    return {
+      nodes: baseGraph.nodes,
+      edges: baseGraph.edges,
+      circularDependencies: filterCircularDependencies(baseGraph, includedNodeIds),
+    };
   }
 
   const includedNodeIds = new Set<string>();
@@ -53,11 +61,11 @@ export function filterGraph(graph: Graph, options: CliOptions, logger?: Logger):
   // Handle bidirectional separately by combining upstream and downstream
   if (options.direction === 'both') {
     // Perform upstream traversal
-    const upstreamAdjacencyList = buildAdjacencyList(graph, 'upstream');
+    const upstreamAdjacencyList = buildAdjacencyList(baseGraph, 'upstream');
     const upstreamNodes = new Set<string>();
     validateAndTraverseEntryPoints(
       options.entry,
-      graph,
+      baseGraph,
       upstreamAdjacencyList,
       upstreamNodes,
       options,
@@ -65,11 +73,11 @@ export function filterGraph(graph: Graph, options: CliOptions, logger?: Logger):
     );
 
     // Perform downstream traversal
-    const downstreamAdjacencyList = buildAdjacencyList(graph, 'downstream');
+    const downstreamAdjacencyList = buildAdjacencyList(baseGraph, 'downstream');
     const downstreamNodes = new Set<string>();
     validateAndTraverseEntryPoints(
       options.entry,
-      graph,
+      baseGraph,
       downstreamAdjacencyList,
       downstreamNodes,
       options,
@@ -83,10 +91,10 @@ export function filterGraph(graph: Graph, options: CliOptions, logger?: Logger):
     }
   } else {
     // Handle single direction (upstream or downstream)
-    const adjacencyList = buildAdjacencyList(graph, options.direction);
+    const adjacencyList = buildAdjacencyList(baseGraph, options.direction);
     validateAndTraverseEntryPoints(
       options.entry,
-      graph,
+      baseGraph,
       adjacencyList,
       includedNodeIds,
       options,
@@ -95,13 +103,49 @@ export function filterGraph(graph: Graph, options: CliOptions, logger?: Logger):
   }
 
   // Filter nodes and edges
-  const filteredNodes = graph.nodes.filter((node) => includedNodeIds.has(node.id));
-  const filteredEdges = graph.edges.filter(
+  const filteredNodes = baseGraph.nodes.filter((node) => includedNodeIds.has(node.id));
+  const filteredEdges = baseGraph.edges.filter(
     (edge) => includedNodeIds.has(edge.from) && includedNodeIds.has(edge.to)
   );
 
   // Filter circular dependencies - only include cycles where all nodes exist and edges form valid cycle
-  const filteredCircularDeps = graph.circularDependencies.filter((cycle) => {
+  const filteredCircularDeps = filterCircularDependencies(baseGraph, includedNodeIds);
+
+  if (options.verbose && logger) {
+    logger.info(LogCategory.FILTERING, 'Filtered graph summary', {
+      nodeCount: filteredNodes.length,
+      edgeCount: filteredEdges.length,
+    });
+    logger.debug(LogCategory.FILTERING, 'Entry points applied', { entryPoints: options.entry });
+  }
+
+  return {
+    nodes: filteredNodes,
+    edges: filteredEdges,
+    circularDependencies: filteredCircularDeps,
+  };
+}
+
+function filterGraphByOrigin(graph: Graph, includeAngularCore: boolean): Graph {
+  if (includeAngularCore) {
+    return graph;
+  }
+
+  const filteredNodes = graph.nodes.filter((node) => node.origin !== 'angular-core');
+  const includedNodeIds = new Set(filteredNodes.map((node) => node.id));
+  const filteredEdges = graph.edges.filter(
+    (edge) => includedNodeIds.has(edge.from) && includedNodeIds.has(edge.to)
+  );
+
+  return {
+    nodes: filteredNodes,
+    edges: filteredEdges,
+    circularDependencies: graph.circularDependencies,
+  };
+}
+
+function filterCircularDependencies(graph: Graph, includedNodeIds: Set<string>): string[][] {
+  return graph.circularDependencies.filter((cycle) => {
     // First check if cycle has valid length (minimum 2 for self-loop, minimum 3 for multi-node cycle)
     if (cycle.length < 2) {
       return false; // Invalid cycle - too short
@@ -124,38 +168,24 @@ export function filterGraph(graph: Graph, options: CliOptions, logger?: Logger):
       return false;
     }
 
-    // Then check that the cycle has valid edges between consecutive nodes in the ORIGINAL graph
+    // Then check that the cycle has valid edges between consecutive nodes in the graph
     const edgesToCheck = isProperCycleWithClosing ? cycle.length - 1 : cycle.length;
 
     for (let i = 0; i < edgesToCheck; i++) {
       const fromNode = cycle[i];
       const toNode = isProperCycleWithClosing ? cycle[i + 1] : cycle[(i + 1) % cycle.length];
 
-      // Check if there's an edge from fromNode to toNode in the original graph edges
-      const hasEdgeInOriginal = graph.edges.some(
+      // Check if there's an edge from fromNode to toNode in the graph edges
+      const hasEdgeInGraph = graph.edges.some(
         (edge) => edge.from === fromNode && edge.to === toNode
       );
-      if (!hasEdgeInOriginal) {
-        return false; // Invalid cycle - missing edge in original graph
+      if (!hasEdgeInGraph) {
+        return false; // Invalid cycle - missing edge in graph
       }
     }
 
     return true;
   });
-
-  if (options.verbose && logger) {
-    logger.info(LogCategory.FILTERING, 'Filtered graph summary', {
-      nodeCount: filteredNodes.length,
-      edgeCount: filteredEdges.length,
-    });
-    logger.debug(LogCategory.FILTERING, 'Entry points applied', { entryPoints: options.entry });
-  }
-
-  return {
-    nodes: filteredNodes,
-    edges: filteredEdges,
-    circularDependencies: filteredCircularDeps,
-  };
 }
 
 /**

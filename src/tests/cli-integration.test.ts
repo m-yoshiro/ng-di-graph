@@ -276,6 +276,30 @@ describe('CLI Integration - Core Features', () => {
         expect(parsedArgs.includeDecorators).toBe(true);
       }
     });
+
+    it('should parse --include-angular-core flag correctly from CLI arguments', async () => {
+      const cliArgs = ['--project', './src/tests/fixtures/tsconfig.json', '--include-angular-core'];
+
+      const parsedArgs = parseCLIArguments(cliArgs);
+
+      expect(parsedArgs.includeAngularCore).toBe(true);
+      expect(parsedArgs.project).toBe('./src/tests/fixtures/tsconfig.json');
+    });
+
+    it('should default includeAngularCore to false when flag is not provided', async () => {
+      const cliArgs = ['--project', './src/tests/fixtures/tsconfig.json'];
+
+      const parsedArgs = parseCLIArguments(cliArgs);
+
+      expect(parsedArgs.includeAngularCore).toBe(false);
+    });
+
+    it('should include --include-angular-core in CLI help text', async () => {
+      const helpOutput = getCLIHelpText();
+
+      expect(helpOutput).toContain('--include-angular-core');
+      expect(helpOutput).toContain('include @angular/core nodes');
+    });
   });
 
   describe('Decorator inclusion/exclusion', () => {
@@ -956,6 +980,7 @@ function parseCLIArguments(args: string[]): CliOptions {
     format: 'text',
     direction: 'downstream',
     includeDecorators: false,
+    includeAngularCore: false,
     verbose: false
   };
 
@@ -993,6 +1018,9 @@ function parseCLIArguments(args: string[]): CliOptions {
         break;
       case '--include-decorators':
         options.includeDecorators = true;
+        break;
+      case '--include-angular-core':
+        options.includeAngularCore = true;
         break;
       case '--out':
         options.out = args[++i];
@@ -1032,6 +1060,7 @@ Options:
   -e, --entry <symbol...>    starting nodes for sub-graph
   -d, --direction <dir>      filtering direction: upstream|downstream|both (default: "downstream")
   --include-decorators       include Optional/Self/SkipSelf/Host flags (default: false)
+  --include-angular-core     include @angular/core nodes (default: false)
   --out <file>               output file (stdout if omitted)
   -v, --verbose              show detailed parsing information (default: false)
   -h, --help                 display help for command`;
@@ -1043,7 +1072,13 @@ async function generateGraphWithCLIOptions(options: CliOptions): Promise<Graph> 
   const parser = new AngularParser(options);
   parser.loadProject();
   const parsedClasses = await parser.parseClasses();
-  return buildGraph(parsedClasses);
+  let graph = buildGraph(parsedClasses);
+  const shouldFilterGraph =
+    (options.entry && options.entry.length > 0) || !options.includeAngularCore;
+  if (shouldFilterGraph) {
+    graph = filterGraph(graph, options);
+  }
+  return graph;
 }
 
 interface CLIResult {
@@ -1131,15 +1166,18 @@ async function executeCLICommand(args: string[]): Promise<CLIResult> {
       }
     }
 
-    // Apply entry point filtering if specified
-    if (options.entry && options.entry.length > 0) {
-      if (options.verbose) {
+    const shouldFilterGraph =
+      (options.entry && options.entry.length > 0) || !options.includeAngularCore;
+
+    // Apply entry point and angular-core filtering if specified
+    if (shouldFilterGraph) {
+      if (options.verbose && options.entry && options.entry.length > 0) {
         verboseLogs.push(`🔍 Filtering graph by entry points: ${options.entry.join(', ')}`);
       }
 
       graph = filterGraph(graph, options);
 
-      if (options.verbose) {
+      if (options.verbose && options.entry && options.entry.length > 0) {
         verboseLogs.push(`✅ Filtered graph: ${graph.nodes.length} nodes, ${graph.edges.length} edges`);
       }
     }

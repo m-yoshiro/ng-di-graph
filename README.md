@@ -49,6 +49,7 @@ ng-di-graph --project ./tsconfig.json --format json
 - 🎨 **Entry Point Filtering** - Generate sub-graphs from specific starting nodes
 - 🔄 **Bidirectional Analysis** - Explore upstream dependencies, downstream consumers, or both
 - 🔁 **Circular Detection** - Automatically detect and report circular dependencies
+- 🧹 **Angular Core Filtering** - Hide `@angular/core` nodes by default (`--include-angular-core` to show)
 
 ## Common commands
 - Full project, text output (default):  
@@ -79,6 +80,7 @@ Option | Default | Description
 `-e, --entry <symbol...>` | none | Start the graph from one or more symbols.
 `-d, --direction <dir>` | `downstream` | `downstream`, `upstream`, or `both` relative to entries.
 `--include-decorators` | `false` | Add `@Optional`, `@Self`, `@SkipSelf`, `@Host` flags to edges.
+`--include-angular-core` | `false` | Include nodes that originate from `@angular/core` imports.
 `--out <file>` | stdout | Write output to a file.
 `-v, --verbose` | `false` | Show detailed parsing and resolution logs.
 `-h, --help` | `false` | Display CLI help.

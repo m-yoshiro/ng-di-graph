@@ -1,0 +1,19 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "CommonJS",
+    "strict": true,
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "baseUrl": ".",
+    "paths": {
+      "@alias/angular-core": ["./vendor/@angular/core/index.d.ts"]
+    }
+  },
+  "include": [
+    "src/**/*",
+    "vendor/**/*"
+  ]
+}
