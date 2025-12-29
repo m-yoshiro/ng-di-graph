@@ -292,6 +292,29 @@ describe('AngularParser - Project Loading', () => {
   });
 });
 
+describe('AngularParser - Angular core origin tagging', () => {
+  it('should tag dependencies imported via tsconfig path aliases as angular-core', async () => {
+    const options: CliOptions = {
+      project: './src/tests/fixtures/alias-angular-core/tsconfig.json',
+      format: 'json',
+      direction: 'downstream',
+      includeDecorators: false,
+      verbose: false
+    };
+
+    const parser = new AngularParser(options);
+    parser.loadProject();
+
+    const classes = await parser.findDecoratedClasses();
+    const aliasService = classes.find(c => c.name === 'AliasCoreService');
+    expect(aliasService).toBeDefined();
+
+    const elementRefDep = aliasService?.dependencies.find(d => d.token === 'ElementRef');
+    expect(elementRefDep).toBeDefined();
+    expect(elementRefDep).toEqual(expect.objectContaining({ origin: 'angular-core' }));
+  });
+});
+
 describe('AngularParser - Decorated Class Collection', () => {
   const testFixturesDir = './src/tests/fixtures';
   const testTsConfig = join(testFixturesDir, 'tsconfig.json');

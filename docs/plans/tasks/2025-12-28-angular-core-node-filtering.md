@@ -264,7 +264,8 @@ export interface CliOptions {
   - [ ] All acceptance criteria met
 
 ### Progress Updates
-<!-- Updated by task-executor during execution -->
+- 2025-12-28: Added alias fixture and initial tests for angular-core cycle filtering and
+  alias-path origin tagging (expected to fail until implementation).
 
 ---
 

@@ -33,6 +33,18 @@ describe('Entry Point Filtering', () => {
     circularDependencies: []
   };
 
+  const angularCoreCycleGraph: Graph = {
+    nodes: [
+      { id: 'ProjectService', kind: 'service', origin: 'project' },
+      { id: 'ElementRef', kind: 'unknown', origin: 'angular-core' }
+    ],
+    edges: [
+      { from: 'ProjectService', to: 'ElementRef', flags: {}, isCircular: true },
+      { from: 'ElementRef', to: 'ProjectService', flags: {}, isCircular: true }
+    ],
+    circularDependencies: [['ProjectService', 'ElementRef', 'ProjectService']]
+  };
+
   it('should filter downstream dependencies correctly', () => {
     const options: CliOptions = {
       project: './tsconfig.json',
@@ -142,6 +154,46 @@ describe('Entry Point Filtering', () => {
 
     expect(filteredGraph.circularDependencies).toContainEqual(['ServiceA', 'ServiceB', 'ServiceA']);
     expect(filteredGraph.edges.filter(e => e.isCircular)).toHaveLength(2);
+  });
+
+  it('should drop angular-core nodes from cycles by default', () => {
+    const options: CliOptions = {
+      project: './tsconfig.json',
+      format: 'json',
+      direction: 'downstream',
+      includeDecorators: false,
+      includeAngularCore: false,
+      verbose: false,
+      entry: ['ProjectService']
+    };
+
+    const filteredGraph = filterGraph(angularCoreCycleGraph, options);
+
+    expect(filteredGraph.nodes.map(n => n.id)).toEqual(['ProjectService']);
+    expect(filteredGraph.edges).toEqual([]);
+    expect(filteredGraph.circularDependencies).toEqual([]);
+  });
+
+  it('should keep angular-core nodes when includeAngularCore is true', () => {
+    const options: CliOptions = {
+      project: './tsconfig.json',
+      format: 'json',
+      direction: 'downstream',
+      includeDecorators: false,
+      includeAngularCore: true,
+      verbose: false,
+      entry: ['ProjectService']
+    };
+
+    const filteredGraph = filterGraph(angularCoreCycleGraph, options);
+
+    expect(filteredGraph.nodes.map(n => n.id)).toEqual(['ProjectService', 'ElementRef']);
+    expect(filteredGraph.edges.filter(e => e.isCircular)).toHaveLength(2);
+    expect(filteredGraph.circularDependencies).toContainEqual([
+      'ProjectService',
+      'ElementRef',
+      'ProjectService'
+    ]);
   });
 
   it('should work with single entry point', () => {

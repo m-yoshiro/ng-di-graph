@@ -4,6 +4,7 @@
  */
 
 export type NodeKind = 'service' | 'component' | 'directive' | 'unknown';
+export type NodeOrigin = 'project' | 'angular-core' | 'external';
 
 export interface NodeSource {
   filePath: string;
@@ -14,6 +15,7 @@ export interface NodeSource {
 export interface Node {
   id: string;
   kind: NodeKind;
+  origin?: NodeOrigin;
   source?: NodeSource;
 }
 
@@ -48,6 +50,7 @@ export interface CliOptions {
   entry?: string[];
   direction: 'upstream' | 'downstream' | 'both';
   includeDecorators: boolean;
+  includeAngularCore?: boolean;
   out?: string;
   verbose: boolean;
 }
@@ -64,6 +67,7 @@ export interface ParsedDependency {
   token: string;
   flags?: EdgeFlags;
   parameterName: string;
+  origin?: NodeOrigin;
 }
 
 // Internal interface for parameter analysis results
