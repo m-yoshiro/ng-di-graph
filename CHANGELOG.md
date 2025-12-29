@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.0](https://github.com/m-yoshiro/ng-di-graph/compare/v0.6.0...v0.7.0) (2025-12-29)
+
+
+### Features
+
+* **core:** filter angular-core nodes by origin ([#95](https://github.com/m-yoshiro/ng-di-graph/issues/95)) ([5225b1b](https://github.com/m-yoshiro/ng-di-graph/commit/5225b1bf7f0f61702066c6c33c23746d0ecd3ed5))
+
 ## [0.6.0](https://github.com/m-yoshiro/ng-di-graph/compare/v0.5.0...v0.6.0) (2025-12-27)
 
 
