@@ -266,6 +266,8 @@ export interface CliOptions {
 ### Progress Updates
 - 2025-12-28: Added alias fixture and initial tests for angular-core cycle filtering and
   alias-path origin tagging (expected to fail until implementation).
+- 2025-12-28: Implemented angular-core origin tagging (with tsconfig alias support), origin
+  propagation for unknown nodes, CLI flag wiring, and default angular-core filtering.
 
 ---
 

@@ -32,7 +32,11 @@ export class JsonFormatter {
       edgeCount: graph.edges.length,
     });
 
-    const result = JSON.stringify(graph, null, 2);
+    const sanitizedGraph = {
+      ...graph,
+      nodes: graph.nodes.map(({ origin, ...node }) => node),
+    };
+    const result = JSON.stringify(sanitizedGraph, null, 2);
 
     const elapsed = this._logger?.timeEnd('json-format') ?? 0;
     this._logger?.info(LogCategory.PERFORMANCE, 'JSON output complete', {

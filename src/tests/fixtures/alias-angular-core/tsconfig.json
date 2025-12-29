@@ -9,10 +9,11 @@
     "skipLibCheck": true,
     "baseUrl": ".",
     "paths": {
-      "@alias/angular-core": ["./src/angular-core.ts"]
+      "@alias/angular-core": ["./vendor/@angular/core/index.d.ts"]
     }
   },
   "include": [
-    "src/**/*"
+    "src/**/*",
+    "vendor/**/*"
   ]
 }

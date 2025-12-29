@@ -19,6 +19,7 @@ import type {
   CliOptions,
   EdgeFlags,
   NodeKind,
+  NodeOrigin,
   ParameterAnalysisResult,
   ParsedClass,
   ParsedDependency,
@@ -36,6 +37,12 @@ import { LogCategory, type LogContext, type Logger } from './logger';
  * Implements FR-03: Constructor token resolution
  */
 const GLOBAL_WARNING_KEYS = new Set<string>();
+const ANGULAR_CORE_MODULE = '@angular/core';
+
+type AngularCoreImportMap = {
+  named: Set<string>;
+  namespaces: Set<string>;
+};
 
 const formatTsDiagnostics = (diagnostics: readonly ts.Diagnostic[]): string =>
   diagnostics
@@ -53,6 +60,8 @@ export class AngularParser {
   private _project?: Project;
   private _typeResolutionCache = new Map<string, string | null>();
   private _circularTypeRefs = new Set<string>();
+  private _angularCoreImportCache = new Map<string, AngularCoreImportMap>();
+  private _angularCoreAliasMatchers: RegExp[] = [];
   private _processingStats = {
     processedFileCount: 0,
     skippedFileCount: 0,
@@ -218,6 +227,9 @@ export class AngularParser {
           { diagnosticCount: parsedConfig.errors.length }
         );
       }
+
+      this.cacheAngularCoreAliases(configFile.config);
+      this._angularCoreImportCache.clear();
 
       // Load Project with ts-morph
       this._project = new Project({
@@ -705,7 +717,7 @@ export class AngularParser {
 
     for (const importDecl of importDeclarations) {
       const moduleSpecifier = importDecl.getModuleSpecifierValue();
-      if (moduleSpecifier === '@angular/core') {
+      if (this.isAngularCoreModuleSpecifier(moduleSpecifier)) {
         const namedImports = importDecl.getNamedImports();
 
         for (const namedImport of namedImports) {
@@ -723,6 +735,119 @@ export class AngularParser {
     }
 
     return null;
+  }
+
+  private cacheAngularCoreAliases(tsConfig: unknown): void {
+    this._angularCoreAliasMatchers = [];
+
+    if (!tsConfig || typeof tsConfig !== 'object') {
+      return;
+    }
+
+    const configRecord = tsConfig as Record<string, unknown>;
+    const compilerOptions =
+      typeof configRecord.compilerOptions === 'object' && configRecord.compilerOptions
+        ? (configRecord.compilerOptions as { paths?: Record<string, string[]> })
+        : undefined;
+
+    const paths = compilerOptions?.paths;
+    if (!paths) {
+      return;
+    }
+
+    for (const [alias, targets] of Object.entries(paths)) {
+      if (!Array.isArray(targets)) {
+        continue;
+      }
+
+      const hasAngularCoreTarget = targets.some((target) => this.isAngularCorePathTarget(target));
+      if (!hasAngularCoreTarget) {
+        continue;
+      }
+
+      this._angularCoreAliasMatchers.push(this.buildAliasMatcher(alias));
+    }
+  }
+
+  private buildAliasMatcher(alias: string): RegExp {
+    const escaped = alias.replace(/[.+?^${}()|[\]\\]/g, '\\$&');
+    const pattern = escaped.replace(/\\\*/g, '.*');
+    return new RegExp(`^${pattern}$`);
+  }
+
+  private isAngularCorePathTarget(target: string): boolean {
+    const normalized = target.replace(/\\/g, '/');
+    return (
+      normalized.includes(`${ANGULAR_CORE_MODULE}/`) || normalized.includes(ANGULAR_CORE_MODULE)
+    );
+  }
+
+  private isAngularCoreModuleSpecifier(moduleSpecifier: string): boolean {
+    if (
+      moduleSpecifier === ANGULAR_CORE_MODULE ||
+      moduleSpecifier.startsWith(`${ANGULAR_CORE_MODULE}/`)
+    ) {
+      return true;
+    }
+
+    return this._angularCoreAliasMatchers.some((matcher) => matcher.test(moduleSpecifier));
+  }
+
+  private getAngularCoreImportMap(sourceFile: SourceFile): AngularCoreImportMap {
+    const cacheKey = sourceFile.getFilePath();
+    const cached = this._angularCoreImportCache.get(cacheKey);
+    if (cached) {
+      return cached;
+    }
+
+    const named = new Set<string>();
+    const namespaces = new Set<string>();
+
+    const importDeclarations = sourceFile.getImportDeclarations();
+    for (const importDecl of importDeclarations) {
+      const moduleSpecifier = importDecl.getModuleSpecifierValue();
+      if (!this.isAngularCoreModuleSpecifier(moduleSpecifier)) {
+        continue;
+      }
+
+      const namedImports = importDecl.getNamedImports();
+      for (const namedImport of namedImports) {
+        const alias = namedImport.getAliasNode();
+        named.add(alias ? alias.getText() : namedImport.getName());
+      }
+
+      const namespaceImport = importDecl.getNamespaceImport();
+      if (namespaceImport) {
+        namespaces.add(namespaceImport.getText());
+      }
+    }
+
+    const map = { named, namespaces };
+    this._angularCoreImportCache.set(cacheKey, map);
+    return map;
+  }
+
+  private resolveDependencyOrigin(token: string, sourceFile: SourceFile): NodeOrigin | undefined {
+    const importMap = this.getAngularCoreImportMap(sourceFile);
+    const normalizedToken = this.normalizeTokenForOrigin(token);
+
+    if (normalizedToken.includes('.')) {
+      const namespace = normalizedToken.split('.')[0];
+      if (importMap.namespaces.has(namespace)) {
+        return 'angular-core';
+      }
+    }
+
+    if (importMap.named.has(normalizedToken)) {
+      return 'angular-core';
+    }
+
+    return undefined;
+  }
+
+  private normalizeTokenForOrigin(token: string): string {
+    const withoutGenerics = token.split('<')[0];
+    return withoutGenerics.replace(/\[\]$/, '');
   }
 
   /**
@@ -1233,7 +1358,8 @@ export class AngularParser {
    */
   private parseConstructorParameter(param: ParameterDeclaration): ParsedDependency | null {
     const parameterName = param.getName();
-    const filePath = param.getSourceFile().getFilePath();
+    const sourceFile = param.getSourceFile();
+    const filePath = sourceFile.getFilePath();
     const lineNumber = param.getStartLineNumber();
     const columnNumber = param.getStart() - param.getStartLinePos();
 
@@ -1256,6 +1382,7 @@ export class AngularParser {
             token,
             flags,
             parameterName,
+            origin: this.resolveDependencyOrigin(token, sourceFile),
           };
         }
       }
@@ -1272,6 +1399,7 @@ export class AngularParser {
             token: injectResult.token,
             flags: finalFlags,
             parameterName,
+            origin: this.resolveDependencyOrigin(injectResult.token, sourceFile),
           };
         }
       }
@@ -1290,6 +1418,7 @@ export class AngularParser {
             token,
             flags,
             parameterName,
+            origin: this.resolveDependencyOrigin(token, sourceFile),
           };
         }
       }
@@ -1338,6 +1467,7 @@ export class AngularParser {
           token: resolvedToken,
           flags,
           parameterName,
+          origin: this.resolveDependencyOrigin(resolvedToken, sourceFile),
         };
       }
 
@@ -1513,6 +1643,7 @@ export class AngularParser {
         token,
         flags,
         parameterName: propertyName,
+        origin: this.resolveDependencyOrigin(token, property.getSourceFile()),
       };
     } catch (error) {
       // Graceful error handling
@@ -1701,7 +1832,7 @@ export class AngularParser {
 
       for (const importDecl of importDeclarations) {
         const moduleSpecifier = importDecl.getModuleSpecifierValue();
-        if (moduleSpecifier === '@angular/core') {
+        if (this.isAngularCoreModuleSpecifier(moduleSpecifier)) {
           const namedImports = importDecl.getNamedImports();
 
           for (const namedImport of namedImports) {

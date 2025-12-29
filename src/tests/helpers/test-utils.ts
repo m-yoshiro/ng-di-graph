@@ -25,6 +25,7 @@ export function createTestCliOptions(overrides?: Partial<CliOptions>): CliOption
     format: 'json',
     direction: 'downstream',
     includeDecorators: false,
+    includeAngularCore: false,
     verbose: false,
     ...overrides,
   };

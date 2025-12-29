@@ -58,6 +58,7 @@ program
   .option('-e, --entry <symbol...>', 'starting nodes for sub-graph')
   .option('-d, --direction <dir>', 'filtering direction: upstream|downstream|both', 'downstream')
   .option('--include-decorators', 'include Optional/Self/SkipSelf/Host flags', false)
+  .option('--include-angular-core', 'include @angular/core nodes', false)
   .option('--out <file>', 'output file (stdout if omitted)')
   .option('-v, --verbose', 'show detailed parsing information', false);
 
@@ -107,6 +108,7 @@ program.action(async (filePaths: string[] = [], options) => {
       entry: options.entry,
       direction: options.direction as 'upstream' | 'downstream' | 'both',
       includeDecorators: options.includeDecorators,
+      includeAngularCore: options.includeAngularCore,
       out: options.out,
       verbose: options.verbose,
     };
@@ -167,15 +169,18 @@ program.action(async (filePaths: string[] = [], options) => {
       }
     }
 
-    // Apply entry point filtering if specified
-    if (cliOptions.entry && cliOptions.entry.length > 0) {
-      if (cliOptions.verbose) {
+    const shouldFilterGraph =
+      (cliOptions.entry && cliOptions.entry.length > 0) || !cliOptions.includeAngularCore;
+
+    // Apply entry point and angular-core filtering if specified
+    if (shouldFilterGraph) {
+      if (cliOptions.verbose && cliOptions.entry && cliOptions.entry.length > 0) {
         console.log(`🔍 Filtering graph by entry points: ${cliOptions.entry.join(', ')}`);
       }
 
       graph = filterGraph(graph, cliOptions, logger);
 
-      if (cliOptions.verbose) {
+      if (cliOptions.verbose && cliOptions.entry && cliOptions.entry.length > 0) {
         console.log(`✅ Filtered graph: ${graph.nodes.length} nodes, ${graph.edges.length} edges`);
       }
     }
