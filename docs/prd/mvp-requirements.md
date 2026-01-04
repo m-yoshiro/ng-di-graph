@@ -3,7 +3,7 @@
 - **Project Name**: **ng‑di‑graph** (working title)
 - **Document Version**: **v0.1‑MVP**
 - **Created**: 2025‑07‑29
-- **Target Angular Versions**: **17 – 20**
+- **Target Angular Versions**: **17 – 21**
 
 ---
 
@@ -88,7 +88,7 @@ The goal of this project is to deliver a **command‑line tool** that parses a T
 | Item | Details |
 |------|---------|
 | **Decorated classes** | `@Injectable()`, `@Component()`, `@Directive()` |
-| **Dependency source** | Constructor parameter **type annotations** or `@Inject(TOKEN)` |
+| **Dependency source** | Constructor parameter **type annotations**, `@Inject(TOKEN)`, or `inject()` function calls. |
 | **Parameter decorators** | Detect `@Optional`, `@Self`, `@SkipSelf`, `@Host`; store as edge flags |
 | **Output formats** | **Text** (default), **JSON** (machine‑readable), and **Mermaid flowchart** (visual) |
 | **CLI options** | `--project`, `--format`, `--entry`, `--out`, `--include-decorators` |
