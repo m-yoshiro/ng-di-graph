@@ -167,7 +167,7 @@ export class ServiceWithMixedDecorators {
 
 // Fixtures for inject() flag handling
 
-import { inject } from '@angular/core';
+import { inject, inject as di } from '@angular/core';
 
 // Basic inject() with optional flag
 @Injectable()
@@ -224,6 +224,13 @@ export class ServiceWithMultipleInjects {
 @Injectable()
 export class ServiceWithBasicInject {
   private dependency = inject(BasicService);
+  constructor() {}
+}
+
+// inject() with aliased import
+@Injectable()
+export class ServiceWithAliasedInject {
+  private dependency = di(BasicService);
   constructor() {}
 }
 
