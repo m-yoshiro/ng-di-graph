@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.8.0](https://github.com/m-yoshiro/ng-di-graph/compare/v0.7.0...v0.8.0) (2026-01-06)
+
+
+### Features
+
+* add Angular v21 smoke fixture ([6ca6b65](https://github.com/m-yoshiro/ng-di-graph/commit/6ca6b651cf312456e78f6f926d99dceae63c8c2a))
+* **parser:** support aliased inject imports ([ad08ea2](https://github.com/m-yoshiro/ng-di-graph/commit/ad08ea2756cfa795da83629a594c3be0b49bef92))
+
+
+### Dependencies
+
+* bump @biomejs/biome from 2.3.10 to 2.3.11 ([106e7ba](https://github.com/m-yoshiro/ng-di-graph/commit/106e7ba8cd0f095cf14cf32cd378f3f45abb09fb))
+* bump tsdown from 0.18.3 to 0.18.4 ([#97](https://github.com/m-yoshiro/ng-di-graph/issues/97)) ([14aed05](https://github.com/m-yoshiro/ng-di-graph/commit/14aed0512cd6d1269efe5785bdfe91151ed75be8))
+
 ## [0.7.0](https://github.com/m-yoshiro/ng-di-graph/compare/v0.6.0...v0.7.0) (2025-12-29)
 
 
