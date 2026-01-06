@@ -339,7 +339,7 @@ describe('AngularParser - Decorated Class Collection', () => {
 
       // Should find all @Injectable services from all fixture files
       const services = classes.filter(c => c.kind === 'service');
-      expect(services).toHaveLength(37); // 24 original + 4 from edge-cases.ts + 9 new inject() services
+      expect(services).toHaveLength(38); // 24 original + 4 from edge-cases.ts + 10 new inject() services
 
       const serviceNames = services.map(s => s.name);
       // From services.ts
@@ -1146,6 +1146,17 @@ describe('AngularParser - inject() Function Detection', () => {
       expect(dep?.flags?.self).toBeUndefined();
       expect(dep?.flags?.skipSelf).toBeUndefined();
       expect(dep?.flags?.host).toBeUndefined();
+    });
+
+    it('should detect inject() with aliased import', async () => {
+      const classes = await parser.findDecoratedClasses();
+      const service = classes.find(c => c.name === 'ServiceWithAliasedInject');
+
+      expect(service).toBeDefined();
+      expect(service?.dependencies).toHaveLength(1);
+
+      const dep = service?.dependencies[0];
+      expect(dep?.token).toBe('BasicService');
     });
 
     it('should detect inject() with token references', async () => {

@@ -61,6 +61,7 @@ export class AngularParser {
   private _typeResolutionCache = new Map<string, string | null>();
   private _circularTypeRefs = new Set<string>();
   private _angularCoreImportCache = new Map<string, AngularCoreImportMap>();
+  private _angularInjectIdentifiersCache = new Map<string, Set<string>>();
   private _angularCoreAliasMatchers: RegExp[] = [];
   private _processingStats = {
     processedFileCount: 0,
@@ -230,6 +231,7 @@ export class AngularParser {
 
       this.cacheAngularCoreAliases(configFile.config);
       this._angularCoreImportCache.clear();
+      this._angularInjectIdentifiersCache.clear();
 
       // Load Project with ts-morph
       this._project = new Project({
@@ -1606,13 +1608,8 @@ export class AngularParser {
       }
 
       const identifier = expression.getText();
-      if (identifier !== 'inject') {
-        return null;
-      }
-
-      // Additional validation: ensure inject is imported from @angular/core
-      // This helps avoid false positives from other inject() functions
-      if (!this.isAngularInjectImported(property.getSourceFile())) {
+      const injectIdentifiers = this.getAngularInjectIdentifiers(property.getSourceFile());
+      if (!injectIdentifiers.has(identifier)) {
         return null;
       }
 
@@ -1820,45 +1817,35 @@ export class AngularParser {
     return flags;
   }
 
-  /**
-   * Check if inject() function is imported from @angular/core
-   * Prevents false positives from custom inject() functions
-   * @param sourceFile Source file to check imports
-   * @returns True if Angular inject is imported
-   */
-  private isAngularInjectImported(sourceFile: SourceFile): boolean {
-    try {
-      const importDeclarations = sourceFile.getImportDeclarations();
-
-      for (const importDecl of importDeclarations) {
-        const moduleSpecifier = importDecl.getModuleSpecifierValue();
-        if (this.isAngularCoreModuleSpecifier(moduleSpecifier)) {
-          const namedImports = importDecl.getNamedImports();
-
-          for (const namedImport of namedImports) {
-            const importName = namedImport.getName();
-            const alias = namedImport.getAliasNode();
-
-            // Check for direct import or aliased import
-            if (importName === 'inject' || (alias && alias.getText() === 'inject')) {
-              return true;
-            }
-          }
-        }
-      }
-
-      return false;
-    } catch (error) {
-      // Conservative approach: assume it's valid if we can't determine
-      if (this._options.verbose) {
-        this.warn(
-          LogCategory.ERROR_RECOVERY,
-          `Could not verify inject() import in ${sourceFile.getFilePath()}: ${error instanceof Error ? error.message : String(error)}`,
-          { filePath: sourceFile.getFilePath() }
-        );
-      }
-      return true; // Assume valid to avoid false negatives
+  private getAngularInjectIdentifiers(sourceFile: SourceFile): Set<string> {
+    const cacheKey = sourceFile.getFilePath();
+    const cached = this._angularInjectIdentifiersCache.get(cacheKey);
+    if (cached) {
+      return cached;
     }
+
+    const identifiers = new Set<string>();
+    const importDeclarations = sourceFile.getImportDeclarations();
+
+    for (const importDecl of importDeclarations) {
+      const moduleSpecifier = importDecl.getModuleSpecifierValue();
+      if (!this.isAngularCoreModuleSpecifier(moduleSpecifier)) {
+        continue;
+      }
+
+      const namedImports = importDecl.getNamedImports();
+      for (const namedImport of namedImports) {
+        if (namedImport.getName() !== 'inject') {
+          continue;
+        }
+
+        const alias = namedImport.getAliasNode();
+        identifiers.add(alias ? alias.getText() : 'inject');
+      }
+    }
+
+    this._angularInjectIdentifiersCache.set(cacheKey, identifiers);
+    return identifiers;
   }
 
   /**
@@ -1894,13 +1881,9 @@ export class AngularParser {
       }
 
       const functionName = callIdentifier.getText();
-      if (functionName !== 'inject') {
-        return null;
-      }
-
-      // Verify inject is imported from @angular/core
       const sourceFile = expression.getSourceFile();
-      if (!this.isAngularInjectImported(sourceFile)) {
+      const injectIdentifiers = this.getAngularInjectIdentifiers(sourceFile);
+      if (!injectIdentifiers.has(functionName)) {
         return null;
       }
 

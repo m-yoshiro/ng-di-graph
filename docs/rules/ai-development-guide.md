@@ -188,7 +188,7 @@ Use the TodoWrite tool to maintain clear task progression:
 ### 5.1 ng-di-graph Context Awareness
 
 When working with AI agents on this project, always provide context about:
-- **Target Angular Versions**: 17-20
+- **Target Angular Versions**: 17-21
 - **Core Technology**: ts-morph for TypeScript AST parsing
 - **Output Formats**: Text (default), JSON, and Mermaid flowcharts
 - **Performance Requirements**: <10 seconds on medium-sized projects

@@ -6,11 +6,11 @@
 
 A command-line tool that analyzes Angular TypeScript codebases to extract dependency injection relationships.
 
-**Target Angular Versions:** 17-20
+**Target Angular Versions:** 17-21
 
 ## Prerequisites
 - Node.js 20.x (npm 10+)
-- Angular project targeting v17-20 with a `tsconfig.json` to discover or reference
+- Angular project targeting v17-21 with a `tsconfig.json` to discover or reference
 
 ## Installation
 ```bash
@@ -44,6 +44,7 @@ ng-di-graph --project ./tsconfig.json --format json
 
 - 🔍 **Dependency Analysis** - Extract DI relationships from `@Injectable`, `@Component`, and `@Directive` classes
 - 🎯 **Constructor Injection** - Analyze constructor parameters with type annotations and `@Inject()` tokens
+- ✨ **Modern DI Support** - Analyze dependencies from constructor injection and the `inject()` function
 - 🏷️ **Decorator Flags** - Capture `@Optional`, `@Self`, `@SkipSelf`, and `@Host` parameter decorators
 - 📊 **Multiple Output Formats** - Text (default), JSON (machine-readable), Mermaid (visual flowcharts)
 - 🎨 **Entry Point Filtering** - Generate sub-graphs from specific starting nodes
