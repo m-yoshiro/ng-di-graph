@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.8.1](https://github.com/m-yoshiro/ng-di-graph/compare/v0.8.0...v0.8.1) (2026-01-17)
+
+
+### Dependencies
+
+* bump @types/node from 25.0.3 to 25.0.9 ([ea419a4](https://github.com/m-yoshiro/ng-di-graph/commit/ea419a4e249415421ca70a35c35898abf3f6313f))
+* bump the vitest group with 2 updates ([9077acc](https://github.com/m-yoshiro/ng-di-graph/commit/9077accbd5c52d717b59932d0e04992e2cded94e))
+* bump tsdown from 0.18.4 to 0.19.0 ([90722ff](https://github.com/m-yoshiro/ng-di-graph/commit/90722fff7cb7dd493a9360ce64f984b0d5e31425))
+
 ## [0.8.0](https://github.com/m-yoshiro/ng-di-graph/compare/v0.7.0...v0.8.0) (2026-01-06)
 
 
