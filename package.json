@@ -21,7 +21,7 @@
     "dev": "tsx src/cli/index.ts",
     "dev:node": "tsx src/cli/index.ts",
     "build:bundle": "tsdown --config tsdown.config.ts",
-    "build:types": "tsc --emitDeclarationOnly --outDir dist",
+    "build:types": "tsgo --emitDeclarationOnly --outDir dist",
     "build": "npm run build:bundle && npm run build:types",
     "test": "vitest run",
     "test:watch": "vitest watch",
@@ -31,7 +31,7 @@
     "format": "biome format src --write",
     "format:check": "biome format src",
     "check": "npm run lint && npm run typecheck",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsgo --noEmit",
     "clean": "rimraf dist"
   },
   "keywords": [
@@ -46,6 +46,7 @@
   "devDependencies": {
     "@biomejs/biome": "^2.3.7",
     "@types/node": "^25.0.0",
+    "@typescript/native-preview": "^7.0.0-dev.20260120.1",
     "@vitest/coverage-v8": "^4.0.13",
     "rimraf": "^6.1.2",
     "tsdown": "^0.19.0",
