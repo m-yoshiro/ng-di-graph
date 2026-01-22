@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.8.2](https://github.com/m-yoshiro/ng-di-graph/compare/v0.8.1...v0.8.2) (2026-01-22)
+
+
+### Dependencies
+
+* bump @types/node from 25.0.3 to 25.0.9 ([3907cbc](https://github.com/m-yoshiro/ng-di-graph/commit/3907cbc1d1ad38af01a3767b1614334e246bda5c))
+* bump @types/node from 25.0.9 to 25.0.10 ([48edc77](https://github.com/m-yoshiro/ng-di-graph/commit/48edc7733b769b5a2627cde8eb92ca1275bd62dc))
+
+
+### Chores
+
+* **deps:** setup tsgo ([1bd0a2f](https://github.com/m-yoshiro/ng-di-graph/commit/1bd0a2f29b5b857db01615b417027b9c15c5ceb5))
+* **deps:** setup tsgo ([cc8ea11](https://github.com/m-yoshiro/ng-di-graph/commit/cc8ea11b7249efb12cd6d6f874b7e0e122529dd2))
+
 ## [0.8.1](https://github.com/m-yoshiro/ng-di-graph/compare/v0.8.0...v0.8.1) (2026-01-17)
 
 
