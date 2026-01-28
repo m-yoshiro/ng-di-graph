@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.8.3](https://github.com/m-yoshiro/ng-di-graph/compare/v0.8.2...v0.8.3) (2026-01-28)
+
+
+### Dependencies
+
+* bump @biomejs/biome from 2.3.11 to 2.3.13 ([e6ef246](https://github.com/m-yoshiro/ng-di-graph/commit/e6ef246308fe4ac7e26cba27c15a76c30848858e))
+* bump @typescript/native-preview ([eaf9e72](https://github.com/m-yoshiro/ng-di-graph/commit/eaf9e72543cf53fda9e7414f938fbe9f48c6f822))
+* bump @typescript/native-preview ([6b1ed19](https://github.com/m-yoshiro/ng-di-graph/commit/6b1ed196f6724c19fd706d36352d8225249a7acb))
+* bump the vitest group with 2 updates ([d4b7b96](https://github.com/m-yoshiro/ng-di-graph/commit/d4b7b96dcdb7f6b405deffc6ec63aaa2512ee7a3))
+* bump tsdown from 0.19.0 to 0.20.1 ([c8c1b8a](https://github.com/m-yoshiro/ng-di-graph/commit/c8c1b8aab1c98c2056a2dc0fb3a535833c742b67))
+
 ## [0.8.2](https://github.com/m-yoshiro/ng-di-graph/compare/v0.8.1...v0.8.2) (2026-01-22)
 
 
