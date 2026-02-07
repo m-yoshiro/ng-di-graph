@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.8.4](https://github.com/m-yoshiro/ng-di-graph/compare/v0.8.3...v0.8.4) (2026-02-07)
+
+
+### Dependencies
+
+* bump @biomejs/biome from 2.3.13 to 2.3.14 ([86c074f](https://github.com/m-yoshiro/ng-di-graph/commit/86c074fb3df1faf6673043c1c2a2c8b4d03aafd3))
+* bump @types/node from 25.0.10 to 25.2.0 ([b2da4a1](https://github.com/m-yoshiro/ng-di-graph/commit/b2da4a18aa0fc07e63b2e7a8acef17c825e2be26))
+* bump @types/node from 25.2.0 to 25.2.1 ([bd90e95](https://github.com/m-yoshiro/ng-di-graph/commit/bd90e95653de4de0fb7e85c5724fcfeab34267df))
+* bump @typescript/native-preview ([90f1ac1](https://github.com/m-yoshiro/ng-di-graph/commit/90f1ac19ea003f3e373fc182556f6ef84e2a5da7))
+* bump @typescript/native-preview ([338daf7](https://github.com/m-yoshiro/ng-di-graph/commit/338daf782cd3864a5c7eae72aff1bedb8d661e29))
+* bump @typescript/native-preview ([7bd5c34](https://github.com/m-yoshiro/ng-di-graph/commit/7bd5c348dee30554c6ffcdf7ef64fda0edbbdec8))
+* bump @typescript/native-preview ([165d502](https://github.com/m-yoshiro/ng-di-graph/commit/165d5021817d63b8a9d6bc4b37a1c5be64b27b2e))
+* bump commander from 14.0.2 to 14.0.3 ([641e570](https://github.com/m-yoshiro/ng-di-graph/commit/641e5708590117c061708cdb03c510c3d82790ad))
+* bump tsdown from 0.20.1 to 0.20.2 ([6e8d8ee](https://github.com/m-yoshiro/ng-di-graph/commit/6e8d8ee159ee90ad91ff71a9d6109ef37ac49429))
+* bump tsdown from 0.20.2 to 0.20.3 ([4329986](https://github.com/m-yoshiro/ng-di-graph/commit/4329986da5d00a9b5f0305573f9b8ba528e5f456))
+
 ## [0.8.3](https://github.com/m-yoshiro/ng-di-graph/compare/v0.8.2...v0.8.3) (2026-01-28)
 
 
