@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.8.5](https://github.com/m-yoshiro/ng-di-graph/compare/v0.8.4...v0.8.5) (2026-02-21)
+
+
+### Dependencies
+
+* bump @biomejs/biome from 2.3.14 to 2.4.2 ([81e08cd](https://github.com/m-yoshiro/ng-di-graph/commit/81e08cd500ab18300316e7142f5a6b74a12bd0d4))
+* bump @biomejs/biome from 2.4.2 to 2.4.3 ([4ed0f25](https://github.com/m-yoshiro/ng-di-graph/commit/4ed0f2564515545b20b69cbdf73dd983112c5b94))
+* bump @types/node from 25.2.1 to 25.2.3 ([299cc2f](https://github.com/m-yoshiro/ng-di-graph/commit/299cc2fd1c6b9f8a2247b9e9816426658c399a2d))
+* bump @types/node from 25.2.3 to 25.3.0 ([0e9fa59](https://github.com/m-yoshiro/ng-di-graph/commit/0e9fa59a3f8098ac1f447758ef1502977db78931))
+* bump @typescript/native-preview ([3a64c3b](https://github.com/m-yoshiro/ng-di-graph/commit/3a64c3b8e1e5f62f404d9fd53e00d5561ba8d984))
+* bump rimraf from 6.1.2 to 6.1.3 ([7f828a4](https://github.com/m-yoshiro/ng-di-graph/commit/7f828a40ebc644b41e7b83865460745a24907c60))
+
 ## [0.8.4](https://github.com/m-yoshiro/ng-di-graph/compare/v0.8.3...v0.8.4) (2026-02-07)
 
 
