@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.8.6](https://github.com/m-yoshiro/ng-di-graph/compare/v0.8.5...v0.8.6) (2026-04-07)
+
+
+### Dependencies
+
+* bump @biomejs/biome from 2.4.3 to 2.4.6 ([6d5e626](https://github.com/m-yoshiro/ng-di-graph/commit/6d5e62668404c9bb0960627c8d4be5a34b6fd322))
+* bump @biomejs/biome from 2.4.6 to 2.4.7 ([76e4c69](https://github.com/m-yoshiro/ng-di-graph/commit/76e4c69ba170dff5f3d53d16f46864f168321177))
+* bump @types/node from 25.3.0 to 25.4.0 ([1e46f2b](https://github.com/m-yoshiro/ng-di-graph/commit/1e46f2bcd852abb1ee691fc47c2b438ca1c4d086))
+* bump @types/node from 25.4.0 to 25.5.0 ([63ee4c8](https://github.com/m-yoshiro/ng-di-graph/commit/63ee4c80e3ad25b2e042ccc30ae65628df76f0b4))
+* bump the vitest group with 2 updates ([d99ec36](https://github.com/m-yoshiro/ng-di-graph/commit/d99ec36637c26ea19c4bf3f84c7c27cc285039d9))
+* bump tsdown from 0.20.3 to 0.21.1 ([fbef8cb](https://github.com/m-yoshiro/ng-di-graph/commit/fbef8cbdcd98c71e6b9e2071b3d01596d7e6e768))
+* bump tsdown from 0.21.1 to 0.21.3 ([65191ad](https://github.com/m-yoshiro/ng-di-graph/commit/65191adfebff771bd8a54fd3a8870d7fdbb0761f))
+
+
+### Chores
+
+* **deps:** bump actions/download-artifact from 7 to 8 ([1164cc6](https://github.com/m-yoshiro/ng-di-graph/commit/1164cc670c340eed0bac3db3bdeabef62d401243))
+* **deps:** bump actions/download-artifact from 7 to 8 ([e8a7731](https://github.com/m-yoshiro/ng-di-graph/commit/e8a7731088fc3e7a4ddb1154840095ccdee32768))
+* **deps:** bump actions/upload-artifact from 6 to 7 ([5058219](https://github.com/m-yoshiro/ng-di-graph/commit/5058219cf088608a9a1b9319a7bae1a1d0dca16b))
+* **deps:** bump actions/upload-artifact from 6 to 7 ([b3681e2](https://github.com/m-yoshiro/ng-di-graph/commit/b3681e29259860447df7c9d4ead0a8cb566c8630))
+
 ## [0.8.5](https://github.com/m-yoshiro/ng-di-graph/compare/v0.8.4...v0.8.5) (2026-02-21)
 
 
